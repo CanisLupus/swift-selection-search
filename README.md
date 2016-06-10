@@ -18,8 +18,11 @@ https://addons.mozilla.org/en-us/firefox/addon/swift-selection-search/
 
 1. Install Node.js from https://nodejs.org/.
 2. Node comes with a package manager, npm. Run this on the command line:
+
 	npm install jpm --global
-(For more details, see https://developer.mozilla.org/Add-ons/SDK/Tools/jpm#Installation)
+	
+	(For more details, see https://developer.mozilla.org/Add-ons/SDK/Tools/jpm#Installation)
+	
 3. Now you have jpm, the tool for developing Firefox Add-ons. Open the "src" folder in a command line and either use "jpm run" to test the add-on in a sandbox or "jpm xpi" to generate a file that you can drag to Firefox to install.
 
 #### Known issues
