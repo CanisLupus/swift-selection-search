@@ -1,0 +1,246 @@
+{
+	"name": "swift-selection-search",
+	"title": "Swift Selection Search",
+	"id": "jid1-KdTtiCj6wxVAFA@jetpack",
+	"description": "Swiftly access your search engines in a popup panel when you select text in a webpage. Context search menu also included!",
+	"author": "Daniel Lobo",
+	"license": "GPL 2.0",
+	"version": "1.3.0",
+	"icon": "resource://jid1-KdTtiCj6wxVAFA-at-jetpack/icons/icon128.png",
+	"permissions": {"private-browsing": true},
+	"main": "index.js",
+	"engines": {
+		"firefox": ">=32.0"
+	},
+	"keywords": [
+		 "context","engine","fast","google","jetpack","panel","popup","productivity","quick","search","select","selected","selection","swift","text"
+	],
+
+	"preferences": [
+	{
+		"name": "popupPanelOpenBehavior",
+		"title": "Popup panel opening behaviour",
+		"type": "menulist",
+		"description": "When to open the popup panel.\n(default: Auto)",
+		"value": 1,
+		"options": [
+			{
+				"value": "0",
+				"label": "Off (never)"
+			},
+			{
+				"value": "1",
+				"label": "Auto (whenever text is selected)"
+			},
+			{
+				"value": "3",
+				"label": "Keyboard-only (with text already selected, press the key combination set below)"
+			}
+		]
+	},
+	{
+		"name": "popupPanelHotkey",
+		"title": "Key combination to open popup panel",
+		"type": "string",
+		"description": "You must use at least one of these: shift, control, alt, meta (Mac Command), accel (Control on Windows/Linux, Command on Mac). Clear the text box to disable the hotkey.\n(default: accel-shift-space, which means Ctrl+Shift+Spacebar on Windows/Linux and Cmd+Shift+Spacebar on Mac).",
+		"value": "accel-shift-space"
+	},
+	{
+		"name": "hidePopupPanelOnPageScroll",
+		"title": "Hide popup panel on page scroll",
+		"type": "bool",
+		"description": "Hides the popup panel when the page moves.\n(default: On)",
+		"value": true
+	},
+	{
+		"name": "hidePopupPanelOnSearch",
+		"title": "Hide popup panel on search engine click",
+		"type": "bool",
+		"description": "Hides the popup panel when a search engine is clicked.\n(default: On)",
+		"value": true
+	},
+	{
+		"name": "openEngineManager",
+		"title": "Manage your search engines",
+		"type": "control",
+		"description": "Opens Firefox's search engines manager. To select which engines are shown in the popup panel, use the \"Select from available search engines\", below.",
+		"label": "Manage"
+	},
+	{
+		"name": "selectEnginesButton",
+		"title": "Select from available search engines",
+		"type": "control",
+		"description": "Enable/disable the search engines that are displayed on the popup panel (the context menu still shows all of them).",
+		"label": "Select"
+	},
+	{
+		"name": "mouseLeftButtonBehavior",
+		"title": "Left mouse button behaviour",
+		"type": "menulist",
+		"description": "What to do when a search engine is clicked with the left mouse button.\n(default: Open in this tab)",
+		"value": 0,
+		"options": [
+			{
+				"value": "0",
+				"label": "Open in this tab"
+			},
+			{
+				"value": "1",
+				"label": "Open in new tab"
+			},
+			{
+				"value": "2",
+				"label": "Open in new background tab"
+			}
+		]
+	},
+	{
+		"name": "mouseMiddleButtonBehavior",
+		"title": "Middle mouse button behaviour",
+		"type": "menulist",
+		"description": "What to do when a search engine is clicked with the middle mouse button.\n(default: Open in new background tab)",
+		"value": 2,
+		"options": [
+			{
+				"value": "0",
+				"label": "Open in this tab"
+			},
+			{
+				"value": "1",
+				"label": "Open in new tab"
+			},
+			{
+				"value": "2",
+				"label": "Open in new background tab"
+			}
+		]
+	},
+	{
+		"name": "itemSize",
+		"title": "Icon size",
+		"type": "integer",
+		"description": "Search engine icon size in pixels.\n(default: 24)",
+		"value": 24
+	},
+	{
+		"name": "itemPadding",
+		"title": "Icon padding",
+		"type": "integer",
+		"description": "Search engine icon horizontal padding in pixels.\n(default: 2)",
+		"value": 2
+	},
+	{
+		"name": "useSingleRow",
+		"title": "Use single row",
+		"type": "bool",
+		"description": "Place all search engines in a single row?\n(default: On)",
+		"value": true
+	},
+	{
+		"name": "nItemsPerRow",
+		"title": "Number of icons per row",
+		"type": "integer",
+		"description": "Max number of search engines per row (if \"Use single row\" is off).\n(default: 4)",
+		"value": 4
+	},
+	{
+		"name": "itemHoverBehavior",
+		"title": "Icon hover behaviour",
+		"type": "menulist",
+		"description": "What happens to hovered search engine icons.\n(default: Highlight & Move)",
+		"value": 2,
+		"options": [
+			{
+				"value": "0",
+				"label": "Nothing (no hover effect)"
+			},
+			{
+				"value": "1",
+				"label": "Highlight-only"
+			},
+			{
+				"value": "2",
+				"label": "Highlight & Move"
+			}
+		]
+	},
+	{
+		"name": "popupPaddingX",
+		"title": "Popup panel horizontal padding",
+		"type": "integer",
+		"description": "Popup panel left/right padding, in pixels.\n(default: 3)",
+		"value": 3
+	},
+	{
+		"name": "popupPaddingY",
+		"title": "Popup panel vertical padding",
+		"type": "integer",
+		"description": "Popup panel top/bottom padding, in pixels.\n(default: 1)",
+		"value": 1
+	},
+	{
+		"name": "popupOffsetX",
+		"title": "Popup panel horizontal offset",
+		"type": "integer",
+		"description": "Popup panel horizontal offset in pixels (moves it to the right).\n(default: 0)",
+		"value": 0
+	},
+	{
+		"name": "negatePopupOffsetX",
+		"title": "Negate popup panel horizontal offset",
+		"type": "bool",
+		"description": "Makes the above offset move the popup panel to the left instead [because the Firefox Add-on SDK disallows negative numbers in preferences].\n(default: Off)",
+		"value": false
+	},
+	{
+		"name": "popupOffsetY",
+		"title": "Popup panel vertical offset",
+		"type": "integer",
+		"description": "Popup panel vertical offset in pixels (moves it up).\n(default: 0)",
+		"value": 0
+	},
+	{
+		"name": "negatePopupOffsetY",
+		"title": "Negate popup panel vertical offset",
+		"type": "bool",
+		"description": "Makes the above offset move the popup panel down instead [because the Firefox Add-on SDK disallows negative numbers in preferences].\n(default: Off)",
+		"value": false
+	},
+	{
+		"name": "doHorizontalCentering",
+		"title": "Do horizontal centering",
+		"type": "bool",
+		"description": "Whether or not to centre the popup panel horizontally.\n(default: On)",
+		"value": true,
+		"hidden": true
+	},
+	{
+		"name": "enableEnginesInContextMenu",
+		"title": "Enable engines in context menu",
+		"type": "bool",
+		"description": "Adds a sub-menu with all search engines when you right click a text selection.\n(default: On)",
+		"value": true
+	},
+	{
+		"name": "contextMenuItemBehavior",
+		"title": "Context menu item behaviour",
+		"type": "menulist",
+		"description": "What to do when a search engine is clicked in the context menu.\n(default: Open in this tab)",
+		"value": 0,
+		"options": [
+			{
+				"value": "0",
+				"label": "Open in this tab"
+			},
+			{
+				"value": "1",
+				"label": "Open in new tab"
+			},
+			{
+				"value": "2",
+				"label": "Open in new background tab"
+			}
+		]
+	}
+	]
+}
