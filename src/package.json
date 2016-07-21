@@ -42,8 +42,32 @@
 		"name": "popupPanelHotkey",
 		"title": "Key combination to open popup panel",
 		"type": "string",
-		"description": "You must use at least one of these: shift, control, alt, meta (Mac Command), accel (Control on Windows/Linux, Command on Mac). Clear the text box to disable the hotkey.\n(default: accel-shift-space, which means Ctrl+Shift+Spacebar on Windows/Linux and Cmd+Shift+Spacebar on Mac).",
+		"description": "You must use at least one of these: shift, control, alt, meta (Mac Command), accel (Control on Windows/Linux, Command on Mac). Clear the text box to disable the hotkey.\n(default: accel-shift-space, which means Ctrl+Shift+Spacebar on Windows/Linux and Cmd+Shift+Spacebar on Mac)",
 		"value": "accel-shift-space"
+	},
+	{
+		"name": "popupPanelDisableHotkey",
+		"title": "Key combination to disable popup panel",
+		"type": "string",
+		"description": "Changes the \"Popup panel opening behaviour\" option to Off and then back when pressed again. Use this when the popup is getting in the way of your browsing or text writing.\n(default: accel-shift-x, which means Ctrl+Shift+X on Windows/Linux and Cmd+Shift+X on Mac)",
+		"value": "accel-shift-x"
+	},
+	{
+		"name": "popupLocation",
+		"title": "Popup location",
+		"type": "menulist",
+		"description": "Where the popup should appear after selecting text.\n(default: Bottom right corner of selection \"rectangle\")",
+		"value": 0,
+		"options": [
+			{
+				"value": "0",
+				"label": "Bottom right corner of selection \"rectangle\""
+			},
+			{
+				"value": "1",
+				"label": "At mouse location"
+			}
+		]
 	},
 	{
 		"name": "hidePopupPanelOnPageScroll",
@@ -116,6 +140,13 @@
 		]
 	},
 	{
+		"name": "popupPanelAnimationDuration",
+		"title": "Panel animation duration",
+		"type": "integer",
+		"description": "Duration of panel animation, in milliseconds. 0 ms makes panel show instantly.\n(default: 200)",
+		"value": 200
+	},
+	{
 		"name": "itemSize",
 		"title": "Icon size",
 		"type": "integer",
@@ -179,34 +210,6 @@
 		"value": 1
 	},
 	{
-		"name": "popupOffsetX",
-		"title": "Popup panel horizontal offset",
-		"type": "integer",
-		"description": "Popup panel horizontal offset in pixels (moves it to the right).\n(default: 0)",
-		"value": 0
-	},
-	{
-		"name": "negatePopupOffsetX",
-		"title": "Negate popup panel horizontal offset",
-		"type": "bool",
-		"description": "Makes the above offset move the popup panel to the left instead [because the Firefox Add-on SDK disallows negative numbers in preferences].\n(default: Off)",
-		"value": false
-	},
-	{
-		"name": "popupOffsetY",
-		"title": "Popup panel vertical offset",
-		"type": "integer",
-		"description": "Popup panel vertical offset in pixels (moves it up).\n(default: 0)",
-		"value": 0
-	},
-	{
-		"name": "negatePopupOffsetY",
-		"title": "Negate popup panel vertical offset",
-		"type": "bool",
-		"description": "Makes the above offset move the popup panel down instead [because the Firefox Add-on SDK disallows negative numbers in preferences].\n(default: Off)",
-		"value": false
-	},
-	{
 		"name": "doHorizontalCentering",
 		"title": "Do horizontal centering",
 		"type": "bool",
@@ -239,6 +242,23 @@
 			{
 				"value": "2",
 				"label": "Open in new background tab"
+			}
+		]
+	},
+	{
+		"name": "autoCopyToClipboard",
+		"title": "Auto copy to clipboard",
+		"type": "menulist",
+		"description": "Automatically copy selected text.\n(default: Off)",
+		"value": 0,
+		"options": [
+			{
+				"value": "0",
+				"label": "Off"
+			},
+			{
+				"value": "1",
+				"label": "Always"
 			}
 		]
 	}

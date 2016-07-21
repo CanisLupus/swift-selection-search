@@ -15,22 +15,22 @@ setup_PopupPanel();
 
 function setup_Requires()
 {
-	// Cc,Ci,Cu are used to get the installed search engines and open their management panel.
-	const {Cc,Ci/*,Cu*/} = require("chrome");
-
+	// Cc and Ci are used to get the installed search engines.
+	const {Cc,Ci} = require("chrome");
 	this.searchService = Cc["@mozilla.org/browser/search-service;1"]
 		.getService(Ci.nsIBrowserSearchService);
 
 	this.self = require("sdk/self");
-	this.data = self.data;
+	this.data = this.self.data;
 	this.tabs = require("sdk/tabs");
 	this.pageMod = require("sdk/page-mod");
 	this.selection = require("sdk/selection");
 	this.panel = require("sdk/panel");
 	this.simplePrefs = require('sdk/simple-prefs');
 	this.simpleStorage = require("sdk/simple-storage");
-	this.contextMenu = require("sdk/context-menu");
+	this.contextMenuSdk = require("sdk/context-menu");
 	this.Hotkey = require("sdk/hotkeys");
+	this.clipboard = require("sdk/clipboard");
 }
 
 /* ------------------------------------ */
@@ -39,14 +39,14 @@ function setup_Requires()
 
 function setup_Preferences()
 {
-	// importOldPreferences();
-
 	this.PopupBehaviour_Off = 0;
 	this.PopupBehaviour_Auto = 1;
-	this.PopupBehaviour_Mouse = 2;
+	// this.PopupBehaviour_Mouse = 2;
 	this.PopupBehaviour_Keyboard = 3;
 
-	this.showPanelHotkey = undefined;
+	this.panelHotkey = undefined;
+	this.disablePanelHotkey = undefined;
+	this.options = createOptionsObjectFromPrefs();
 
 	if (simpleStorage.storage.searchEngines) {
 		purgeNonExistentEngines();
@@ -54,110 +54,84 @@ function setup_Preferences()
 		simpleStorage.storage.searchEngines = {};
 	}
 
-	setPreferencesCallbacks();
+	setCallbacksForPreferences();
 }
 
-// function importOldPreferences()
-// {
-// 	var prefix = "extensions.dlobo.sss.";
-
-// 	var translations = {
-// 		"popupPanelOpenBehavior"     : prefix + "popupPanelOpenBehavior",
-// 		"popupPanelHotkey"           : prefix + "popupPanelHotkey",
-// 		"hidePopupPanelOnPageScroll" : prefix + "hidePopupPanelOnPageScroll",
-// 		"openEngineManager"          : prefix + "openEngineManager",
-// 		"selectEnginesButton"        : prefix + "selectEnginesButton",
-// 		"mouseLeftButtonBehavior"    : prefix + "mouseLeftButtonBehavior",
-// 		"mouseMiddleButtonBehavior"  : prefix + "mouseMiddleButtonBehavior",
-// 		"itemSize"                   : prefix + "itemSize",
-// 		"itemPadding"                : prefix + "itemPadding",
-// 		"useSingleRow"               : prefix + "useSingleRow",
-// 		"nItemsPerRow"               : prefix + "nItemsPerRow",
-// 		"popupPaddingX"              : prefix + "popupPaddingX",
-// 		"popupPaddingY"              : prefix + "popupPaddingY",
-// 		"doHorizontalCentering"      : prefix + "doHorizontalCentering",
-// 		"enableEnginesInContextMenu" : prefix + "enableEnginesInContextMenu",
-// 		"contextMenuItemBehavior"    : prefix + "contextMenuItemBehavior"
-// 	}
-
-// 	for (var key in translations) {
-// 		if (translations.hasOwnProperty(key)) {
-// 			var value = translations[key];
-// 			if (simplePrefs.prefs[key] !== undefined) {
-// 				// console.log("new preference " + value + " created from " + key);
-// 				// simplePrefs.prefs[value] = simplePrefs.prefs[key];
-// 			}
-// 		}
-// 	}
-// }
-
-function setPreferencesCallbacks()
+function setCallbacksForPreferences()
 {
+	// any change should recreate the popup panel
 	simplePrefs.on("", function() {
-		destroyPopupPanel();
-	});
-
-	simplePrefs.on("popupPanelHotkey", function() {
-		setShowPanelHotkey();
-		destroyPopupPanel();
-	});
-
-	simplePrefs.on("popupPanelOpenBehavior", function() {
-		if (isPopupPanelEnabled()) {
-			setShowPanelHotkey();
-			setPopupPanelPageMod();
-		} else {
-			destroyPopupPanel();
-			popupPanelPageMod.destroy();
-			destroyPageWorkers();
-		}
-	});
-
-	simplePrefs.on("enableEnginesInContextMenu", function() {
-		if (simplePrefs.prefs['enableEnginesInContextMenu'] === true) {
-			createContextMenu();
-		} else if (searchMenu != null) {
-			searchMenu.destroy();
-			searchMenu = null;
-		}
+		setup_PopupPanel();
 	});
 
 	simplePrefs.on("selectEnginesButton", function() {
 		createSettingsPanel();
-		destroyPopupPanel();
 	});
 
 	simplePrefs.on("openEngineManager", function() {
-		// Cu.import("resource://gre/modules/Services.jsm");
-		// Services.wm.getMostRecentWindow('navigator:browser')
-		// 	.BrowserSearch.searchBar.openManager();
 		tabs.open({url: "about:preferences#search"});
-		destroyPopupPanel();
+	});
+
+	simplePrefs.on("enableEnginesInContextMenu", function() {
+		setup_ContextMenu();
 	});
 }
 
 function setShowPanelHotkey()
 {
-	if (showPanelHotkey) {
-		showPanelHotkey.destroy();
+	console.log("setShowPanelHotkey");
+
+	if (this.panelHotkey) {
+		this.panelHotkey.destroy();
+		this.panelHotkey = undefined;
 	}
 
-	if (isPopupPanelEnabled()) {
+	if (simplePrefs.prefs['popupPanelOpenBehavior'] != PopupBehaviour_Off) {
 		var hotkey = simplePrefs.prefs['popupPanelHotkey'];
 		if (!hotkey) {
 			return;
 		}
 
-		try {
-			showPanelHotkey = Hotkey({
+		// try {
+			this.panelHotkey = this.Hotkey.Hotkey({
 				combo: hotkey,
 				onPress: function() {
-					if (activeWorker != null && selection.text) {
-						activeWorker.port.emit("onSelection");
+					if (activeWorker) {
+						activeWorker.onSelection();
 					}
 				}
 			});
-		} catch (e) {}
+		// } catch (e) {}
+	}
+}
+
+function setDisablePanelHotkey()
+{
+	console.log("setDisablePanelHotkey");
+
+	if (this.disablePanelHotkey) {
+		this.disablePanelHotkey.destroy();
+		this.disablePanelHotkey = undefined;
+	}
+
+	if (simplePrefs.prefs['popupPanelOpenBehavior'] != PopupBehaviour_Off) {
+		var hotkey = simplePrefs.prefs['popupPanelDisableHotkey'];
+		if (!hotkey) {
+			return;
+		}
+
+		// try {
+			this.disablePanelHotkey = this.Hotkey.Hotkey({
+				combo: hotkey,
+				onPress: function() {
+					console.log("on press disable hotkey");
+					options.isPopupPanelDisabled = !options.isPopupPanelDisabled;
+					if (activeWorker) {
+						activeWorker.port.emit("destroyPopupPanel");
+					}
+				}
+			});
+		// } catch (e) {}
 	}
 }
 
@@ -221,6 +195,10 @@ function purgeNonExistentEngines()
 
 function setup_ContextMenu()
 {
+	if (this.contextMenu) {
+		this.contextMenu.destroy();
+		this.contextMenu = undefined;
+	}
 	if (simplePrefs.prefs['enableEnginesInContextMenu'] === true) {
 		createContextMenu();
 	}
@@ -240,7 +218,7 @@ function createContextMenu()
 			var itemObject = {
 				label: engine.name,
 				contentScript:
-					'self.on("click", function (node) {' +
+					'self.on("click", function(node) {' +
 					'	self.postMessage(window.getSelection().toString());' +
 					'});',
 				onMessage: function (selectionText) {
@@ -253,13 +231,13 @@ function createContextMenu()
 				itemObject.image = engine.iconURI.spec;
 			}
 
-			items.push(contextMenu.Item(itemObject));
+			items.push(contextMenuSdk.Item(itemObject));
 		}
 	}
 
-	searchMenu = contextMenu.Menu({
+	this.contextMenu = contextMenuSdk.Menu({
 		label: "Search With...",
-		context: contextMenu.SelectionContext(),
+		context: contextMenuSdk.SelectionContext(),
 		items: items
 		// image: data.url("context-icon-16.png")
 	});
@@ -271,89 +249,116 @@ function createContextMenu()
 
 function setup_PopupPanel()
 {
-	this.workers = [];
-	this.activeWorker = null;
+	console.log("setup_PopupPanel");
+	if (this.workers != undefined) {
+		destroyPageWorkers();
+	}
 
-	if (isPopupPanelEnabled()) {
+	this.workers = [];
+	this.activeWorker = undefined;
+
+	if (this.popupPanelPageMod) {
+		this.popupPanelPageMod.destroy();
+		this.popupPanelPageMod = undefined;
+	}
+
+	if (simplePrefs.prefs['popupPanelOpenBehavior'] != PopupBehaviour_Off) {
 		setShowPanelHotkey();
+		setDisablePanelHotkey();
 		setPopupPanelPageMod();
 	}
 }
 
-function isPopupPanelEnabled()
-{
-	return simplePrefs.prefs['popupPanelOpenBehavior'] != PopupBehaviour_Off;
-}
-
 function setPopupPanelPageMod()
 {
-	popupPanel = null;
-	activeWorker = null;
+	console.log("setPopupPanelPageMod");
+	// globals
+	this.activeWorker = undefined;
+	this.engines = undefined;
+
 	var workerID = 0;
 
-	popupPanelPageMod = pageMod.PageMod({
+	this.popupPanelPageMod = pageMod.PageMod({
 		include: "*",
 		contentScriptFile: data.url("selection-worker.js"),
 		attachTo: ["existing", "top"],
 		contentScriptWhen: "ready",
 		onAttach: function(worker)
 		{
-			// console.log("attach " + worker.tab.title);
 			workers.push(worker);
 			worker.id = workerID++;
+			console.log("onAttach " + worker.id);
 
 			worker.onSelection = function() {
-				// console.log(selection.text + " from " + worker.id);
-				if (selection.text && simplePrefs.prefs['popupPanelOpenBehavior'] == PopupBehaviour_Auto) {
-					worker.port.emit("onSelection");
+				console.log("onSelection " + options.isPopupPanelDisabled);
+				if (options.isPopupPanelDisabled) {
+					return;
+				}
+
+				console.log("onSelection " + worker.id);
+				if (selection.text)
+				{
+					var visibleEngines = searchService.getVisibleEngines({});
+					engines = visibleEngines.filter(function(engine) { return isEngineActive(engine); });
+					var engineObjs = engines.map(function(engine) { return convertEngineToObject(engine); });
+
+					worker.port.emit("onSelection", options, engineObjs);
+
+					if (simplePrefs.prefs['autoCopyToClipboard']) {
+						clipboard.set(selection.text);
+					}
 				}
 			}
 
 			worker.activateWorker = function() {
-				if (worker.tab == null) {
+				if (!worker.tab) {
 					return;
 				}
-
 				if (worker.tab.id != tabs.activeTab.id) {
 					return;
 				}
+
+				console.log("activateWorker " + worker.id);
 
 				if (activeWorker != null) {
 					activeWorker.deactivateWorker();
 				}
 
-				// if (activeWorker) {
-				// 	if (worker === activeWorker) {
-				// 		console.log("already the active worker");
-				// 		return;
-				// 	}
-				// 	activeWorker.deactivateWorker();
-				// }
-
 				activeWorker = worker;
-				// console.log("activateWorker " + worker.id);
-				worker.port.on("onAcquiredSelectionInfo", showPopupPanel);
-				selection.on('select', worker.onSelection);
+
+				worker.port.on("onSearchEngineLeftClick", onSearchEngineLeftClick);
+				worker.port.on("onSearchEngineMiddleClick", onSearchEngineMiddleClick);
+				worker.port.on("onSearchEngineCtrlClick", onSearchEngineCtrlClick);
+				if (simplePrefs.prefs['popupPanelOpenBehavior'] == PopupBehaviour_Auto) {
+					selection.on('select', worker.onSelection);
+				}
 			}
 
 			worker.deactivateWorker = function() {
-				// console.log("deactivateWorker " + worker.id);
-				worker.port.removeListener("onAcquiredSelectionInfo", showPopupPanel);
+				console.log("deactivateWorker");
+				if (activeWorker) {
+					activeWorker.port.emit("destroyPopupPanel");
+				}
+				worker.port.removeListener("onSearchEngineLeftClick", onSearchEngineLeftClick);
+				worker.port.removeListener("onSearchEngineMiddleClick", onSearchEngineMiddleClick);
+				worker.port.removeListener("onSearchEngineCtrlClick", onSearchEngineCtrlClick);
 				selection.removeListener('select', worker.onSelection);
-				activeWorker = null;
 			}
 
 			worker.on('pageshow', function() {
-				// console.log("pageshow " + worker.tab.title);
+				console.log("pageshow " + worker.id);
 				worker.activateWorker();
 			});
 
-			worker.tab.on('activate', function() {
-				// console.log("activate " + worker.tab.title);
-				worker.activateWorker();
-			});
+			if (worker.tab) {	// fix for settings change
+				worker.tab.on('activate', function() {
+					console.log("activate tab " + worker.id);
+					worker.activateWorker();
+				});
+			}
 
 			worker.on('detach', function () {
+				console.log("detach " + worker.id);
 				var index = workers.indexOf(worker);
 				if (index != -1) {
 					workers.splice(index, 1);
@@ -365,15 +370,9 @@ function setPopupPanelPageMod()
 	});
 }
 
-function onPageScroll()
-{
-	if (popupPanel != null && popupPanel.isShowing) {
-		hidePopupPanel();
-	}
-}
-
 function destroyPageWorkers()
 {
+	console.log("destroyPageWorkers");
 	var tmpWorkers = [];
 	for (var i in workers) {
 		worker = workers[i];
@@ -384,82 +383,7 @@ function destroyPageWorkers()
 		tmpWorkers[i].destroy();
 	}
 	workers = [];
-}
-
-function createPopupPanel()
-{
-	var visibleEngines = searchService.getVisibleEngines({});
-	var engines = visibleEngines.filter(function(engine) { return isEngineActive(engine); });
-
-	popupPanel_engines = engines;
-
-	var opt = createOptionsObjectFromPrefs();
-
-	opt.nItemsPerRow = (opt.useSingleRow ? engines.length : opt.nItemsPerRow);
-	var height = (opt.itemSize + 8) * Math.ceil(engines.length / opt.nItemsPerRow) + opt.popupPaddingY * 2;
-	var width = (opt.itemSize + opt.itemPadding * 2) * opt.nItemsPerRow + opt.popupPaddingX * 2;
-
-	opt.hoverBehavior = simplePrefs.prefs["itemHoverBehavior"];
-
-	popupPanel_opt = opt;
-
-	popupPanel = panel.Panel({
-		contentURL: data.url("popup.html"),
-		contentScriptFile: data.url("popup.js"),
-		height: height,
-		width: width,
-		focus: false
-	});
-
-	var engineObjs = engines.map(function(engine) { return convertEngineToObject(engine); });
-
-	popupPanel.port.emit('setupPanel', opt, engineObjs);
-	// popupPanel.port.emit('logInnerHTML', opt, engineObjs);
-	popupPanel.port.on("onSearchEngineLeftClick", onSearchEngineLeftClick);
-	popupPanel.port.on("onSearchEngineMiddleClick", onSearchEngineMiddleClick);
-}
-
-function showPopupPanel(selectionText, position)
-{
-	if (popupPanel == null) {
-		createPopupPanel();
-	}
-
-	var opt = popupPanel_opt;
-
-	if (opt.doHorizontalCentering) {
-		position.left -= popupPanel.width / 2;
-	}
-
-	position.left += opt.popupOffsetX;
-	position.top  -= opt.popupOffsetY;
-
-	popupPanel_selectionText = selectionText;
-
-	popupPanel.show({position: position});
-
-	if (simplePrefs.prefs["hidePopupPanelOnPageScroll"] === true) {
-		activeWorker.port.emit('registerOnPageScroll');
-		activeWorker.port.on("onPageScroll", onPageScroll);
-	}
-}
-
-function hidePopupPanel()
-{
-	popupPanel.hide();
-	if (simplePrefs.prefs["hidePopupPanelOnPageScroll"] === true) {
-		activeWorker.port.emit('deregisterOnPageScroll');
-		activeWorker.port.removeListener("onPageScroll", onPageScroll);
-	}
-}
-
-function destroyPopupPanel()
-{
-	if (popupPanel != null) {
-		hidePopupPanel();
-		popupPanel.destroy();
-		popupPanel = null;
-	}
+	this.activeWorker = undefined;
 }
 
 function convertEngineToObject(engine)
@@ -474,67 +398,66 @@ function createOptionsObjectFromPrefs()
 {
 	var opt = {};
 
-	opt.popupOffsetX = simplePrefs.prefs['popupOffsetX'];
-	opt.popupOffsetY = simplePrefs.prefs['popupOffsetY'];
-
-	if (simplePrefs.prefs['negatePopupOffsetX'] === true) {
-		opt.popupOffsetX = -opt.popupOffsetX;
-	}
-	if (simplePrefs.prefs['negatePopupOffsetY'] === true) {
-		opt.popupOffsetY = -opt.popupOffsetY;
-	}
-
 	opt.popupPaddingX = simplePrefs.prefs['popupPaddingX'];
 	opt.popupPaddingY = simplePrefs.prefs['popupPaddingY'];
 	opt.doHorizontalCentering = simplePrefs.prefs['doHorizontalCentering'];
 
+	opt.popupPanelAnimationDuration = simplePrefs.prefs['popupPanelAnimationDuration'];
 	opt.itemSize = simplePrefs.prefs['itemSize'];
 	opt.itemPadding = simplePrefs.prefs['itemPadding'];
 	opt.useSingleRow = simplePrefs.prefs['useSingleRow'];
 	opt.nItemsPerRow = simplePrefs.prefs['nItemsPerRow'];
 
+	opt.hoverBehavior = simplePrefs.prefs["itemHoverBehavior"];
+	opt.popupLocation = simplePrefs.prefs["popupLocation"];
+	opt.hidePopupPanelOnPageScroll = simplePrefs.prefs["hidePopupPanelOnPageScroll"];
+	opt.hidePopupPanelOnSearch = simplePrefs.prefs["hidePopupPanelOnSearch"];
+
+	opt.isPopupPanelDisabled = false;
+
 	return opt;
 }
 
-function onSearchEngineLeftClick(engineObj)
+function onSearchEngineLeftClick(searchText, engineObj)
 {
-	search(engineObj, simplePrefs.prefs['mouseLeftButtonBehavior']);
+	console.log("onSearchEngineLeftClick");
+	search(searchText, engineObj, simplePrefs.prefs['mouseLeftButtonBehavior']);
 }
 
-function onSearchEngineMiddleClick(engineObj)
+function onSearchEngineMiddleClick(searchText, engineObj)
 {
-	search(engineObj, simplePrefs.prefs['mouseMiddleButtonBehavior']);
+	console.log("onSearchEngineMiddleClick");
+	search(searchText, engineObj, simplePrefs.prefs['mouseMiddleButtonBehavior']);
 }
 
-function search(engineObj, behavior)
+function onSearchEngineCtrlClick(searchText, engineObj)
 {
-	var search = getSearchFromEngineObj(engineObj, popupPanel_selectionText);
-	openSearch(search, behavior);
-	if (simplePrefs.prefs['hidePopupPanelOnSearch'] === true) {
-		hidePopupPanel();
-	}
+	console.log("onSearchEngineCtrlClick");
+	search(searchText, engineObj, 2);
 }
 
-function openSearch(search, behavior)
+function search(searchText, engineObj, behavior)
 {
+	console.log("search");
+	var searchUrl = getSearchFromEngineObj(engineObj, searchText);
+	openSearch(searchUrl, behavior);
+}
+
+function openSearch(searchUrl, behavior)
+{
+	console.log("openSearch");
 	switch (behavior)
 	{
-		case 0:
-			tabs.activeTab.url = search;
-			break;
-		case 1:
-			tabs.open({url: search});
-			break;
-		case 2:
-			tabs.open({url: search, inBackground: true});
-			break;
+		case 0: tabs.activeTab.url = searchUrl; break;
+		case 1: tabs.open({ url: searchUrl }); break;
+		case 2: tabs.open({ url: searchUrl, inBackground: true }); break;
 	}
 }
 
 function getSearchFromEngineObj(engineObj, query)
 {
-	for (var key in popupPanel_engines) {
-		var engine = popupPanel_engines[key];
+	for (var key in this.engines) {
+		var engine = this.engines[key];
 		if (engine.name == engineObj.name) {
 			return engine.getSubmission(query).uri.spec;
 		}
