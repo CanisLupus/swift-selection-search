@@ -12,7 +12,7 @@ SSS is configurable. You can define which search engines show on the panel, the 
 You also get an optional context menu "Search With..." as a bonus, which appears when you right click the page after selecting text and lets you search with any of your engines. You can disable this extra context menu in the settings whenever you want. You also have the option of disabling the popup panel itself and leaving only this context menu. Your choice. :)
 
 SSS is available at the Mozilla Add-ons website, here:
-https://addons.mozilla.org/en-us/firefox/addon/swift-selection-search/
+https://addons.mozilla.org/firefox/addon/swift-selection-search/
 
 #### How to build
 
