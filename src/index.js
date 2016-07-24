@@ -4,10 +4,12 @@
 /* ====== Swift Selection Search ====== */
 /* ==================================== */
 
+sss = {};
+sdk = {};
 setup_Requires();
 setup_Preferences();
 setup_ContextMenu();
-setup_PopupPanel();
+setup_Popup();
 
 /* ------------------------------------ */
 /* ------------- IMPORTS -------------- */
@@ -17,20 +19,20 @@ function setup_Requires()
 {
 	// Cc and Ci are used to get the installed search engines.
 	const {Cc,Ci} = require("chrome");
-	this.searchService = Cc["@mozilla.org/browser/search-service;1"]
+	sdk.searchService = Cc["@mozilla.org/browser/search-service;1"]
 		.getService(Ci.nsIBrowserSearchService);
 
-	this.self = require("sdk/self");
-	this.data = this.self.data;
-	this.tabs = require("sdk/tabs");
-	this.pageMod = require("sdk/page-mod");
-	this.selection = require("sdk/selection");
-	this.panel = require("sdk/panel");
-	this.simplePrefs = require('sdk/simple-prefs');
-	this.simpleStorage = require("sdk/simple-storage");
-	this.contextMenuSdk = require("sdk/context-menu");
-	this.Hotkey = require("sdk/hotkeys");
-	this.clipboard = require("sdk/clipboard");
+	sdk.selfSdk = require("sdk/self");
+	sdk.data = sdk.selfSdk.data;
+	sdk.tabs = require("sdk/tabs");
+	sdk.pageMod = require("sdk/page-mod");
+	sdk.selection = require("sdk/selection");
+	sdk.panel = require("sdk/panel");
+	sdk.simplePrefs = require('sdk/simple-prefs');
+	sdk.simpleStorage = require("sdk/simple-storage");
+	sdk.contextMenu = require("sdk/context-menu");
+	sdk.hotkey = require("sdk/hotkeys");
+	sdk.clipboard = require("sdk/clipboard");
 }
 
 /* ------------------------------------ */
@@ -39,19 +41,15 @@ function setup_Requires()
 
 function setup_Preferences()
 {
-	this.PopupBehaviour_Off = 0;
-	this.PopupBehaviour_Auto = 1;
-	// this.PopupBehaviour_Mouse = 2;
-	this.PopupBehaviour_Keyboard = 3;
+	PopupOpenBehaviour_Off = 0;
+	PopupOpenBehaviour_Auto = 1;
+	// PopupOpenBehaviour_Mouse = 2;
+	PopupOpenBehaviour_Keyboard = 3;
 
-	this.panelHotkey = undefined;
-	this.disablePanelHotkey = undefined;
-	this.options = createOptionsObjectFromPrefs();
-
-	if (simpleStorage.storage.searchEngines) {
+	if (sdk.simpleStorage.storage.searchEngines) {
 		purgeNonExistentEngines();
 	} else {
-		simpleStorage.storage.searchEngines = {};
+		sdk.simpleStorage.storage.searchEngines = {};
 	}
 
 	setCallbacksForPreferences();
@@ -59,92 +57,145 @@ function setup_Preferences()
 
 function setCallbacksForPreferences()
 {
-	// any change should recreate the popup panel
-	simplePrefs.on("", function() {
-		setup_PopupPanel();
+	// any change should destroy any active popup and force the options to be recreated next time they're needed
+	sdk.simplePrefs.on("", function() {
+		if (sss.activeWorker) {
+			sss.activeWorker.port.emit("destroyPopup");
+		}
+		sss.options = undefined;
 	});
 
-	simplePrefs.on("selectEnginesButton", function() {
+	sdk.simplePrefs.on("popupPanelOpenBehavior", function() {
+		console.log("popupPanelOpenBehavior changed to " + sdk.simplePrefs.prefs['popupPanelOpenBehavior']);
+		if (sdk.simplePrefs.prefs['popupPanelOpenBehavior'] === PopupOpenBehaviour_Off) {	// it's off
+			if (sss.popupPageMod) {
+				destroyPageMod();
+			}
+		} else if (!sss.popupPageMod) {	// it's on but no pageMod, so create it
+			setupPopupPageMod();
+		} else if (sss.activeWorker) {	// enable/disable selection event on current worker
+			if (sdk.simplePrefs.prefs['popupPanelOpenBehavior'] === PopupOpenBehaviour_Auto) {
+				sdk.selection.on('select', sss.activeWorker.onSelection);
+			} else {	// keyboard selection only
+				sdk.selection.removeListener('select', sss.activeWorker.onSelection);
+			}
+		}
+	});
+
+	sdk.simplePrefs.on("popupPanelHotkey", function() {
+		setupShowPopupHotkey();
+	});
+
+	sdk.simplePrefs.on("popupPanelDisableHotkey", function() {
+		setupDisablePopupHotkey();
+	});
+
+	sdk.simplePrefs.on("selectEnginesButton", function() {
 		createSettingsPanel();
 	});
 
-	simplePrefs.on("openEngineManager", function() {
-		tabs.open({url: "about:preferences#search"});
+	sdk.simplePrefs.on("openEngineManager", function() {
+		sdk.tabs.open({url: "about:preferences#search"});
 	});
 
-	simplePrefs.on("enableEnginesInContextMenu", function() {
+	sdk.simplePrefs.on("enableEnginesInContextMenu", function() {
 		setup_ContextMenu();
 	});
 }
 
-function setShowPanelHotkey()
+function setupShowPopupHotkey()
 {
-	console.log("setShowPanelHotkey");
+	console.log("setupShowPopupHotkey");
 
-	if (this.panelHotkey) {
-		this.panelHotkey.destroy();
-		this.panelHotkey = undefined;
+	if (sss.showPopupHotkey) {
+		sss.showPopupHotkey.destroy();
+		sss.showPopupHotkey = undefined;
 	}
 
-	if (simplePrefs.prefs['popupPanelOpenBehavior'] != PopupBehaviour_Off) {
-		var hotkey = simplePrefs.prefs['popupPanelHotkey'];
-		if (!hotkey) {
-			return;
-		}
-
-		// try {
-			this.panelHotkey = this.Hotkey.Hotkey({
-				combo: hotkey,
-				onPress: function() {
-					if (activeWorker) {
-						activeWorker.onSelection();
-					}
-				}
-			});
-		// } catch (e) {}
+	if (sdk.simplePrefs.prefs['popupPanelOpenBehavior'] !== PopupOpenBehaviour_Off) {
+		var hotkeyCombo = sdk.simplePrefs.prefs['popupPanelHotkey'];
+		sss.showPopupHotkey = setPopupHotkey(hotkeyCombo, function() {
+			if (sss.activeWorker) {
+				sss.activeWorker.onSelection();
+			}
+		});
 	}
 }
 
-function setDisablePanelHotkey()
+function setupDisablePopupHotkey()
 {
-	console.log("setDisablePanelHotkey");
+	console.log("setupDisablePopupHotkey");
 
-	if (this.disablePanelHotkey) {
-		this.disablePanelHotkey.destroy();
-		this.disablePanelHotkey = undefined;
+	if (sss.disablePopupHotkey) {
+		sss.disablePopupHotkey.destroy();
+		sss.disablePopupHotkey = undefined;
 	}
 
-	if (simplePrefs.prefs['popupPanelOpenBehavior'] != PopupBehaviour_Off) {
-		var hotkey = simplePrefs.prefs['popupPanelDisableHotkey'];
-		if (!hotkey) {
-			return;
-		}
-
-		// try {
-			this.disablePanelHotkey = this.Hotkey.Hotkey({
-				combo: hotkey,
-				onPress: function() {
-					console.log("on press disable hotkey");
-					options.isPopupPanelDisabled = !options.isPopupPanelDisabled;
-					if (activeWorker) {
-						activeWorker.port.emit("destroyPopupPanel");
-					}
-				}
-			});
-		// } catch (e) {}
+	if (sdk.simplePrefs.prefs['popupPanelOpenBehavior'] !== PopupOpenBehaviour_Off) {
+		var hotkeyCombo = sdk.simplePrefs.prefs['popupPanelDisableHotkey'];
+		sss.disablePopupHotkey = setPopupHotkey(hotkeyCombo, function() {
+			console.log("on press disable hotkey");
+			if (sdk.simplePrefs.prefs['popupPanelOpenBehavior'] === PopupOpenBehaviour_Auto) {
+				sdk.simplePrefs.prefs['popupPanelOpenBehavior'] = PopupOpenBehaviour_Keyboard;
+			} else if (sdk.simplePrefs.prefs['popupPanelOpenBehavior'] === PopupOpenBehaviour_Keyboard) {
+				sdk.simplePrefs.prefs['popupPanelOpenBehavior'] = PopupOpenBehaviour_Auto;
+			}
+			// sss.isPopupDisabled = !sss.isPopupDisabled;
+			// if (sss.isPopupDisabled && sss.activeWorker) {
+			// 	sss.activeWorker.port.emit("destroyPopup");
+			// }
+		});
 	}
+}
+
+function setPopupHotkey(hotkeyCombo, onPressFunc)
+{
+	if (!hotkeyCombo) {
+		return;
+	}
+
+	try {
+		return sdk.hotkey.Hotkey({
+			combo: hotkeyCombo,
+			onPress: onPressFunc
+		});
+	} catch (e) {
+		// invalid hotkey
+	}
+	return undefined;
+}
+
+function createOptionsObjectFromPrefs()
+{
+	var opt = {};
+
+	opt.popupPaddingX = sdk.simplePrefs.prefs['popupPaddingX'];
+	opt.popupPaddingY = sdk.simplePrefs.prefs['popupPaddingY'];
+
+	opt.popupAnimationDuration = sdk.simplePrefs.prefs['popupPanelAnimationDuration'];
+	opt.itemSize = sdk.simplePrefs.prefs['itemSize'];
+	opt.itemPadding = sdk.simplePrefs.prefs['itemPadding'];
+	opt.useSingleRow = sdk.simplePrefs.prefs['useSingleRow'];
+	opt.nItemsPerRow = sdk.simplePrefs.prefs['nItemsPerRow'];
+
+	opt.hoverBehavior = sdk.simplePrefs.prefs["itemHoverBehavior"];
+	opt.popupLocation = sdk.simplePrefs.prefs["popupLocation"];
+	opt.hidePopupOnPageScroll = sdk.simplePrefs.prefs["hidePopupPanelOnPageScroll"];
+	opt.hidePopupOnSearch = sdk.simplePrefs.prefs["hidePopupPanelOnSearch"];
+
+	return opt;
 }
 
 function createSettingsPanel()
 {
-	var visibleEngines = searchService.getVisibleEngines({});
+	var visibleEngines = sdk.searchService.getVisibleEngines({});
 
 	var engineObjects = visibleEngines.map(function(engine) {
-		var engineObject = {};
-		engineObject.name = engine.name;
-		engineObject.iconSpec = (engine.iconURI != null ? engine.iconURI.spec : null);
-		engineObject.active = isEngineActive(engine);
-		return engineObject;
+		return {
+			name: engine.name,
+			iconSpec: (engine.iconURI !== null ? engine.iconURI.spec : null),
+			active: isEngineActive(engine)
+		}
 	});
 
 	var calculatedHeight = engineObjects.length * 20 + 100;
@@ -152,39 +203,39 @@ function createSettingsPanel()
 		calculatedHeight = 450;
 	}
 
-	var pan = panel.Panel({
-		contentURL: data.url("engine-settings.html"),
-		contentScriptFile: data.url("engine-settings.js"),
+	var panel = sdk.panel.Panel({
+		contentURL: sdk.data.url("engine-settings.html"),
+		contentScriptFile: sdk.data.url("engine-settings.js"),
 		height: calculatedHeight
 	});
 
-	pan.port.emit('setupSettingsPanel', engineObjects);
-	pan.port.on("onSearchEngineToggle", onSearchEngineToggle);
+	panel.port.emit('setupSettingsPanel', engineObjects);
+	panel.port.on("onSearchEngineToggle", onSearchEngineToggle);
 
-	pan.show();
+	panel.show();
 }
 
 function onSearchEngineToggle(engine)
 {
-	simpleStorage.storage.searchEngines[engine.name] = engine.active;
+	sdk.simpleStorage.storage.searchEngines[engine.name] = engine.active;
 }
 
 function isEngineActive(engine)
 {
-	if (!simpleStorage.storage.searchEngines.hasOwnProperty(engine.name)) {
-		simpleStorage.storage.searchEngines[engine.name] = true;
+	if (!sdk.simpleStorage.storage.searchEngines.hasOwnProperty(engine.name)) {
+		sdk.simpleStorage.storage.searchEngines[engine.name] = true;
 	}
-	return simpleStorage.storage.searchEngines[engine.name];
+	return sdk.simpleStorage.storage.searchEngines[engine.name];
 }
 
 function purgeNonExistentEngines()
 {
-	var visibleEngineNames = searchService.getVisibleEngines({})
+	var visibleEngineNames = sdk.searchService.getVisibleEngines({})
 		.map(function(engine) { return engine.name; });
 
-	for (var engineName in simpleStorage.storage.searchEngines) {
-		if (visibleEngineNames.indexOf(engineName) == -1) {
-			delete simpleStorage.storage.searchEngines[engineName];
+	for (var engineName in sdk.simpleStorage.storage.searchEngines) {
+		if (visibleEngineNames.indexOf(engineName) === -1) {
+			delete sdk.simpleStorage.storage.searchEngines[engineName];
 		}
 	}
 }
@@ -195,18 +246,18 @@ function purgeNonExistentEngines()
 
 function setup_ContextMenu()
 {
-	if (this.contextMenu) {
-		this.contextMenu.destroy();
-		this.contextMenu = undefined;
+	if (sss.contextMenu) {
+		sss.contextMenu.destroy();
+		sss.contextMenu = undefined;
 	}
-	if (simplePrefs.prefs['enableEnginesInContextMenu'] === true) {
+	if (sdk.simplePrefs.prefs['enableEnginesInContextMenu'] === true) {
 		createContextMenu();
 	}
 }
 
 function createContextMenu()
 {
-	var visibleEngines = searchService.getVisibleEngines({});
+	var visibleEngines = sdk.searchService.getVisibleEngines({});
 	var items = [];
 
 	for (var i = 0; i < visibleEngines.length; i++)
@@ -222,24 +273,24 @@ function createContextMenu()
 					'	self.postMessage(window.getSelection().toString());' +
 					'});',
 				onMessage: function (selectionText) {
-					var search = engine.getSubmission(selectionText).uri.spec;
-					openSearch(search, simplePrefs.prefs['contextMenuItemBehavior']);
+					var searchText = engine.getSubmission(selectionText).uri.spec;
+					doSearch(searchText, sdk.simplePrefs.prefs['contextMenuItemBehavior']);
 				}
 			};
 
-			if (engine.iconURI != null) {
+			if (engine.iconURI !== null) {
 				itemObject.image = engine.iconURI.spec;
 			}
 
-			items.push(contextMenuSdk.Item(itemObject));
+			items.push(sdk.contextMenu.Item(itemObject));
 		}
 	}
 
-	this.contextMenu = contextMenuSdk.Menu({
+	sss.contextMenu = sdk.contextMenu.Menu({
 		label: "Search With...",
-		context: contextMenuSdk.SelectionContext(),
+		context: sdk.contextMenu.SelectionContext(),
 		items: items
-		// image: data.url("context-icon-16.png")
+		// image: sdk.data.url("context-icon-16.png")
 	});
 }
 
@@ -247,219 +298,216 @@ function createContextMenu()
 /* ----------- POPUP PANEL ------------ */
 /* ------------------------------------ */
 
-function setup_PopupPanel()
+function setup_Popup()
 {
-	console.log("setup_PopupPanel");
-	if (this.workers != undefined) {
-		destroyPageWorkers();
-	}
+	// this method only runs once
 
-	this.workers = [];
-	this.activeWorker = undefined;
+	console.log("setup_Popup");
 
-	if (this.popupPanelPageMod) {
-		this.popupPanelPageMod.destroy();
-		this.popupPanelPageMod = undefined;
-	}
+	sss.workers = [];
+	sss.workerID = 0;
+	sss.activeWorker = undefined;
+	sss.isPopupDisabled = false;
 
-	if (simplePrefs.prefs['popupPanelOpenBehavior'] != PopupBehaviour_Off) {
-		setShowPanelHotkey();
-		setDisablePanelHotkey();
-		setPopupPanelPageMod();
+	setupShowPopupHotkey();
+	setupDisablePopupHotkey();
+
+	if (sdk.simplePrefs.prefs['popupPanelOpenBehavior'] !== PopupOpenBehaviour_Off) {
+		setupPopupPageMod();
 	}
 }
 
-function setPopupPanelPageMod()
+function setupPopupPageMod()
 {
-	console.log("setPopupPanelPageMod");
-	// globals
-	this.activeWorker = undefined;
-	this.engines = undefined;
+	console.log("setupPopupPageMod");
 
-	var workerID = 0;
-
-	this.popupPanelPageMod = pageMod.PageMod({
+	sss.popupPageMod = sdk.pageMod.PageMod({
 		include: "*",
-		contentScriptFile: data.url("selection-worker.js"),
+		contentScriptFile: sdk.data.url("selection-worker.js"),
 		attachTo: ["existing", "top"],
 		contentScriptWhen: "ready",
 		onAttach: function(worker)
 		{
-			workers.push(worker);
-			worker.id = workerID++;
+			worker.activate = function() { activateWorker(worker); }
+			worker.deactivate = function() { deactivateWorker(worker); }
+			worker.onDetach = function() { onDetachWorker(worker); }
+			worker.onSelection = function() { onWorkerTextSelection(worker); }
+
+			sss.workers.push(worker);
+			worker.id = sss.workerID++;
 			console.log("onAttach " + worker.id);
 
-			worker.onSelection = function() {
-				console.log("onSelection " + options.isPopupPanelDisabled);
-				if (options.isPopupPanelDisabled) {
-					return;
-				}
-
-				console.log("onSelection " + worker.id);
-				if (selection.text)
-				{
-					var visibleEngines = searchService.getVisibleEngines({});
-					engines = visibleEngines.filter(function(engine) { return isEngineActive(engine); });
-					var engineObjs = engines.map(function(engine) { return convertEngineToObject(engine); });
-
-					worker.port.emit("onSelection", options, engineObjs);
-
-					if (simplePrefs.prefs['autoCopyToClipboard']) {
-						clipboard.set(selection.text);
-					}
-				}
-			}
-
-			worker.activateWorker = function() {
-				if (!worker.tab) {
-					return;
-				}
-				if (worker.tab.id != tabs.activeTab.id) {
-					return;
-				}
-
-				console.log("activateWorker " + worker.id);
-
-				if (activeWorker != null) {
-					activeWorker.deactivateWorker();
-				}
-
-				activeWorker = worker;
-
-				worker.port.on("onSearchEngineLeftClick", onSearchEngineLeftClick);
-				worker.port.on("onSearchEngineMiddleClick", onSearchEngineMiddleClick);
-				worker.port.on("onSearchEngineCtrlClick", onSearchEngineCtrlClick);
-				if (simplePrefs.prefs['popupPanelOpenBehavior'] == PopupBehaviour_Auto) {
-					selection.on('select', worker.onSelection);
-				}
-			}
-
-			worker.deactivateWorker = function() {
-				console.log("deactivateWorker");
-				if (activeWorker) {
-					activeWorker.port.emit("destroyPopupPanel");
-				}
-				worker.port.removeListener("onSearchEngineLeftClick", onSearchEngineLeftClick);
-				worker.port.removeListener("onSearchEngineMiddleClick", onSearchEngineMiddleClick);
-				worker.port.removeListener("onSearchEngineCtrlClick", onSearchEngineCtrlClick);
-				selection.removeListener('select', worker.onSelection);
-			}
-
-			worker.on('pageshow', function() {
-				console.log("pageshow " + worker.id);
-				worker.activateWorker();
-			});
-
+			worker.on('detach', worker.onDetach);
+			worker.on('pageshow', worker.activate);
 			if (worker.tab) {	// fix for settings change
-				worker.tab.on('activate', function() {
-					console.log("activate tab " + worker.id);
-					worker.activateWorker();
-				});
+				worker.tab.on('activate', worker.activate);
 			}
 
-			worker.on('detach', function () {
-				console.log("detach " + worker.id);
-				var index = workers.indexOf(worker);
-				if (index != -1) {
-					workers.splice(index, 1);
-				}
-			});
-
-			worker.activateWorker();
+			worker.activate();
 		}
 	});
 }
 
-function destroyPageWorkers()
+function activateWorker(worker)
 {
-	console.log("destroyPageWorkers");
-	var tmpWorkers = [];
-	for (var i in workers) {
-		worker = workers[i];
-		worker.deactivateWorker();
-		tmpWorkers.push(worker);
+	if (worker === sss.activeWorker) {
+		return;
 	}
-	for (var i in tmpWorkers) {
-		tmpWorkers[i].destroy();
+	if (!worker.tab || worker.tab.id !== sdk.tabs.activeTab.id) {
+		return;
 	}
-	workers = [];
-	this.activeWorker = undefined;
+
+	console.log("activateWorker " + worker.id + " with tab " + worker.tab.url);
+
+	if (sss.activeWorker) {
+		sss.activeWorker.deactivate();
+	}
+	sss.activeWorker = worker;
+
+	worker.port.on("onSearchEngineLeftClick", onSearchEngineLeftClick);
+	worker.port.on("onSearchEngineMiddleClick", onSearchEngineMiddleClick);
+	worker.port.on("onSearchEngineCtrlClick", onSearchEngineCtrlClick);
+	if (sdk.simplePrefs.prefs['popupPanelOpenBehavior'] === PopupOpenBehaviour_Auto) {
+		sdk.selection.on('select', worker.onSelection);
+	}
+
+	worker.wasDetached = false;
+}
+
+function deactivateWorker(worker)
+{
+	if (worker.wasDetached) {
+		return;
+	}
+
+	console.log("deactivateWorker " + worker.id);
+
+	worker.port.emit("destroyPopup");
+	worker.port.removeListener("onSearchEngineLeftClick", onSearchEngineLeftClick);
+	worker.port.removeListener("onSearchEngineMiddleClick", onSearchEngineMiddleClick);
+	worker.port.removeListener("onSearchEngineCtrlClick", onSearchEngineCtrlClick);
+	sdk.selection.removeListener('select', worker.onSelection);
+
+	// assumes deactivate is only called on the current activeWorker
+	if (worker === sss.activeWorker) {
+		sss.activeWorker = undefined;
+	}
+}
+
+function onDetachWorker(worker)
+{
+	console.log("detach " + worker.id);
+
+	worker.removeListener('detach', worker.onDetach);
+	worker.removeListener('pageshow', worker.activate);
+	if (worker.tab) {	// fix for settings change
+		worker.tab.removeListener('activate', worker.activate);
+	}
+	sdk.selection.removeListener('select', worker.onSelection);
+
+	var index = sss.workers.indexOf(worker);
+	if (index !== -1) {
+		sss.workers.splice(index, 1);
+	}
+
+	worker.wasDetached = true;
+}
+
+function onWorkerTextSelection(worker)
+{
+	if (sss.isPopupDisabled) {
+		console.log("onWorkerTextSelection: panel is disabled");
+		return;
+	}
+
+	if (sdk.selection.text)
+	{
+		console.log("onWorkerTextSelection " + worker.id);
+
+		var visibleEngines = sdk.searchService.getVisibleEngines({});
+		var engines = visibleEngines.filter(function(engine) { return isEngineActive(engine); });
+		var engineObjs = engines.map(function(engine) { return convertEngineToObject(engine); });
+
+		sss.engines = engines;
+
+		if (!sss.options) {
+			sss.options = createOptionsObjectFromPrefs();
+		}
+		worker.port.emit("onSelection", sss.options, engineObjs);
+
+		if (sdk.simplePrefs.prefs['autoCopyToClipboard']) {
+			sdk.clipboard.set(sdk.selection.text);
+		}
+	}
+}
+
+function destroyPageMod()
+{
+	console.log("destroyPageMod");
+
+	if (sss.activeWorker) {
+		sss.activeWorker.port.emit("destroyPopup");
+		sss.activeWorker = undefined;
+	}
+
+	if (sss.workers) {
+		for (var i = 0; i < sss.workers.length; i++) {
+			var worker = sss.workers[i];
+			// worker.deactivate();
+			worker.destroy();	// calls detach on worker
+		}
+		sss.workers = [];
+	}
+
+	if (sss.popupPageMod) {
+		sss.popupPageMod.destroy();
+		sss.popupPageMod = undefined;
+	}
 }
 
 function convertEngineToObject(engine)
 {
-	var engineObj = {};
-	engineObj.name = engine.name;
-	engineObj.iconSpec = (engine.iconURI != null ? engine.iconURI.spec : null);
-	return engineObj;
-}
-
-function createOptionsObjectFromPrefs()
-{
-	var opt = {};
-
-	opt.popupPaddingX = simplePrefs.prefs['popupPaddingX'];
-	opt.popupPaddingY = simplePrefs.prefs['popupPaddingY'];
-	opt.doHorizontalCentering = simplePrefs.prefs['doHorizontalCentering'];
-
-	opt.popupPanelAnimationDuration = simplePrefs.prefs['popupPanelAnimationDuration'];
-	opt.itemSize = simplePrefs.prefs['itemSize'];
-	opt.itemPadding = simplePrefs.prefs['itemPadding'];
-	opt.useSingleRow = simplePrefs.prefs['useSingleRow'];
-	opt.nItemsPerRow = simplePrefs.prefs['nItemsPerRow'];
-
-	opt.hoverBehavior = simplePrefs.prefs["itemHoverBehavior"];
-	opt.popupLocation = simplePrefs.prefs["popupLocation"];
-	opt.hidePopupPanelOnPageScroll = simplePrefs.prefs["hidePopupPanelOnPageScroll"];
-	opt.hidePopupPanelOnSearch = simplePrefs.prefs["hidePopupPanelOnSearch"];
-
-	opt.isPopupPanelDisabled = false;
-
-	return opt;
+	return {
+		name: engine.name,
+		iconSpec: (engine.iconURI !== null ? engine.iconURI.spec : null)
+	};
 }
 
 function onSearchEngineLeftClick(searchText, engineObj)
 {
 	console.log("onSearchEngineLeftClick");
-	search(searchText, engineObj, simplePrefs.prefs['mouseLeftButtonBehavior']);
+	doSearch(getSearchFromEngineObj(searchText, engineObj), sdk.simplePrefs.prefs['mouseLeftButtonBehavior']);
 }
 
 function onSearchEngineMiddleClick(searchText, engineObj)
 {
 	console.log("onSearchEngineMiddleClick");
-	search(searchText, engineObj, simplePrefs.prefs['mouseMiddleButtonBehavior']);
+	doSearch(getSearchFromEngineObj(searchText, engineObj), sdk.simplePrefs.prefs['mouseMiddleButtonBehavior']);
 }
 
 function onSearchEngineCtrlClick(searchText, engineObj)
 {
 	console.log("onSearchEngineCtrlClick");
-	search(searchText, engineObj, 2);
+	doSearch(getSearchFromEngineObj(searchText, engineObj), 2);	// 2 means "open in new background tab" (see doSearch)
 }
 
-function search(searchText, engineObj, behavior)
+function doSearch(searchUrl, behavior)
 {
-	console.log("search");
-	var searchUrl = getSearchFromEngineObj(engineObj, searchText);
-	openSearch(searchUrl, behavior);
-}
-
-function openSearch(searchUrl, behavior)
-{
-	console.log("openSearch");
+	console.log("doSearch");
 	switch (behavior)
 	{
-		case 0: tabs.activeTab.url = searchUrl; break;
-		case 1: tabs.open({ url: searchUrl }); break;
-		case 2: tabs.open({ url: searchUrl, inBackground: true }); break;
+		case 0: sdk.tabs.activeTab.url = searchUrl; break;
+		case 1: sdk.tabs.open({ url: searchUrl }); break;
+		case 2: sdk.tabs.open({ url: searchUrl, inBackground: true }); break;
 	}
 }
 
-function getSearchFromEngineObj(engineObj, query)
+function getSearchFromEngineObj(searchText, engineObj)
 {
-	for (var key in this.engines) {
-		var engine = this.engines[key];
-		if (engine.name == engineObj.name) {
-			return engine.getSubmission(query).uri.spec;
+	for (var key in sss.engines) {
+		var engine = sss.engines[key];
+		if (engine.name === engineObj.name) {
+			return engine.getSubmission(searchText).uri.spec;
 		}
 	}
 }

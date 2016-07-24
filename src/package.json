@@ -5,7 +5,7 @@
 	"description": "Swiftly access your search engines in a popup panel when you select text in a webpage. Context search menu also included!",
 	"author": "Daniel Lobo",
 	"license": "GPL 2.0",
-	"version": "1.3.0",
+	"version": "2.0.0",
 	"icon": "resource://jid1-KdTtiCj6wxVAFA-at-jetpack/icons/icon128.png",
 	"permissions": {"private-browsing": true},
 	"main": "index.js",
@@ -17,6 +17,24 @@
 	],
 
 	"preferences": [
+	{
+		"name": "openEngineManager",
+		"title": "Manage your search engines",
+		"type": "control",
+		"description": "Opens Firefox's search engines manager. To select which engines are shown in the popup panel, use the \"Select from available search engines\" button below.",
+		"label": "Manage"
+	},
+	{
+		"name": "selectEnginesButton",
+		"title": "Select from available search engines",
+		"type": "control",
+		"description": "Enable/disable the search engines that are displayed on the popup panel (the context menu still shows all of them).",
+		"label": "Select"
+	},
+
+
+
+
 	{
 		"name": "popupPanelOpenBehavior",
 		"title": "Popup panel opening behaviour",
@@ -34,23 +52,9 @@
 			},
 			{
 				"value": "3",
-				"label": "Keyboard-only (with text already selected, press the key combination set below)"
+				"label": "Keyboard-only (with text already selected, press the key combination set above)"
 			}
 		]
-	},
-	{
-		"name": "popupPanelHotkey",
-		"title": "Key combination to open popup panel",
-		"type": "string",
-		"description": "You must use at least one of these: shift, control, alt, meta (Mac Command), accel (Control on Windows/Linux, Command on Mac). Clear the text box to disable the hotkey.\n(default: accel-shift-space, which means Ctrl+Shift+Spacebar on Windows/Linux and Cmd+Shift+Spacebar on Mac)",
-		"value": "accel-shift-space"
-	},
-	{
-		"name": "popupPanelDisableHotkey",
-		"title": "Key combination to disable popup panel",
-		"type": "string",
-		"description": "Changes the \"Popup panel opening behaviour\" option to Off and then back when pressed again. Use this when the popup is getting in the way of your browsing or text writing.\n(default: accel-shift-x, which means Ctrl+Shift+X on Windows/Linux and Cmd+Shift+X on Mac)",
-		"value": "accel-shift-x"
 	},
 	{
 		"name": "popupLocation",
@@ -65,7 +69,7 @@
 			},
 			{
 				"value": "1",
-				"label": "At mouse location"
+				"label": "At cursor location"
 			}
 		]
 	},
@@ -83,20 +87,31 @@
 		"description": "Hides the popup panel when a search engine is clicked.\n(default: On)",
 		"value": true
 	},
+
+
+
+
 	{
-		"name": "openEngineManager",
-		"title": "Manage your search engines",
-		"type": "control",
-		"description": "Opens Firefox's search engines manager. To select which engines are shown in the popup panel, use the \"Select from available search engines\", below.",
-		"label": "Manage"
+		"name": "popupPanelHotkey",
+		"title": "Key combination to open popup panel",
+		"type": "string",
+		"description": "Opens the popup panel if you have text selected.\n\nYou must use at least one of these: shift, control, alt, meta (Mac Command), accel (Control on Windows/Linux, Command on Mac). Clear the text box to disable the hotkey.\n\n(default: accel-shift-space, which means Ctrl+Shift+Spacebar on Windows/Linux and Cmd+Shift+Spacebar on Mac)",
+		"value": "accel-shift-space"
 	},
 	{
-		"name": "selectEnginesButton",
-		"title": "Select from available search engines",
-		"type": "control",
-		"description": "Enable/disable the search engines that are displayed on the popup panel (the context menu still shows all of them).",
-		"label": "Select"
+		"name": "popupPanelDisableHotkey",
+		"title": "Key combination to enable/disable popup panel on text selection",
+		"type": "string",
+		"description": "Toggles the \"Popup panel opening behaviour\" option between Auto and Keyboard-only modes (if not already Off). Use this when the popup is getting in the way of your browsing or text writing.\n(default: accel-shift-x)",
+		"value": "accel-shift-x"
 	},
+
+
+
+
+
+
+
 	{
 		"name": "mouseLeftButtonBehavior",
 		"title": "Left mouse button behaviour",
@@ -139,12 +154,24 @@
 			}
 		]
 	},
+
+
+
+
+
 	{
-		"name": "popupPanelAnimationDuration",
-		"title": "Panel animation duration",
+		"name": "useSingleRow",
+		"title": "Use single row",
+		"type": "bool",
+		"description": "Places all search engines in a single row, instead of a grid.\n(default: On)",
+		"value": true
+	},
+	{
+		"name": "nItemsPerRow",
+		"title": "Number of icons per row",
 		"type": "integer",
-		"description": "Duration of panel animation, in milliseconds. 0 ms makes panel show instantly.\n(default: 200)",
-		"value": 200
+		"description": "Max number of search engines per row (if \"Use single row\" is off).\n(default: 4)",
+		"value": 4
 	},
 	{
 		"name": "itemSize",
@@ -159,20 +186,6 @@
 		"type": "integer",
 		"description": "Search engine icon horizontal padding in pixels.\n(default: 2)",
 		"value": 2
-	},
-	{
-		"name": "useSingleRow",
-		"title": "Use single row",
-		"type": "bool",
-		"description": "Place all search engines in a single row?\n(default: On)",
-		"value": true
-	},
-	{
-		"name": "nItemsPerRow",
-		"title": "Number of icons per row",
-		"type": "integer",
-		"description": "Max number of search engines per row (if \"Use single row\" is off).\n(default: 4)",
-		"value": 4
 	},
 	{
 		"name": "itemHoverBehavior",
@@ -195,6 +208,11 @@
 			}
 		]
 	},
+
+
+
+
+
 	{
 		"name": "popupPaddingX",
 		"title": "Popup panel horizontal padding",
@@ -210,26 +228,31 @@
 		"value": 1
 	},
 	{
-		"name": "doHorizontalCentering",
-		"title": "Do horizontal centering",
-		"type": "bool",
-		"description": "Whether or not to centre the popup panel horizontally.\n(default: On)",
-		"value": true,
-		"hidden": true
+		"name": "popupPanelAnimationDuration",
+		"title": "Panel animation duration",
+		"type": "integer",
+		"description": "Duration of panel animation, in milliseconds. 0 ms makes panel show instantly.\n(default: 200)",
+		"value": 200
 	},
+
+
+
+
+
+
 	{
 		"name": "enableEnginesInContextMenu",
-		"title": "Enable engines in context menu",
+		"title": "Is the context menu enabled?",
 		"type": "bool",
-		"description": "Adds a sub-menu with all search engines when you right click a text selection.\n(default: On)",
+		"description": "Enables a \"Search with...\" sub-menu with all search engines. Appears in the context menu when you right click a page with text selected.\n(default: On)",
 		"value": true
 	},
 	{
 		"name": "contextMenuItemBehavior",
-		"title": "Context menu item behaviour",
+		"title": "Context menu item click behaviour",
 		"type": "menulist",
-		"description": "What to do when a search engine is clicked in the context menu.\n(default: Open in this tab)",
-		"value": 0,
+		"description": "What to do when a search engine is clicked in the context menu.\n(default: Open in new background tab)",
+		"value": 2,
 		"options": [
 			{
 				"value": "0",
@@ -245,6 +268,11 @@
 			}
 		]
 	},
+
+
+
+
+
 	{
 		"name": "autoCopyToClipboard",
 		"title": "Auto copy to clipboard",

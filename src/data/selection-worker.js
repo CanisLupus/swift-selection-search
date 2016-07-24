@@ -6,83 +6,100 @@ function onSelection(options, engineObjs)
 		return;
 	}
 
-	// special case to disable popup in gmail compose screen
-	// if (s.anchorNode.baseURI.indexOf("mail.google.com") && s.anchorNode.parentElement.className.indexOf("editable") > -1) {
-	// 	return;
-	// }
+	// disable popup in contentEditable elements, such as Gmail's compose window
+	for (var elem = s.anchorNode; elem !== document; elem = elem.parentNode)
+	{
+		if (elem.isContentEditable === undefined) {
+			continue;	// check parent for value
+		} else if (elem.isContentEditable === true) {
+			return;
+		} else /*if (elem.contentEditable === false)*/ {
+			break;
+		}
+	}
 
 	selection = s;
-	panelEngineObjs = engineObjs;
-	panelOptions = options;
+	popupEngineObjs = engineObjs;
+	popupOptions = options;
 
-	createPanel(options, engineObjs);
+	createPopup(options, engineObjs);
 }
 
-function createPanel(options, engineObjs)
+function createPopup(options, engineObjs)
 {
-	// destroy old panel, if any
-	if (popupPanel != null) {
-		destroyPopupPanel();
+	// destroy old popup, if any
+	if (popup != null) {
+		destroyPopup();
 	}
 
-	if (options.popupLocation == 1) {	// option "At mouse location"
-		document.addEventListener('mousemove', onMouseUpdate, false);
-		document.addEventListener('mouseenter', onMouseUpdate, false);
+	if (options.popupLocation == 1) {	// option "At cursor location"
+		document.addEventListener('mousemove', function(e) {
+			console.log("mousemove");
+			onMouseUpdate();
+		});
+		document.addEventListener('mouseenter', function(e) {
+			console.log("mouse enter -------------------------------------------------------");
+			onMouseUpdate();
+		});
+		document.addEventListener('mousedown', function(e) {
+			console.log("mouse mousedown");
+			onMouseUpdate();
+		});
 	}
 
-	popupPanel = document.createElement('engines');
-	popupPanel.id = "swift-selection-search-engines";
-	popupPanel.style.position = 'absolute';
-	popupPanel.style.paddingTop = options.popupPaddingY + "px";
-	popupPanel.style.paddingBottom = options.popupPaddingY + "px";
-	popupPanel.style.paddingLeft = options.popupPaddingX + "px";
-	popupPanel.style.paddingRight = options.popupPaddingX + "px";
-	popupPanel.style.zIndex = 2147483647;
+	popup = document.createElement('engines');
+	popup.id = "swift-selection-search-engines";
+	popup.style.position = 'absolute';
+	popup.style.paddingTop = options.popupPaddingY + "px";
+	popup.style.paddingBottom = options.popupPaddingY + "px";
+	popup.style.paddingLeft = options.popupPaddingX + "px";
+	popup.style.paddingRight = options.popupPaddingX + "px";
+	popup.style.zIndex = 2147483647;
 
-	recalculatePanelPositionAndSize(popupPanel, selection, engineObjs, options);
+	recalculatePopupPositionAndSize(popup, selection, engineObjs, options);
 
 	switch (options.hoverBehavior) {
-		case 0: popupPanel.className = "hover-nothing"; break;
-		case 1: popupPanel.className = "hover-highlight-only"; break;
-		case 2: popupPanel.className = "hover-highlight-and-move"; break;
+		case 0: popup.className = "hover-nothing"; break;
+		case 1: popup.className = "hover-highlight-only"; break;
+		case 2: popup.className = "hover-highlight-and-move"; break;
 		default: break;
 	}
 
 	document.body.addEventListener('keypress', function(e) {
-		destroyPopupPanel();
+		destroyPopup();
 	});
 
-	// destroy panel from a press down anywhere...
+	// destroy popup from a press down anywhere...
 	document.body.addEventListener('mousedown', function(e) {
-		destroyPopupPanel();
+		destroyPopup();
 	});
-	// ...except the popup panel
-	popupPanel.addEventListener('mousedown', function(e) {
+	// ...except on the popup itself
+	popup.addEventListener('mousedown', function(e) {
 		e.stopPropagation();
 	});
 
-	document.body.appendChild(popupPanel);
+	document.body.appendChild(popup);
 
 	var padding = options.itemPadding + "px";
 	var size = options.itemSize + "px";
 
 	for (var i = 0; i < engineObjs.length; i++) {
-		var icon = addEngineToLayout(engineObjs[i], popupPanel);
+		var icon = addEngineToLayout(engineObjs[i], popup);
 		icon.style.height = size;
 		icon.style.width = size;
 		icon.style.paddingLeft = padding;
 		icon.style.paddingRight = padding;
 	}
 
-	if (panelCss == null) {
-		panelCss = getPopupPanelStyle();
-		document.body.appendChild(panelCss);
+	if (popupCss == null) {
+		popupCss = getPopupStyle();
+		document.body.appendChild(popupCss);
 	}
 
 	window.addEventListener("scroll", onPageScroll);
 }
 
-function recalculatePanelPositionAndSize(popupPanel, selection, engineObjs, options)
+function recalculatePopupPositionAndSize(popup, selection, engineObjs, options)
 {
 	var itemHeight = options.itemSize + 8;
 	var itemWidth = options.itemSize + options.itemPadding * 2;
@@ -102,9 +119,8 @@ function recalculatePanelPositionAndSize(popupPanel, selection, engineObjs, opti
 		positionTop = rect.bottom + window.pageYOffset;
 	}
 
-	if (options.doHorizontalCentering) {
-		positionLeft -= width / 2;
-	}
+	// center horizontally
+	positionLeft -= width / 2;
 
 	// don't leave the screen
 	if (positionLeft < 5) {
@@ -120,13 +136,13 @@ function recalculatePanelPositionAndSize(popupPanel, selection, engineObjs, opti
 	}
 
 	// set values
-	popupPanel.style.width = width + "px";
-	popupPanel.style.height = height + "px";
-	popupPanel.style.left = positionLeft + "px";
-	popupPanel.style.top = positionTop + "px";
+	popup.style.width = width + "px";
+	popup.style.height = height + "px";
+	popup.style.left = positionLeft + "px";
+	popup.style.top = positionTop + "px";
 }
 
-function getPopupPanelStyle()
+function getPopupStyle()
 {
 	var css = document.createElement("style");
 	css.type = "text/css";
@@ -141,33 +157,33 @@ function getPopupPanelStyle()
 	bottom:auto;
 	box-sizing: content-box;
 	clear:none;
-	cursor:default;
-	display:inline;
+	/*cursor:default;*/
+	/*display:inline;*/
 	float:none;
 	font-family:Arial, Helvetica, sans-serif;
 	font-size:medium;
 	font-style:normal;
 	font-weight:normal;
-	height:auto;
-	left:auto;
+	/*height:auto;*/
+	/*left:auto;*/
 	letter-spacing:normal;
 	line-height:normal;
 	max-height:none;
 	max-width:none;
 	min-height:0;
 	min-width:0;
-	overflow:visible;
-	position:static;
+	/*overflow:visible;*/
+	/*position:static;*/
 	right:auto;
-	text-align:left;
+	/*text-align:left;*/
 	text-decoration:none;
 	text-indent:0;
 	text-transform:none;
-	top:auto;
+	/*top:auto;*/
 	visibility:visible;
 	white-space:normal;
-	width:auto;
-	z-index:auto;
+	/*width:auto;*/
+	/*z-index:auto;*/
 }
 
 #swift-selection-search-engines {
@@ -183,6 +199,7 @@ function getPopupPanelStyle()
 #swift-selection-search-engines img {
 	padding: 4px 2px;
 	cursor: pointer;
+	vertical-align: top;
 }
 
 #swift-selection-search-engines.hover-nothing img:hover {
@@ -199,8 +216,8 @@ function getPopupPanelStyle()
 	border-radius: 2px;
 	padding-top: 1px;
 }`;
-	if (panelOptions.popupPanelAnimationDuration > 0) {
-		var duration = panelOptions.popupPanelAnimationDuration / 1000.0;
+	if (popupOptions.popupAnimationDuration > 0) {
+		var duration = popupOptions.popupAnimationDuration / 1000.0;
 		css.innerHTML +=
 `#swift-selection-search-engines {
 	animation: fadein `+duration+`s;
@@ -220,7 +237,7 @@ function getPopupPanelStyle()
 	return css;
 }
 
-function addEngineToLayout(engineObj, popupPanel)
+function addEngineToLayout(engineObj, popup)
 {
 	var icon = document.createElement("img");
 	icon.setAttribute("src", (engineObj.iconSpec != null ? engineObj.iconSpec : "default.png"));
@@ -231,30 +248,30 @@ function addEngineToLayout(engineObj, popupPanel)
 		}
 	});
 	icon.title = engineObj.name;
-	popupPanel.appendChild(icon);
+	popup.appendChild(icon);
 	return icon;
 }
 
 function onPageScroll()
 {
-	if (popupPanel != null) {
-		if (panelOptions.hidePopupPanelOnPageScroll) {
-			destroyPopupPanel();
+	if (popup != null) {
+		if (popupOptions.hidePopupOnPageScroll) {
+			destroyPopup();
 		} else {
-			recalculatePanelPositionAndSize(popupPanel, selection, panelEngineObjs, panelOptions)
+			recalculatePopupPositionAndSize(popup, selection, popupEngineObjs, popupOptions)
 		}
 	}
 }
 
-function destroyPopupPanel()
+function destroyPopup()
 {
-	if (popupPanel != null) {
-		document.body.removeChild(popupPanel);
-		popupPanel = null;
+	if (popup != null) {
+		document.body.removeChild(popup);
+		popup = null;
 	}
-	if (panelCss != null) {
-		document.body.removeChild(panelCss);
-		panelCss = null;
+	if (popupCss != null) {
+		document.body.removeChild(popupCss);
+		popupCss = null;
 	}
 }
 
@@ -267,8 +284,8 @@ function onMouseUpdate(e)
 function onSearchEngineClick(engineObj)
 {
 	return function(e) {
-		if (panelOptions.hidePopupPanelOnSearch) {
-			destroyPopupPanel();
+		if (popupOptions.hidePopupOnSearch) {
+			destroyPopup();
 		}
 
 		if (e.which == 1 || e.which == 2) {
@@ -283,14 +300,14 @@ function onSearchEngineClick(engineObj)
 	}
 }
 
-popupPanel = null;
+popup = null;
 selection = null;
-panelEngineObjs = null;
-panelOptions = null;
-panelCss = null;
+popupEngineObjs = null;
+popupOptions = null;
+popupCss = null;
 
 mousePositionX = null;
 mousePositionY = null;
 
 self.port.on('onSelection', onSelection);
-self.port.on('destroyPopupPanel', destroyPopupPanel);
+self.port.on('destroyPopup', destroyPopup);
