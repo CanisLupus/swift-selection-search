@@ -59,8 +59,11 @@ function setCallbacksForPreferences()
 {
 	// any change should destroy any active popup and force the options to be recreated next time they're needed
 	sdk.simplePrefs.on("", function() {
+		for (var i = 0; i < sss.workers.length; i++) {
+			sss.workers[i].port.emit("destroyPopup");
+		}
 		if (sss.activeWorker) {
-			sss.activeWorker.port.emit("destroyPopup");
+			sss.activeWorker.port.emit("setup", sdk.simplePrefs.prefs["popupLocation"]);
 		}
 		sss.options = undefined;
 	});
@@ -140,10 +143,6 @@ function setupDisablePopupHotkey()
 			} else if (sdk.simplePrefs.prefs['popupPanelOpenBehavior'] === PopupOpenBehaviour_Keyboard) {
 				sdk.simplePrefs.prefs['popupPanelOpenBehavior'] = PopupOpenBehaviour_Auto;
 			}
-			// sss.isPopupDisabled = !sss.isPopupDisabled;
-			// if (sss.isPopupDisabled && sss.activeWorker) {
-			// 	sss.activeWorker.port.emit("destroyPopup");
-			// }
 		});
 	}
 }
@@ -307,7 +306,6 @@ function setup_Popup()
 	sss.workers = [];
 	sss.workerID = 0;
 	sss.activeWorker = undefined;
-	sss.isPopupDisabled = false;
 
 	setupShowPopupHotkey();
 	setupDisablePopupHotkey();
@@ -370,6 +368,7 @@ function activateWorker(worker)
 	if (sdk.simplePrefs.prefs['popupPanelOpenBehavior'] === PopupOpenBehaviour_Auto) {
 		sdk.selection.on('select', worker.onSelection);
 	}
+	worker.port.emit("setup", sdk.simplePrefs.prefs["popupLocation"]);
 
 	worker.wasDetached = false;
 }
@@ -415,11 +414,6 @@ function onDetachWorker(worker)
 
 function onWorkerTextSelection(worker)
 {
-	if (sss.isPopupDisabled) {
-		console.log("onWorkerTextSelection: panel is disabled");
-		return;
-	}
-
 	if (sdk.selection.text)
 	{
 		console.log("onWorkerTextSelection " + worker.id);
@@ -453,6 +447,7 @@ function destroyPageMod()
 	if (sss.workers) {
 		for (var i = 0; i < sss.workers.length; i++) {
 			var worker = sss.workers[i];
+			worker.port.emit("destroyPopup");
 			// worker.deactivate();
 			worker.destroy();	// calls detach on worker
 		}

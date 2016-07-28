@@ -1,3 +1,25 @@
+self.port.on('setup', setup);
+self.port.on('onSelection', onSelection);
+self.port.on('destroyPopup', destroyPopup);
+
+popup = null;
+selection = null;
+popupEngineObjs = null;
+popupOptions = null;
+popupCss = null;
+
+mousePositionX = 0;
+mousePositionY = 0;
+
+function setup(popupLocation)
+{
+	if (popupLocation == 1) {	// option "At cursor location"
+		document.addEventListener('mousemove', onMouseUpdate);
+		document.addEventListener('mouseenter', onMouseUpdate);
+	}
+	console.log("setup print");
+}
+
 function onSelection(options, engineObjs)
 {
 	var s = window.getSelection();
@@ -12,9 +34,9 @@ function onSelection(options, engineObjs)
 		if (elem.isContentEditable === undefined) {
 			continue;	// check parent for value
 		} else if (elem.isContentEditable === true) {
-			return;
-		} else /*if (elem.contentEditable === false)*/ {
-			break;
+			return;		// quit
+		} else /*if (elem.isContentEditable === false)*/ {
+			break;		// create popup
 		}
 	}
 
@@ -22,7 +44,11 @@ function onSelection(options, engineObjs)
 	popupEngineObjs = engineObjs;
 	popupOptions = options;
 
-	createPopup(options, engineObjs);
+	if (popup != null) {
+		showPopup(options, engineObjs);
+	} else {
+		createPopup(options, engineObjs);
+	}
 }
 
 function createPopup(options, engineObjs)
@@ -32,31 +58,14 @@ function createPopup(options, engineObjs)
 		destroyPopup();
 	}
 
-	if (options.popupLocation == 1) {	// option "At cursor location"
-		document.addEventListener('mousemove', function(e) {
-			console.log("mousemove");
-			onMouseUpdate();
-		});
-		document.addEventListener('mouseenter', function(e) {
-			console.log("mouse enter -------------------------------------------------------");
-			onMouseUpdate();
-		});
-		document.addEventListener('mousedown', function(e) {
-			console.log("mouse mousedown");
-			onMouseUpdate();
-		});
-	}
-
 	popup = document.createElement('engines');
 	popup.id = "swift-selection-search-engines";
-	popup.style.position = 'absolute';
 	popup.style.paddingTop = options.popupPaddingY + "px";
 	popup.style.paddingBottom = options.popupPaddingY + "px";
 	popup.style.paddingLeft = options.popupPaddingX + "px";
 	popup.style.paddingRight = options.popupPaddingX + "px";
-	popup.style.zIndex = 2147483647;
 
-	recalculatePopupPositionAndSize(popup, selection, engineObjs, options);
+	setPopupPositionAndSize(popup, selection, engineObjs, options);
 
 	switch (options.hoverBehavior) {
 		case 0: popup.className = "hover-nothing"; break;
@@ -64,19 +73,6 @@ function createPopup(options, engineObjs)
 		case 2: popup.className = "hover-highlight-and-move"; break;
 		default: break;
 	}
-
-	document.body.addEventListener('keypress', function(e) {
-		destroyPopup();
-	});
-
-	// destroy popup from a press down anywhere...
-	document.body.addEventListener('mousedown', function(e) {
-		destroyPopup();
-	});
-	// ...except on the popup itself
-	popup.addEventListener('mousedown', function(e) {
-		e.stopPropagation();
-	});
 
 	document.body.appendChild(popup);
 
@@ -91,15 +87,19 @@ function createPopup(options, engineObjs)
 		icon.style.paddingRight = padding;
 	}
 
-	if (popupCss == null) {
-		popupCss = getPopupStyle();
-		document.body.appendChild(popupCss);
-	}
+	popupCss = getPopupStyle();
+	document.body.appendChild(popupCss);
 
-	window.addEventListener("scroll", onPageScroll);
+	document.body.addEventListener('keypress', hidePopup);
+	document.body.addEventListener('mousedown', hidePopup);		// hide popup from a press down anywhere...
+	popup.addEventListener('mousedown', stopEventPropagation);	// ...except on the popup itself
+
+	if (popupOptions.hidePopupOnPageScroll) {
+		window.addEventListener("scroll", onPageScroll);
+	}
 }
 
-function recalculatePopupPositionAndSize(popup, selection, engineObjs, options)
+function setPopupPositionAndSize(popup, selection, engineObjs, options)
 {
 	var itemHeight = options.itemSize + 8;
 	var itemWidth = options.itemSize + options.itemPadding * 2;
@@ -110,6 +110,9 @@ function recalculatePopupPositionAndSize(popup, selection, engineObjs, options)
 
 	var range = selection.getRangeAt(0); // get the text range
 	var rect = range.getBoundingClientRect();
+
+	var positionLeft;
+	var positionTop;
 
 	if (options.popupLocation == 1) {
 		positionLeft = mousePositionX;
@@ -122,7 +125,7 @@ function recalculatePopupPositionAndSize(popup, selection, engineObjs, options)
 	// center horizontally
 	positionLeft -= width / 2;
 
-	// don't leave the screen
+	// don't leave the page
 	if (positionLeft < 5) {
 		positionLeft = 5;
 	} else if (positionLeft + width + 10 > document.body.offsetWidth) {
@@ -187,6 +190,8 @@ function getPopupStyle()
 }
 
 #swift-selection-search-engines {
+	position: absolute;
+	z-index: 2147483647;
 	padding: 2px;
 	margin: 0px;
 	text-align: center;
@@ -255,11 +260,28 @@ function addEngineToLayout(engineObj, popup)
 function onPageScroll()
 {
 	if (popup != null) {
-		if (popupOptions.hidePopupOnPageScroll) {
-			destroyPopup();
-		} else {
-			recalculatePopupPositionAndSize(popup, selection, popupEngineObjs, popupOptions)
-		}
+		hidePopup();
+	}
+}
+
+function stopEventPropagation(e)
+{
+	e.stopPropagation();
+}
+
+function hidePopup()
+{
+	console.log("hidePopup");
+	if (popup != null) {
+		popup.style.display = "none";
+	}
+}
+
+function showPopup(options, engineObjs)
+{
+	if (popup != null) {
+		popup.style.display = "inline-block";
+		setPopupPositionAndSize(popup, selection, engineObjs, options);
 	}
 }
 
@@ -267,25 +289,33 @@ function destroyPopup()
 {
 	if (popup != null) {
 		document.body.removeChild(popup);
-		popup = null;
-	}
-	if (popupCss != null) {
 		document.body.removeChild(popupCss);
-		popupCss = null;
+		popup = null;
+
+		document.removeEventListener('mousemove', onMouseUpdate);
+		document.removeEventListener('mouseenter', onMouseUpdate);
+		document.body.removeEventListener('keypress', hidePopup);
+		document.body.removeEventListener('mousedown', hidePopup);
+		window.removeEventListener("scroll", onPageScroll);
+		// other listeners are destroyed along with the popup objects
 	}
 }
 
 function onMouseUpdate(e)
 {
-	mousePositionX = e.pageX;
-	mousePositionY = e.pageY;
+	console.log("on mouse update");
+	// if (popupOptions.popupLocation == 1) {	// option "At cursor location"
+		// console.log("at location is on");
+		mousePositionX = e.pageX;
+		mousePositionY = e.pageY;
+	// }
 }
 
 function onSearchEngineClick(engineObj)
 {
 	return function(e) {
 		if (popupOptions.hidePopupOnSearch) {
-			destroyPopup();
+			hidePopup();
 		}
 
 		if (e.which == 1 || e.which == 2) {
@@ -299,15 +329,3 @@ function onSearchEngineClick(engineObj)
 		}
 	}
 }
-
-popup = null;
-selection = null;
-popupEngineObjs = null;
-popupOptions = null;
-popupCss = null;
-
-mousePositionX = null;
-mousePositionY = null;
-
-self.port.on('onSelection', onSelection);
-self.port.on('destroyPopup', destroyPopup);
