@@ -69,7 +69,7 @@ function setCallbacksForPreferences()
 	});
 
 	sdk.simplePrefs.on("popupPanelOpenBehavior", function() {
-		console.log("popupPanelOpenBehavior changed to " + sdk.simplePrefs.prefs['popupPanelOpenBehavior']);
+		// console.log("popupPanelOpenBehavior changed to " + sdk.simplePrefs.prefs['popupPanelOpenBehavior']);
 		if (sdk.simplePrefs.prefs['popupPanelOpenBehavior'] === PopupOpenBehaviour_Off) {	// it's off
 			if (sss.popupPageMod) {
 				destroyPageMod();
@@ -108,7 +108,7 @@ function setCallbacksForPreferences()
 
 function setupShowPopupHotkey()
 {
-	console.log("setupShowPopupHotkey");
+	// console.log("setupShowPopupHotkey");
 
 	if (sss.showPopupHotkey) {
 		sss.showPopupHotkey.destroy();
@@ -127,7 +127,7 @@ function setupShowPopupHotkey()
 
 function setupDisablePopupHotkey()
 {
-	console.log("setupDisablePopupHotkey");
+	// console.log("setupDisablePopupHotkey");
 
 	if (sss.disablePopupHotkey) {
 		sss.disablePopupHotkey.destroy();
@@ -137,7 +137,7 @@ function setupDisablePopupHotkey()
 	if (sdk.simplePrefs.prefs['popupPanelOpenBehavior'] !== PopupOpenBehaviour_Off) {
 		var hotkeyCombo = sdk.simplePrefs.prefs['popupPanelDisableHotkey'];
 		sss.disablePopupHotkey = setPopupHotkey(hotkeyCombo, function() {
-			console.log("on press disable hotkey");
+			// console.log("on press disable hotkey");
 			if (sdk.simplePrefs.prefs['popupPanelOpenBehavior'] === PopupOpenBehaviour_Auto) {
 				sdk.simplePrefs.prefs['popupPanelOpenBehavior'] = PopupOpenBehaviour_Keyboard;
 			} else if (sdk.simplePrefs.prefs['popupPanelOpenBehavior'] === PopupOpenBehaviour_Keyboard) {
@@ -301,7 +301,7 @@ function setup_Popup()
 {
 	// this method only runs once
 
-	console.log("setup_Popup");
+	// console.log("setup_Popup");
 
 	sss.workers = [];
 	sss.workerID = 0;
@@ -317,7 +317,7 @@ function setup_Popup()
 
 function setupPopupPageMod()
 {
-	console.log("setupPopupPageMod");
+	// console.log("setupPopupPageMod");
 
 	sss.popupPageMod = sdk.pageMod.PageMod({
 		include: "*",
@@ -333,7 +333,7 @@ function setupPopupPageMod()
 
 			sss.workers.push(worker);
 			worker.id = sss.workerID++;
-			console.log("onAttach " + worker.id);
+			// console.log("onAttach " + worker.id);
 
 			worker.on('detach', worker.onDetach);
 			worker.on('pageshow', worker.activate);
@@ -355,7 +355,7 @@ function activateWorker(worker)
 		return;
 	}
 
-	console.log("activateWorker " + worker.id + " with tab " + worker.tab.url);
+	// console.log("activateWorker " + worker.id + " with tab " + worker.tab.url);
 
 	if (sss.activeWorker) {
 		sss.activeWorker.deactivate();
@@ -379,7 +379,7 @@ function deactivateWorker(worker)
 		return;
 	}
 
-	console.log("deactivateWorker " + worker.id);
+	// console.log("deactivateWorker " + worker.id);
 
 	worker.port.emit("destroyPopup");
 	worker.port.removeListener("onSearchEngineLeftClick", onSearchEngineLeftClick);
@@ -395,7 +395,7 @@ function deactivateWorker(worker)
 
 function onDetachWorker(worker)
 {
-	console.log("detach " + worker.id);
+	// console.log("detach " + worker.id);
 
 	worker.removeListener('detach', worker.onDetach);
 	worker.removeListener('pageshow', worker.activate);
@@ -416,7 +416,7 @@ function onWorkerTextSelection(worker)
 {
 	if (sdk.selection.text)
 	{
-		console.log("onWorkerTextSelection " + worker.id);
+		// console.log("onWorkerTextSelection " + worker.id);
 
 		var visibleEngines = sdk.searchService.getVisibleEngines({});
 		var engines = visibleEngines.filter(function(engine) { return isEngineActive(engine); });
@@ -437,7 +437,7 @@ function onWorkerTextSelection(worker)
 
 function destroyPageMod()
 {
-	console.log("destroyPageMod");
+	// console.log("destroyPageMod");
 
 	if (sss.activeWorker) {
 		sss.activeWorker.port.emit("destroyPopup");
@@ -470,25 +470,25 @@ function convertEngineToObject(engine)
 
 function onSearchEngineLeftClick(searchText, engineObj)
 {
-	console.log("onSearchEngineLeftClick");
+	// console.log("onSearchEngineLeftClick");
 	doSearch(getSearchFromEngineObj(searchText, engineObj), sdk.simplePrefs.prefs['mouseLeftButtonBehavior']);
 }
 
 function onSearchEngineMiddleClick(searchText, engineObj)
 {
-	console.log("onSearchEngineMiddleClick");
+	// console.log("onSearchEngineMiddleClick");
 	doSearch(getSearchFromEngineObj(searchText, engineObj), sdk.simplePrefs.prefs['mouseMiddleButtonBehavior']);
 }
 
 function onSearchEngineCtrlClick(searchText, engineObj)
 {
-	console.log("onSearchEngineCtrlClick");
+	// console.log("onSearchEngineCtrlClick");
 	doSearch(getSearchFromEngineObj(searchText, engineObj), 2);	// 2 means "open in new background tab" (see doSearch)
 }
 
 function doSearch(searchUrl, behavior)
 {
-	console.log("doSearch");
+	// console.log("doSearch");
 	switch (behavior)
 	{
 		case 0: sdk.tabs.activeTab.url = searchUrl; break;

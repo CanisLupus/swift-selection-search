@@ -17,7 +17,7 @@ function setup(popupLocation)
 		document.addEventListener('mousemove', onMouseUpdate);
 		document.addEventListener('mouseenter', onMouseUpdate);
 	}
-	console.log("setup print");
+	// console.log("setup print");
 }
 
 function onSelection(options, engineObjs)
@@ -271,7 +271,7 @@ function stopEventPropagation(e)
 
 function hidePopup()
 {
-	console.log("hidePopup");
+	// console.log("hidePopup");
 	if (popup != null) {
 		popup.style.display = "none";
 	}
@@ -303,9 +303,9 @@ function destroyPopup()
 
 function onMouseUpdate(e)
 {
-	console.log("on mouse update");
+	// console.log("on mouse update");
 	// if (popupOptions.popupLocation == 1) {	// option "At cursor location"
-		// console.log("at location is on");
+		// // console.log("at location is on");
 		mousePositionX = e.pageX;
 		mousePositionY = e.pageY;
 	// }

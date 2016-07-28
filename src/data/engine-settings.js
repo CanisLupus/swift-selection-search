@@ -1,5 +1,5 @@
 self.port.on('setupSettingsPanel', setupSettingsPanel);
-self.port.on('logInnerHTML', logInnerHTML);
+// self.port.on('logInnerHTML', logInnerHTML);
 
 function setupSettingsPanel(engines)
 {
@@ -34,7 +34,7 @@ function addEngineToLayout(engine)
 	});
 }
 
-function logInnerHTML()
-{
-	console.log(document.documentElement.innerHTML);
-}
+// function logInnerHTML()
+// {
+// 	// console.log(document.documentElement.innerHTML);
+// }
