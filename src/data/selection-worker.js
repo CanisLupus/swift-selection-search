@@ -128,14 +128,14 @@ function setPopupPositionAndSize(popup, selection, engineObjs, options)
 	// don't leave the page
 	if (positionLeft < 5) {
 		positionLeft = 5;
-	} else if (positionLeft + width + 10 > document.body.offsetWidth) {
-		positionLeft = document.body.offsetWidth - width - 10;
+	} else if (positionLeft + width + 10 > document.body.offsetWidth + window.pageXOffset) {
+		positionLeft = document.body.offsetWidth + window.pageXOffset - width - 10;
 	}
 
 	if (positionTop < 5) {
 		positionTop = 5;
-	} else if (positionTop + height + 10 > document.body.offsetHeight) {
-		positionTop = document.body.offsetHeight - height - 10;
+	} else if (positionTop + height + 10 > document.body.offsetHeight + window.pageYOffset) {
+		positionTop = document.body.offsetHeight + window.pageYOffset - height - 10;
 	}
 
 	// set values
@@ -304,11 +304,8 @@ function destroyPopup()
 function onMouseUpdate(e)
 {
 	// console.log("on mouse update");
-	// if (popupOptions.popupLocation == 1) {	// option "At cursor location"
-		// // console.log("at location is on");
-		mousePositionX = e.pageX;
-		mousePositionY = e.pageY;
-	// }
+	mousePositionX = e.pageX;
+	mousePositionY = e.pageY;
 }
 
 function onSearchEngineClick(engineObj)
