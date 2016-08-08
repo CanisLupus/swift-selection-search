@@ -196,6 +196,7 @@ function getPopupStyle()
 	padding: 2px;
 	margin: 0px;
 	text-align: center;
+	pointer-events: none;
 	overflow: hidden;
 	display: inline-block;
 	background-color: white;
@@ -206,6 +207,7 @@ function getPopupStyle()
 	padding: 4px 2px;
 	cursor: pointer;
 	vertical-align: top;
+	pointer-events: auto;
 }
 
 #swift-selection-search-engines.hover-nothing img:hover {
