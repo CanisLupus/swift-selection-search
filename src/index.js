@@ -172,8 +172,18 @@ function createOptionsObjectFromPrefs()
 	opt.popupPaddingY = sdk.simplePrefs.prefs['popupPaddingY'];
 
 	opt.popupAnimationDuration = sdk.simplePrefs.prefs['popupPanelAnimationDuration'];
-	opt.itemSize = sdk.simplePrefs.prefs['itemSize'];
 	opt.itemPadding = sdk.simplePrefs.prefs['itemPadding'];
+
+	opt.popupOffsetX = sdk.simplePrefs.prefs["popupOffsetX"];
+	if (sdk.simplePrefs.prefs["negatePopupOffsetX"]) {
+		opt.popupOffsetX = -opt.popupOffsetX;
+	}
+	opt.popupOffsetY = sdk.simplePrefs.prefs["popupOffsetY"];
+	if (sdk.simplePrefs.prefs["negatePopupOffsetY"]) {
+		opt.popupOffsetY = -opt.popupOffsetY;
+	}
+
+	opt.itemSize = sdk.simplePrefs.prefs['itemSize'];
 	opt.useSingleRow = sdk.simplePrefs.prefs['useSingleRow'];
 	opt.nItemsPerRow = sdk.simplePrefs.prefs['nItemsPerRow'];
 

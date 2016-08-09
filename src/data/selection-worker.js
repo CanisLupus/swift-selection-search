@@ -125,6 +125,9 @@ function setPopupPositionAndSize(popup, selection, engineObjs, options)
 	// center horizontally
 	positionLeft -= width / 2;
 
+	positionLeft += options.popupOffsetX;
+	positionTop -= options.popupOffsetY;	// invert sign because y is 0 at the top
+
 	// don't leave the page
 	if (positionLeft < 5) {
 		positionLeft = 5;
@@ -201,6 +204,7 @@ function getPopupStyle()
 	display: inline-block;
 	background-color: white;
 	box-shadow: 0px 0px 3px rgba(0,0,0,.5);
+	border-radius: 2px;
 }
 
 #swift-selection-search-engines img {
