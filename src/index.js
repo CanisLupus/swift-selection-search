@@ -277,10 +277,7 @@ function createContextMenu()
 		{
 			var itemObject = {
 				label: engine.name,
-				contentScript:
-					'self.on("click", function(node) {' +
-					'	self.postMessage(window.getSelection().toString());' +
-					'});',
+				contentScriptFile: sdk.data.url("context-menu.js"),
 				onMessage: function (selectionText) {
 					var searchText = engine.getSubmission(selectionText).uri.spec;
 					doSearch(searchText, sdk.simplePrefs.prefs['contextMenuItemBehavior']);

@@ -5,7 +5,7 @@
 	"description": "Swiftly access your search engines in a popup panel when you select text in a webpage. Context search menu also included!",
 	"author": "Daniel Lobo",
 	"license": "GPL 2.0",
-	"version": "2.0.6",
+	"version": "2.0.7",
 	"icon": "resource://jid1-KdTtiCj6wxVAFA-at-jetpack/icons/icon128.png",
 	"permissions": {"private-browsing": true},
 	"main": "index.js",
