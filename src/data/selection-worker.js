@@ -74,7 +74,7 @@ function createPopup(options, engineObjs)
 		default: break;
 	}
 
-	document.body.appendChild(popup);
+	document.documentElement.appendChild(popup);
 
 	var padding = options.itemPadding + "px";
 	var size = options.itemSize + "px";
@@ -88,10 +88,10 @@ function createPopup(options, engineObjs)
 	}
 
 	popupCss = getPopupStyle();
-	document.body.appendChild(popupCss);
+	document.documentElement.appendChild(popupCss);
 
-	document.body.addEventListener('keypress', hidePopup);
-	document.body.addEventListener('mousedown', hidePopup);		// hide popup from a press down anywhere...
+	document.documentElement.addEventListener('keypress', hidePopup);
+	document.documentElement.addEventListener('mousedown', hidePopup);		// hide popup from a press down anywhere...
 	popup.addEventListener('mousedown', stopEventPropagation);	// ...except on the popup itself
 
 	if (popupOptions.hidePopupOnPageScroll) {
@@ -128,17 +128,20 @@ function setPopupPositionAndSize(popup, selection, engineObjs, options)
 	positionLeft += options.popupOffsetX;
 	positionTop -= options.popupOffsetY;	// invert sign because y is 0 at the top
 
+	var pageWidth = document.documentElement.offsetWidth + window.pageXOffset;
+	var pageHeight = document.documentElement.scrollHeight;
+
 	// don't leave the page
 	if (positionLeft < 5) {
 		positionLeft = 5;
-	} else if (positionLeft + width + 10 > document.body.offsetWidth + window.pageXOffset) {
-		positionLeft = document.body.offsetWidth + window.pageXOffset - width - 10;
+	} else if (positionLeft + width + 10 > pageWidth) {
+		positionLeft = pageWidth - width - 10;
 	}
 
 	if (positionTop < 5) {
 		positionTop = 5;
-	} else if (positionTop + height + 10 > document.body.offsetHeight + window.pageYOffset) {
-		positionTop = document.body.offsetHeight + window.pageYOffset - height - 10;
+	} else if (positionTop + height + 10 > pageHeight) {
+		positionTop = pageHeight - height - 10;
 	}
 
 	// set values
@@ -295,14 +298,14 @@ function showPopup(options, engineObjs)
 function destroyPopup()
 {
 	if (popup != null) {
-		document.body.removeChild(popup);
-		document.body.removeChild(popupCss);
+		document.documentElement.removeChild(popup);
+		document.documentElement.removeChild(popupCss);
 		popup = null;
 
 		document.removeEventListener('mousemove', onMouseUpdate);
 		document.removeEventListener('mouseenter', onMouseUpdate);
-		document.body.removeEventListener('keypress', hidePopup);
-		document.body.removeEventListener('mousedown', hidePopup);
+		document.documentElement.removeEventListener('keypress', hidePopup);
+		document.documentElement.removeEventListener('mousedown', hidePopup);
 		window.removeEventListener("scroll", onPageScroll);
 		// other listeners are destroyed along with the popup objects
 	}
