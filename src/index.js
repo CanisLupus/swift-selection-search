@@ -453,14 +453,14 @@ function onWorkerTextSelection(worker)
 
 		var engineObjs = [];
 
-		if (sdk.simplePrefs.prefs["doShowCopyIconInPanel"]) {
+		if (sdk.simplePrefs.prefs["doShowCopyIconInPanel"] === 1) {
 			engineObjs.push({
 				name: "[SSS] Copy to clipboard",
 				iconSpec: sdk.data.url("icons/sss-icon-copy.svg")
 			});
 		}
 
-		if (sdk.simplePrefs.prefs["doShowOpenLinkIconInPanel"]) {
+		if (sdk.simplePrefs.prefs["doShowOpenLinkIconInPanel"] === 1) {
 			engineObjs.push({
 				name: "[SSS] Open as link",
 				iconSpec: sdk.data.url("icons/sss-icon-open-link.svg")
