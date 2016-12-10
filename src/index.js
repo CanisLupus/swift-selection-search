@@ -116,6 +116,7 @@ function setCallbacksForPreferences()
 	sdk.simplePrefs.on("resetAllSettings", function() {
 		for (var prefName in sdk.simplePrefs.prefs) {
 			sdk.preferencesService.reset("extensions.jid1-KdTtiCj6wxVAFA@jetpack." + prefName);
+			sdk.simpleStorage.storage.searchEngines = {};
 		}
 	});
 }
