@@ -1,11 +1,20 @@
-(function() {
-
 /* ==================================== */
 /* ====== Swift Selection Search ====== */
 /* ==================================== */
 
-sss = {};
-sdk = {};
+"use strict";
+
+var sss = {};
+var sdk = {};
+
+var PopupOpenBehaviour_Off = 0;
+var PopupOpenBehaviour_Auto = 1;
+// var PopupOpenBehaviour_Mouse = 2;
+var PopupOpenBehaviour_Keyboard = 3;
+
+var ContextMenuEnginesFilter_All = 0;
+var ContextMenuEnginesFilter_SameAsPopupPanel = 1;
+
 setup_Requires();
 setup_Preferences();
 setup_ContextMenu();
@@ -19,8 +28,7 @@ function setup_Requires()
 {
 	// Cc and Ci are used to get the installed search engines.
 	const {Cc,Ci} = require("chrome");
-	sdk.searchService = Cc["@mozilla.org/browser/search-service;1"]
-		.getService(Ci.nsIBrowserSearchService);
+	sdk.searchService = Cc["@mozilla.org/browser/search-service;1"].getService(Ci.nsIBrowserSearchService);
 
 	sdk.selfSdk = require("sdk/self");
 	sdk.data = sdk.selfSdk.data;
@@ -32,7 +40,8 @@ function setup_Requires()
 	sdk.simpleStorage = require("sdk/simple-storage");
 	sdk.contextMenu = require("sdk/context-menu");
 	sdk.hotkey = require("sdk/hotkeys");
-	sdk.clipboard = require("sdk/clipboard");
+	sdk.clipboard = require("sdk/clipboard");						// to copy text to clipboard
+	sdk.preferencesService = require('sdk/preferences/service');	// to reset prefs to default values
 }
 
 /* ------------------------------------ */
@@ -41,11 +50,6 @@ function setup_Requires()
 
 function setup_Preferences()
 {
-	PopupOpenBehaviour_Off = 0;
-	PopupOpenBehaviour_Auto = 1;
-	// PopupOpenBehaviour_Mouse = 2;
-	PopupOpenBehaviour_Keyboard = 3;
-
 	if (sdk.simpleStorage.storage.searchEngines) {
 		purgeNonExistentEngines();
 	} else {
@@ -103,6 +107,16 @@ function setCallbacksForPreferences()
 
 	sdk.simplePrefs.on("enableEnginesInContextMenu", function() {
 		setup_ContextMenu();
+	});
+
+	sdk.simplePrefs.on("contextMenuEnginesFilter", function() {
+		setup_ContextMenu();
+	});
+
+	sdk.simplePrefs.on("resetAllSettings", function() {
+		for (var prefName in sdk.simplePrefs.prefs) {
+			sdk.preferencesService.reset("extensions.jid1-KdTtiCj6wxVAFA@jetpack." + prefName);
+		}
 	});
 }
 
@@ -172,6 +186,8 @@ function createOptionsObjectFromPrefs()
 	opt.popupPaddingY = sdk.simplePrefs.prefs['popupPaddingY'];
 
 	opt.popupAnimationDuration = sdk.simplePrefs.prefs['popupPanelAnimationDuration'];
+	opt.popupPanelBackgroundColor = sdk.simplePrefs.prefs['popupPanelBackgroundColor'];
+	opt.popupPanelHighlightColor = sdk.simplePrefs.prefs['popupPanelHighlightColor'];
 	opt.itemPadding = sdk.simplePrefs.prefs['itemPadding'];
 
 	opt.popupOffsetX = sdk.simplePrefs.prefs["popupOffsetX"];
@@ -227,6 +243,7 @@ function createSettingsPanel()
 function onSearchEngineToggle(engine)
 {
 	sdk.simpleStorage.storage.searchEngines[engine.name] = engine.active;
+	setup_ContextMenu();
 }
 
 function isEngineActive(engine)
@@ -259,7 +276,7 @@ function setup_ContextMenu()
 		sss.contextMenu.destroy();
 		sss.contextMenu = undefined;
 	}
-	if (sdk.simplePrefs.prefs['enableEnginesInContextMenu'] === true) {
+	if (sdk.simplePrefs.prefs['enableEnginesInContextMenu']) {
 		createContextMenu();
 	}
 }
@@ -267,11 +284,19 @@ function setup_ContextMenu()
 function createContextMenu()
 {
 	var visibleEngines = sdk.searchService.getVisibleEngines({});
+	var engines;
+
+	if (sdk.simplePrefs.prefs['contextMenuEnginesFilter'] === ContextMenuEnginesFilter_SameAsPopupPanel) {
+		engines = visibleEngines.filter(function(engine) { return isEngineActive(engine); });
+	} else {
+		engines = visibleEngines;
+	}
+
 	var items = [];
 
-	for (var i = 0; i < visibleEngines.length; i++)
+	for (var i = 0; i < engines.length; i++)
 	{
-		let engine = visibleEngines[i];
+		let engine = engines[i];
 
 		if (!engine.hidden)
 		{
@@ -280,7 +305,7 @@ function createContextMenu()
 				contentScriptFile: sdk.data.url("context-menu.js"),
 				onMessage: function (selectionText) {
 					var searchText = engine.getSubmission(selectionText).uri.spec;
-					doSearch(searchText, sdk.simplePrefs.prefs['contextMenuItemBehavior']);
+					openUrl(searchText, sdk.simplePrefs.prefs['contextMenuItemBehavior']);
 				}
 			};
 
@@ -425,9 +450,25 @@ function onWorkerTextSelection(worker)
 	{
 		// console.log("onWorkerTextSelection " + worker.id);
 
+		var engineObjs = [];
+
+		if (sdk.simplePrefs.prefs["doShowCopyIconInPanel"]) {
+			engineObjs.push({
+				name: "[SSS] Copy to clipboard",
+				iconSpec: sdk.data.url("icons/sss-icon-copy.svg")
+			});
+		}
+
+		if (sdk.simplePrefs.prefs["doShowOpenLinkIconInPanel"]) {
+			engineObjs.push({
+				name: "[SSS] Open as link",
+				iconSpec: sdk.data.url("icons/sss-icon-open-link.svg")
+			});
+		}
+
 		var visibleEngines = sdk.searchService.getVisibleEngines({});
 		var engines = visibleEngines.filter(function(engine) { return isEngineActive(engine); });
-		var engineObjs = engines.map(function(engine) { return convertEngineToObject(engine); });
+		engineObjs = engineObjs.concat(engines.map(function(engine) { return convertEngineToObject(engine); }));
 
 		sss.engines = engines;
 
@@ -478,44 +519,69 @@ function convertEngineToObject(engine)
 function onSearchEngineLeftClick(searchText, engineObj)
 {
 	// console.log("onSearchEngineLeftClick");
-	doSearch(getSearchFromEngineObj(searchText, engineObj), sdk.simplePrefs.prefs['mouseLeftButtonBehavior']);
+	if (engineObj.name == "[SSS] Copy to clipboard") {
+		sdk.clipboard.set(sdk.selection.text);
+	} else if (engineObj.name == "[SSS] Open as link") {
+		openUrl(searchText, sdk.simplePrefs.prefs['mouseLeftButtonBehavior']);
+	} else {
+		openUrl(getSearchFromEngineObj(searchText, engineObj), sdk.simplePrefs.prefs['mouseLeftButtonBehavior']);
+	}
 }
 
 function onSearchEngineMiddleClick(searchText, engineObj)
 {
 	// console.log("onSearchEngineMiddleClick");
-	doSearch(getSearchFromEngineObj(searchText, engineObj), sdk.simplePrefs.prefs['mouseMiddleButtonBehavior']);
+	if (engineObj.name == "[SSS] Copy to clipboard") {
+		sdk.clipboard.set(sdk.selection.text);
+	} else if (engineObj.name == "[SSS] Open as link") {
+		openUrl(searchText, sdk.simplePrefs.prefs['mouseMiddleButtonBehavior']);
+	} else {
+		openUrl(getSearchFromEngineObj(searchText, engineObj), sdk.simplePrefs.prefs['mouseMiddleButtonBehavior']);
+	}
 }
 
 function onSearchEngineCtrlClick(searchText, engineObj)
 {
 	// console.log("onSearchEngineCtrlClick");
-	doSearch(getSearchFromEngineObj(searchText, engineObj), 2);	// 2 means "open in new background tab" (see doSearch)
+	if (engineObj.name == "[SSS] Copy to clipboard") {
+		sdk.clipboard.set(sdk.selection.text);
+	} else if (engineObj.name == "[SSS] Open as link") {
+		openUrl(searchText, 2);
+	} else {
+		openUrl(getSearchFromEngineObj(searchText, engineObj), 2);	// 2 means "open in new background tab" (see openUrl)
+	}
 }
 
-function doSearch(searchUrl, behavior)
+function openUrl(urlToOpen, openingBehavior)
 {
-	// console.log("doSearch");
-	switch (behavior)
+	// console.log("openUrl");
+	switch (openingBehavior)
 	{
-		case 0: sdk.tabs.activeTab.url = searchUrl; break;
-		case 1: sdk.tabs.open({ url: searchUrl }); break;
-		case 2: sdk.tabs.open({ url: searchUrl, inBackground: true }); break;
+		case 0: sdk.tabs.activeTab.url = urlToOpen; break;
+		case 1: sdk.tabs.open({ url: urlToOpen }); break;
+		case 2: sdk.tabs.open({ url: urlToOpen, inBackground: true }); break;
 	}
 }
 
 function getSearchFromEngineObj(searchText, engineObj)
 {
+	var engine = getEngineFromEngineObj(engineObj);
+	if (engine !== null) {
+		return engine.getSubmission(searchText).uri.spec;
+	}
+}
+
+function getEngineFromEngineObj(engineObj)
+{
 	for (var key in sss.engines) {
 		var engine = sss.engines[key];
 		if (engine.name === engineObj.name) {
-			return engine.getSubmission(searchText).uri.spec;
+			return engine;
 		}
 	}
+	return null;
 }
 
 /* ------------------------------------ */
 /* ------------------------------------ */
 /* ------------------------------------ */
-
-})();

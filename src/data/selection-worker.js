@@ -205,7 +205,7 @@ function getPopupStyle()
 	pointer-events: none;
 	overflow: hidden;
 	display: inline-block;
-	background-color: white;
+	background-color: `+popupOptions.popupPanelBackgroundColor+`;
 	box-shadow: 0px 0px 3px rgba(0,0,0,.5);
 	border-radius: 2px;
 }
@@ -221,16 +221,17 @@ function getPopupStyle()
 }
 
 #swift-selection-search-engines.hover-highlight-only img:hover {
-	border-bottom: 2px #4099ff solid;
+	border-bottom: 2px `+popupOptions.popupPanelHighlightColor+` solid;
 	border-radius: 2px;
 	padding-bottom: 2px;
 }
 
 #swift-selection-search-engines.hover-highlight-and-move img:hover {
-	border-bottom: 3px #4099ff solid;
+	border-bottom: 2px `+popupOptions.popupPanelHighlightColor+` solid;
 	border-radius: 2px;
 	padding-top: 1px;
 }`;
+
 	if (popupOptions.popupAnimationDuration > 0) {
 		var duration = popupOptions.popupAnimationDuration / 1000.0;
 		css.innerHTML +=
@@ -249,13 +250,14 @@ function getPopupStyle()
     100% { transform: scale(1);   }
 }`;
 	}
+
 	return css;
 }
 
 function addEngineToLayout(engineObj, popup)
 {
 	var icon = document.createElement("img");
-	icon.setAttribute("src", (engineObj.iconSpec != null ? engineObj.iconSpec : "default.png"));
+	icon.setAttribute("src", engineObj.iconSpec);
 	icon.addEventListener("mouseup", onSearchEngineClick(engineObj));
 	icon.addEventListener("mousedown", function(e) {
 		if (e.which == 2) {

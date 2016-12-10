@@ -5,7 +5,7 @@
 	"description": "Swiftly access your search engines in a popup panel when you select text in a webpage. Context search menu also included!",
 	"author": "Daniel Lobo",
 	"license": "GPL 2.0",
-	"version": "2.0.7",
+	"version": "2.13.0",
 	"icon": "resource://jid1-KdTtiCj6wxVAFA-at-jetpack/icons/icon128.png",
 	"permissions": {"private-browsing": true},
 	"main": "index.js",
@@ -30,6 +30,20 @@
 		"type": "control",
 		"description": "Enable/disable the search engines that are displayed on the popup panel (the context menu still shows all of them).",
 		"label": "Select"
+	},
+	{
+		"name": "doShowCopyIconInPanel",
+		"title": "Show icon to copy text",
+		"type": "bool",
+		"description": "Show \"copy to clipboard\" icon in the panel.\n(default: Off)",
+		"value": false
+	},
+	{
+		"name": "doShowOpenLinkIconInPanel",
+		"title": "Show icon to open as link",
+		"type": "bool",
+		"description": "Show \"open text as link\" icon in the panel.\n(default: Off)",
+		"value": false
 	},
 
 
@@ -61,7 +75,7 @@
 		"title": "Popup location",
 		"type": "menulist",
 		"description": "Where the popup should appear after selecting text.\n(default: Bottom right corner of selection \"rectangle\")",
-		"value": 0,
+		"value": 1,
 		"options": [
 			{
 				"value": "0",
@@ -208,7 +222,20 @@
 			}
 		]
 	},
-
+	{
+		"name": "popupPanelBackgroundColor",
+		"title": "Popup panel background color",
+		"type": "color",
+		"description": "Color for the popup panel background.\n(default: white, #ffffff)",
+		"value": "#ffffff"
+	},
+	{
+		"name": "popupPanelHighlightColor",
+		"title": "Popup panel highlight color",
+		"type": "color",
+		"description": "Color for the popup panel highlight.\n(default: blue, #3366ff)",
+		"value": "#3366ff"
+	},
 
 
 
@@ -296,7 +323,23 @@
 			}
 		]
 	},
-
+	{
+		"name": "contextMenuEnginesFilter",
+		"title": "Context menu engines filter",
+		"type": "menulist",
+		"description": "What engines to show on the context menu.\n(default: All)",
+		"value": 0,
+		"options": [
+			{
+				"value": "0",
+				"label": "All"
+			},
+			{
+				"value": "1",
+				"label": "Same as popup panel"
+			}
+		]
+	},
 
 
 
@@ -317,6 +360,17 @@
 				"label": "Always"
 			}
 		]
+	},
+
+
+
+
+	{
+		"name": "resetAllSettings",
+		"title": "Reset all settings",
+		"type": "control",
+		"description": "Immediately resets all options on this page to their defaults.",
+		"label": "Reset"
 	}
 	]
 }

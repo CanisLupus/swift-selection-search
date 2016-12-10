@@ -19,7 +19,7 @@ function addEngineToLayout(engine)
 	element.appendChild(checkbox);
 
 	var icon = document.createElement("img");
-	icon.setAttribute("src", (engine.iconSpec != null ? engine.iconSpec : "default.png"));
+	icon.setAttribute("src", (engine.iconSpec != null ? engine.iconSpec : "icons/default.png"));
 	element.appendChild(document.createElement("span"));
 	element.appendChild(icon);
 
