@@ -9,11 +9,14 @@ var sdk = {};
 
 var PopupOpenBehaviour_Off = 0;
 var PopupOpenBehaviour_Auto = 1;
-// var PopupOpenBehaviour_Mouse = 2;
+var PopupOpenBehaviour_Mouse = 2;
 var PopupOpenBehaviour_Keyboard = 3;
 
 var ContextMenuEnginesFilter_All = 0;
 var ContextMenuEnginesFilter_SameAsPopupPanel = 1;
+
+var AutoCopyToClipboard_Off = 0;
+var AutoCopyToClipboard_Always = 1;
 
 setup_Requires();
 setup_Preferences();
@@ -34,7 +37,6 @@ function setup_Requires()
 	sdk.data = sdk.selfSdk.data;
 	sdk.tabs = require("sdk/tabs");
 	sdk.pageMod = require("sdk/page-mod");
-	sdk.selection = require("sdk/selection");
 	sdk.panel = require("sdk/panel");
 	sdk.simplePrefs = require('sdk/simple-prefs');
 	sdk.simpleStorage = require("sdk/simple-storage");
@@ -56,6 +58,8 @@ function setup_Preferences()
 		sdk.simpleStorage.storage.searchEngines = {};
 	}
 
+	generateEngineObjects();
+
 	setCallbacksForPreferences();
 }
 
@@ -63,29 +67,17 @@ function setCallbacksForPreferences()
 {
 	// any change should destroy any active popup and force the options to be recreated next time they're needed
 	sdk.simplePrefs.on("", function() {
-		for (var i = 0; i < sss.workers.length; i++) {
-			sss.workers[i].port.emit("destroyPopup");
-		}
-		if (sss.activeWorker) {
-			sss.activeWorker.port.emit("setup", sdk.simplePrefs.prefs["popupLocation"]);
-		}
-		sss.options = undefined;
+		generateEngineObjects();
+		resetAllWorkers();
 	});
 
 	sdk.simplePrefs.on("popupPanelOpenBehavior", function() {
-		// console.log("popupPanelOpenBehavior changed to " + sdk.simplePrefs.prefs['popupPanelOpenBehavior']);
-		if (sdk.simplePrefs.prefs['popupPanelOpenBehavior'] === PopupOpenBehaviour_Off) {	// it's off
+		if (sdk.simplePrefs.prefs.popupPanelOpenBehavior === PopupOpenBehaviour_Off) {	// it's off
 			if (sss.popupPageMod) {
 				destroyPageMod();
 			}
 		} else if (!sss.popupPageMod) {	// it's on but no pageMod, so create it
 			setupPopupPageMod();
-		} else if (sss.activeWorker) {	// enable/disable selection event on current worker
-			if (sdk.simplePrefs.prefs['popupPanelOpenBehavior'] === PopupOpenBehaviour_Auto) {
-				sdk.selection.on('select', sss.activeWorker.onSelection);
-			} else {	// keyboard selection only
-				sdk.selection.removeListener('select', sss.activeWorker.onSelection);
-			}
 		}
 	});
 
@@ -98,7 +90,7 @@ function setCallbacksForPreferences()
 	});
 
 	sdk.simplePrefs.on("selectEnginesButton", function() {
-		createSettingsPanel();
+		createEngineSelectionPanel();
 	});
 
 	sdk.simplePrefs.on("openEngineManager", function() {
@@ -113,6 +105,22 @@ function setCallbacksForPreferences()
 		setup_ContextMenu();
 	});
 
+	// keep hexadecimal value and color picker in sync
+	sdk.simplePrefs.on("popupPanelBackgroundColor", function() {
+		sdk.simplePrefs.prefs.popupPanelBackgroundColorPicker = sdk.simplePrefs.prefs.popupPanelBackgroundColor;
+	});
+	sdk.simplePrefs.on("popupPanelBackgroundColorPicker", function() {
+		sdk.simplePrefs.prefs.popupPanelBackgroundColor = sdk.simplePrefs.prefs.popupPanelBackgroundColorPicker;
+	});
+
+	// keep hexadecimal value and color picker in sync
+	sdk.simplePrefs.on("popupPanelHighlightColor", function() {
+		sdk.simplePrefs.prefs.popupPanelHighlightColorPicker = sdk.simplePrefs.prefs.popupPanelHighlightColor;
+	});
+	sdk.simplePrefs.on("popupPanelHighlightColorPicker", function() {
+		sdk.simplePrefs.prefs.popupPanelHighlightColor = sdk.simplePrefs.prefs.popupPanelHighlightColorPicker;
+	});
+
 	sdk.simplePrefs.on("resetAllSettings", function() {
 		for (var prefName in sdk.simplePrefs.prefs) {
 			sdk.preferencesService.reset("extensions.jid1-KdTtiCj6wxVAFA@jetpack." + prefName);
@@ -123,18 +131,15 @@ function setCallbacksForPreferences()
 
 function setupShowPopupHotkey()
 {
-	// console.log("setupShowPopupHotkey");
-
 	if (sss.showPopupHotkey) {
 		sss.showPopupHotkey.destroy();
 		sss.showPopupHotkey = undefined;
 	}
 
-	if (sdk.simplePrefs.prefs['popupPanelOpenBehavior'] !== PopupOpenBehaviour_Off) {
-		var hotkeyCombo = sdk.simplePrefs.prefs['popupPanelHotkey'];
-		sss.showPopupHotkey = setPopupHotkey(hotkeyCombo, function() {
+	if (sdk.simplePrefs.prefs.popupPanelOpenBehavior !== PopupOpenBehaviour_Off) {
+		sss.showPopupHotkey = setPopupHotkey(sdk.simplePrefs.prefs.popupPanelHotkey, function() {
 			if (sss.activeWorker) {
-				sss.activeWorker.onSelection();
+				sss.activeWorker.port.emit("showPopup", sdk.simplePrefs.prefs, sss.engineObjs);
 			}
 		});
 	}
@@ -142,21 +147,17 @@ function setupShowPopupHotkey()
 
 function setupDisablePopupHotkey()
 {
-	// console.log("setupDisablePopupHotkey");
-
 	if (sss.disablePopupHotkey) {
 		sss.disablePopupHotkey.destroy();
 		sss.disablePopupHotkey = undefined;
 	}
 
-	if (sdk.simplePrefs.prefs['popupPanelOpenBehavior'] !== PopupOpenBehaviour_Off) {
-		var hotkeyCombo = sdk.simplePrefs.prefs['popupPanelDisableHotkey'];
-		sss.disablePopupHotkey = setPopupHotkey(hotkeyCombo, function() {
-			// console.log("on press disable hotkey");
-			if (sdk.simplePrefs.prefs['popupPanelOpenBehavior'] === PopupOpenBehaviour_Auto) {
-				sdk.simplePrefs.prefs['popupPanelOpenBehavior'] = PopupOpenBehaviour_Keyboard;
-			} else if (sdk.simplePrefs.prefs['popupPanelOpenBehavior'] === PopupOpenBehaviour_Keyboard) {
-				sdk.simplePrefs.prefs['popupPanelOpenBehavior'] = PopupOpenBehaviour_Auto;
+	if (sdk.simplePrefs.prefs.popupPanelOpenBehavior !== PopupOpenBehaviour_Off) {
+		sss.disablePopupHotkey = setPopupHotkey(sdk.simplePrefs.prefs.popupPanelDisableHotkey, function() {
+			if (sdk.simplePrefs.prefs.popupPanelOpenBehavior === PopupOpenBehaviour_Auto) {
+				sdk.simplePrefs.prefs.popupPanelOpenBehavior = PopupOpenBehaviour_Keyboard;
+			} else if (sdk.simplePrefs.prefs.popupPanelOpenBehavior === PopupOpenBehaviour_Keyboard) {
+				sdk.simplePrefs.prefs.popupPanelOpenBehavior = PopupOpenBehaviour_Auto;
 			}
 		});
 	}
@@ -179,40 +180,7 @@ function setPopupHotkey(hotkeyCombo, onPressFunc)
 	return undefined;
 }
 
-function createOptionsObjectFromPrefs()
-{
-	var opt = {};
-
-	opt.popupPaddingX = sdk.simplePrefs.prefs['popupPaddingX'];
-	opt.popupPaddingY = sdk.simplePrefs.prefs['popupPaddingY'];
-
-	opt.popupAnimationDuration = sdk.simplePrefs.prefs['popupPanelAnimationDuration'];
-	opt.popupPanelBackgroundColor = sdk.simplePrefs.prefs['popupPanelBackgroundColor'];
-	opt.popupPanelHighlightColor = sdk.simplePrefs.prefs['popupPanelHighlightColor'];
-	opt.itemPadding = sdk.simplePrefs.prefs['itemPadding'];
-
-	opt.popupOffsetX = sdk.simplePrefs.prefs["popupOffsetX"];
-	if (sdk.simplePrefs.prefs["negatePopupOffsetX"]) {
-		opt.popupOffsetX = -opt.popupOffsetX;
-	}
-	opt.popupOffsetY = sdk.simplePrefs.prefs["popupOffsetY"];
-	if (sdk.simplePrefs.prefs["negatePopupOffsetY"]) {
-		opt.popupOffsetY = -opt.popupOffsetY;
-	}
-
-	opt.itemSize = sdk.simplePrefs.prefs['itemSize'];
-	opt.useSingleRow = sdk.simplePrefs.prefs['useSingleRow'];
-	opt.nItemsPerRow = sdk.simplePrefs.prefs['nItemsPerRow'];
-
-	opt.hoverBehavior = sdk.simplePrefs.prefs["itemHoverBehavior"];
-	opt.popupLocation = sdk.simplePrefs.prefs["popupLocation"];
-	opt.hidePopupOnPageScroll = sdk.simplePrefs.prefs["hidePopupPanelOnPageScroll"];
-	opt.hidePopupOnSearch = sdk.simplePrefs.prefs["hidePopupPanelOnSearch"];
-
-	return opt;
-}
-
-function createSettingsPanel()
+function createEngineSelectionPanel()
 {
 	var visibleEngines = sdk.searchService.getVisibleEngines({});
 
@@ -244,6 +212,8 @@ function createSettingsPanel()
 function onSearchEngineToggle(engine)
 {
 	sdk.simpleStorage.storage.searchEngines[engine.name] = engine.active;
+	generateEngineObjects();
+	resetAllWorkers();
 	setup_ContextMenu();
 }
 
@@ -277,7 +247,7 @@ function setup_ContextMenu()
 		sss.contextMenu.destroy();
 		sss.contextMenu = undefined;
 	}
-	if (sdk.simplePrefs.prefs['enableEnginesInContextMenu']) {
+	if (sdk.simplePrefs.prefs.enableEnginesInContextMenu) {
 		createContextMenu();
 	}
 }
@@ -287,8 +257,8 @@ function createContextMenu()
 	var visibleEngines = sdk.searchService.getVisibleEngines({});
 	var engines;
 
-	if (sdk.simplePrefs.prefs['contextMenuEnginesFilter'] === ContextMenuEnginesFilter_SameAsPopupPanel) {
-		engines = visibleEngines.filter(function(engine) { return isEngineActive(engine); });
+	if (sdk.simplePrefs.prefs.contextMenuEnginesFilter === ContextMenuEnginesFilter_SameAsPopupPanel) {
+		engines = sss.engines;
 	} else {
 		engines = visibleEngines;
 	}
@@ -306,7 +276,7 @@ function createContextMenu()
 				contentScriptFile: sdk.data.url("context-menu.js"),
 				onMessage: function (selectionText) {
 					var searchText = engine.getSubmission(selectionText).uri.spec;
-					openUrl(searchText, sdk.simplePrefs.prefs['contextMenuItemBehavior']);
+					openUrl(searchText, sdk.simplePrefs.prefs.contextMenuItemBehavior);
 				}
 			};
 
@@ -334,8 +304,6 @@ function setup_Popup()
 {
 	// this method only runs once
 
-	// console.log("setup_Popup");
-
 	sss.workers = [];
 	sss.workerID = 0;
 	sss.activeWorker = undefined;
@@ -343,18 +311,16 @@ function setup_Popup()
 	setupShowPopupHotkey();
 	setupDisablePopupHotkey();
 
-	if (sdk.simplePrefs.prefs['popupPanelOpenBehavior'] !== PopupOpenBehaviour_Off) {
+	if (sdk.simplePrefs.prefs.popupPanelOpenBehavior !== PopupOpenBehaviour_Off) {
 		setupPopupPageMod();
 	}
 }
 
 function setupPopupPageMod()
 {
-	// console.log("setupPopupPageMod");
-
 	sss.popupPageMod = sdk.pageMod.PageMod({
 		include: "*",
-		contentScriptFile: sdk.data.url("selection-worker.js"),
+		contentScriptFile: [sdk.data.url("selectionchange.js"), sdk.data.url("selection-worker.js")],
 		attachTo: ["existing", "top"],
 		contentScriptWhen: "ready",
 		onAttach: function(worker)
@@ -362,7 +328,6 @@ function setupPopupPageMod()
 			worker.activate = function() { activateWorker(worker); }
 			worker.deactivate = function() { deactivateWorker(worker); }
 			worker.onDetach = function() { onDetachWorker(worker); }
-			worker.onSelection = function() { onWorkerTextSelection(worker); }
 
 			sss.workers.push(worker);
 			worker.id = sss.workerID++;
@@ -381,10 +346,7 @@ function setupPopupPageMod()
 
 function activateWorker(worker)
 {
-	if (worker === sss.activeWorker) {
-		return;
-	}
-	if (!worker.tab || worker.tab.id !== sdk.tabs.activeTab.id) {
+	if (worker === sss.activeWorker || !worker.tab || worker.tab.id !== sdk.tabs.activeTab.id) {
 		return;
 	}
 
@@ -398,29 +360,32 @@ function activateWorker(worker)
 	worker.port.on("onSearchEngineLeftClick", onSearchEngineLeftClick);
 	worker.port.on("onSearchEngineMiddleClick", onSearchEngineMiddleClick);
 	worker.port.on("onSearchEngineCtrlClick", onSearchEngineCtrlClick);
-	if (sdk.simplePrefs.prefs['popupPanelOpenBehavior'] === PopupOpenBehaviour_Auto) {
-		sdk.selection.on('select', worker.onSelection);
-	}
-	worker.port.emit("setup", sdk.simplePrefs.prefs["popupLocation"]);
 
-	worker.wasDetached = false;
+	if (sdk.simplePrefs.prefs.autoCopyToClipboard === AutoCopyToClipboard_Always) {
+		worker.port.on("onTextSelection", copyTextToClipboard);
+	}
+
+	worker.port.emit("activate", sdk.simplePrefs.prefs, sss.engineObjs);
+
+	worker.isDetached = false;
 }
 
 function deactivateWorker(worker)
 {
-	if (worker.wasDetached) {
+	if (worker.isDetached) {
 		return;
 	}
 
 	// console.log("deactivateWorker " + worker.id);
 
-	worker.port.emit("destroyPopup");
+	worker.port.emit("deactivate");
+
 	worker.port.removeListener("onSearchEngineLeftClick", onSearchEngineLeftClick);
 	worker.port.removeListener("onSearchEngineMiddleClick", onSearchEngineMiddleClick);
 	worker.port.removeListener("onSearchEngineCtrlClick", onSearchEngineCtrlClick);
-	sdk.selection.removeListener('select', worker.onSelection);
 
-	// assumes deactivate is only called on the current activeWorker
+	worker.port.removeListener("onTextSelection", copyTextToClipboard);
+
 	if (worker === sss.activeWorker) {
 		sss.activeWorker = undefined;
 	}
@@ -435,69 +400,26 @@ function onDetachWorker(worker)
 	if (worker.tab) {	// fix for settings change
 		worker.tab.removeListener('activate', worker.activate);
 	}
-	sdk.selection.removeListener('select', worker.onSelection);
 
 	var index = sss.workers.indexOf(worker);
 	if (index !== -1) {
 		sss.workers.splice(index, 1);
 	}
 
-	worker.wasDetached = true;
-}
-
-function onWorkerTextSelection(worker)
-{
-	if (sdk.selection.text)
-	{
-		// console.log("onWorkerTextSelection " + worker.id);
-
-		var engineObjs = [];
-
-		if (sdk.simplePrefs.prefs["doShowCopyIconInPanel"] === 1) {
-			engineObjs.push({
-				name: "[SSS] Copy to clipboard",
-				iconSpec: sdk.data.url("icons/sss-icon-copy.svg")
-			});
-		}
-
-		if (sdk.simplePrefs.prefs["doShowOpenLinkIconInPanel"] === 1) {
-			engineObjs.push({
-				name: "[SSS] Open as link",
-				iconSpec: sdk.data.url("icons/sss-icon-open-link.svg")
-			});
-		}
-
-		var visibleEngines = sdk.searchService.getVisibleEngines({});
-		var engines = visibleEngines.filter(function(engine) { return isEngineActive(engine); });
-		engineObjs = engineObjs.concat(engines.map(function(engine) { return convertEngineToObject(engine); }));
-
-		sss.engines = engines;
-
-		if (!sss.options) {
-			sss.options = createOptionsObjectFromPrefs();
-		}
-		worker.port.emit("onSelection", sss.options, engineObjs);
-
-		if (sdk.simplePrefs.prefs['autoCopyToClipboard']) {
-			sdk.clipboard.set(sdk.selection.text);
-		}
-	}
+	worker.isDetached = true;
 }
 
 function destroyPageMod()
 {
-	// console.log("destroyPageMod");
-
 	if (sss.activeWorker) {
-		sss.activeWorker.port.emit("destroyPopup");
+		sss.activeWorker.port.emit("deactivate");
 		sss.activeWorker = undefined;
 	}
 
 	if (sss.workers) {
 		for (var i = 0; i < sss.workers.length; i++) {
 			var worker = sss.workers[i];
-			worker.port.emit("destroyPopup");
-			// worker.deactivate();
+			worker.port.emit("deactivate");
 			worker.destroy();	// calls detach on worker
 		}
 		sss.workers = [];
@@ -509,43 +431,101 @@ function destroyPageMod()
 	}
 }
 
-function convertEngineToObject(engine)
+function resetAllWorkers()
 {
-	return {
-		name: engine.name,
-		iconSpec: (engine.iconURI !== null ? engine.iconURI.spec : null)
-	};
+	// deactivate all workers
+	for (var i = 0; i < sss.workers.length; i++) {
+		sss.workers[i].port.emit("deactivate");
+	}
+
+	// re-activate the active worker, if any
+	if (sss.activeWorker) {
+		sss.activeWorker.port.emit("activate", sdk.simplePrefs.prefs, sss.engineObjs);
+	}
+}
+
+function generateEngineObjects()
+{
+	var engineObjs = [];
+
+	var copyEngine;
+	var openLinkEngine;
+
+	if (sdk.simplePrefs.prefs.doShowCopyIconInPanel !== 0) {
+		copyEngine = {
+			name: "[SSS] Copy to clipboard",
+			iconSpec: sdk.data.url("icons/sss-icon-copy.svg")
+		};
+	}
+
+	if (sdk.simplePrefs.prefs.doShowOpenLinkIconInPanel !== 0) {
+		openLinkEngine = {
+			name: "[SSS] Open as link",
+			iconSpec: sdk.data.url("icons/sss-icon-open-link.svg")
+		};
+		engineObjs.push();
+	}
+
+	if (sdk.simplePrefs.prefs.doShowCopyIconInPanel === 1) {
+		engineObjs.push(copyEngine);
+	}
+
+	if (sdk.simplePrefs.prefs.doShowOpenLinkIconInPanel === 1) {
+		engineObjs.push(openLinkEngine);
+	}
+
+	var visibleEngines = sdk.searchService.getVisibleEngines({});
+
+	sss.engines = visibleEngines.filter(function(engine) {
+		return isEngineActive(engine);
+	});
+
+	engineObjs = engineObjs.concat(
+		sss.engines.map(function(engine) {
+			return {
+				name: engine.name,
+				iconSpec: (engine.iconURI !== null ? engine.iconURI.spec : null)
+			};
+		})
+	);
+
+	if (sdk.simplePrefs.prefs.doShowCopyIconInPanel === 2) {
+		engineObjs.push(copyEngine);
+	}
+
+	if (sdk.simplePrefs.prefs.doShowOpenLinkIconInPanel === 2) {
+		engineObjs.push(openLinkEngine);
+	}
+
+	sss.engineObjs = engineObjs;
 }
 
 function onSearchEngineLeftClick(searchText, engineObj)
 {
-	// console.log("onSearchEngineLeftClick");
 	if (engineObj.name == "[SSS] Copy to clipboard") {
-		sdk.clipboard.set(sdk.selection.text);
+		sdk.clipboard.set(searchText);
 	} else if (engineObj.name == "[SSS] Open as link") {
-		openUrl(searchText, sdk.simplePrefs.prefs['mouseLeftButtonBehavior']);
+		openUrl(searchText, sdk.simplePrefs.prefs.mouseLeftButtonBehavior);
 	} else {
-		openUrl(getSearchFromEngineObj(searchText, engineObj), sdk.simplePrefs.prefs['mouseLeftButtonBehavior']);
+		openUrl(getSearchFromEngineObj(searchText, engineObj), sdk.simplePrefs.prefs.mouseLeftButtonBehavior);
 	}
 }
 
 function onSearchEngineMiddleClick(searchText, engineObj)
 {
-	// console.log("onSearchEngineMiddleClick");
 	if (engineObj.name == "[SSS] Copy to clipboard") {
-		sdk.clipboard.set(sdk.selection.text);
+		sdk.clipboard.set(searchText);
 	} else if (engineObj.name == "[SSS] Open as link") {
-		openUrl(searchText, sdk.simplePrefs.prefs['mouseMiddleButtonBehavior']);
+		openUrl(searchText, sdk.simplePrefs.prefs.mouseMiddleButtonBehavior);
 	} else {
-		openUrl(getSearchFromEngineObj(searchText, engineObj), sdk.simplePrefs.prefs['mouseMiddleButtonBehavior']);
+		openUrl(getSearchFromEngineObj(searchText, engineObj), sdk.simplePrefs.prefs.mouseMiddleButtonBehavior);
 	}
 }
 
 function onSearchEngineCtrlClick(searchText, engineObj)
 {
-	// console.log("onSearchEngineCtrlClick");
 	if (engineObj.name == "[SSS] Copy to clipboard") {
-		sdk.clipboard.set(sdk.selection.text);
+		sdk.clipboard.set(searchText);
 	} else if (engineObj.name == "[SSS] Open as link") {
 		openUrl(searchText, 2);
 	} else {
@@ -555,12 +535,21 @@ function onSearchEngineCtrlClick(searchText, engineObj)
 
 function openUrl(urlToOpen, openingBehavior)
 {
-	// console.log("openUrl");
 	switch (openingBehavior)
 	{
 		case 0: sdk.tabs.activeTab.url = urlToOpen; break;
 		case 1: sdk.tabs.open({ url: urlToOpen }); break;
 		case 2: sdk.tabs.open({ url: urlToOpen, inBackground: true }); break;
+		case 3:
+			var index = sdk.tabs.activeTab.index;
+			sdk.tabs.open({ url: urlToOpen });
+			sdk.tabs[sdk.tabs.length-1].index = index + 1;
+			break;
+		case 4:
+			var index = sdk.tabs.activeTab.index;
+			sdk.tabs.open({ url: urlToOpen, inBackground: true });
+			sdk.tabs[sdk.tabs.length-1].index = index + 1;
+			break;
 	}
 }
 
@@ -581,6 +570,11 @@ function getEngineFromEngineObj(engineObj)
 		}
 	}
 	return null;
+}
+
+function copyTextToClipboard(text)
+{
+	sdk.clipboard.set(text);
 }
 
 /* ------------------------------------ */

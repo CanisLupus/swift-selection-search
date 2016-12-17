@@ -1,6 +1,6 @@
-self.port.on('setup', setup);
-self.port.on('onSelection', onSelection);
-self.port.on('destroyPopup', destroyPopup);
+self.port.on('activate', activate);
+self.port.on('deactivate', deactivate);
+self.port.on('showPopup', showPopupForSelectedText);
 
 popup = null;
 selection = null;
@@ -11,16 +11,47 @@ popupCss = null;
 mousePositionX = 0;
 mousePositionY = 0;
 
-function setup(popupLocation)
+function activate(options, engineObjs)
 {
-	if (popupLocation == 1) {	// option "At cursor location"
+	popupOptions = options;
+	popupEngineObjs = engineObjs;
+
+	if (options.popupLocation == 1) {	// option "At cursor location"
 		document.addEventListener('mousemove', onMouseUpdate);
 		document.addEventListener('mouseenter', onMouseUpdate);
 	}
-	// console.log("setup print");
+
+	if (options.popupPanelOpenBehavior == 1) {	// option "Auto"
+		selectionchange.start();
+		document.addEventListener('customselectionchange', onselectionchange);
+	}
 }
 
-function onSelection(options, engineObjs)
+function deactivate()
+{
+	if (popup != null) {
+		document.documentElement.removeChild(popup);
+		document.documentElement.removeChild(popupCss);
+		popup = null;
+	}
+
+	document.removeEventListener('mousemove', onMouseUpdate);
+	document.removeEventListener('mouseenter', onMouseUpdate);
+	document.documentElement.removeEventListener('keypress', hidePopup);
+	document.documentElement.removeEventListener('mousedown', hidePopup);
+	window.removeEventListener("scroll", onPageScroll);
+	// other listeners are destroyed along with the popup objects
+
+	document.removeEventListener('customselectionchange', onselectionchange);
+	// selectionchange.stop();
+}
+
+function onselectionchange()
+{
+	showPopupForSelectedText(popupOptions, popupEngineObjs);
+}
+
+function showPopupForSelectedText(options, engineObjs)
 {
 	var s = window.getSelection();
 
@@ -41,8 +72,9 @@ function onSelection(options, engineObjs)
 	}
 
 	selection = s;
-	popupEngineObjs = engineObjs;
-	popupOptions = options;
+	// console.log("showPopupForSelectedText " + selection.toString());
+
+	self.port.emit('onTextSelection', selection.toString());
 
 	if (popup != null) {
 		showPopup(options, engineObjs);
@@ -55,7 +87,7 @@ function createPopup(options, engineObjs)
 {
 	// destroy old popup, if any
 	if (popup != null) {
-		destroyPopup();
+		deactivate();
 	}
 
 	popup = document.createElement('engines');
@@ -67,7 +99,7 @@ function createPopup(options, engineObjs)
 
 	setPopupPositionAndSize(popup, selection, engineObjs, options);
 
-	switch (options.hoverBehavior) {
+	switch (options.itemHoverBehavior) {
 		case 0: popup.className = "hover-nothing"; break;
 		case 1: popup.className = "hover-highlight-only"; break;
 		case 2: popup.className = "hover-highlight-and-move"; break;
@@ -94,7 +126,7 @@ function createPopup(options, engineObjs)
 	document.documentElement.addEventListener('mousedown', hidePopup);		// hide popup from a press down anywhere...
 	popup.addEventListener('mousedown', stopEventPropagation);	// ...except on the popup itself
 
-	if (popupOptions.hidePopupOnPageScroll) {
+	if (popupOptions.hidePopupPanelOnPageScroll) {
 		window.addEventListener("scroll", onPageScroll);
 	}
 }
@@ -104,7 +136,10 @@ function setPopupPositionAndSize(popup, selection, engineObjs, options)
 	var itemHeight = options.itemSize + 8;
 	var itemWidth = options.itemSize + options.itemPadding * 2;
 
-	var nItemsPerRow = (options.useSingleRow ? engineObjs.length : options.nItemsPerRow);
+	var nItemsPerRow = engineObjs.length;
+	if (!options.useSingleRow && options.nItemsPerRow < nItemsPerRow) {
+		nItemsPerRow = options.nItemsPerRow;
+	}
 	var height = itemHeight * Math.ceil(engineObjs.length / nItemsPerRow);
 	var width = itemWidth * nItemsPerRow;
 
@@ -125,8 +160,17 @@ function setPopupPositionAndSize(popup, selection, engineObjs, options)
 	// center horizontally
 	positionLeft -= width / 2;
 
-	positionLeft += options.popupOffsetX;
-	positionTop -= options.popupOffsetY;	// invert sign because y is 0 at the top
+	var popupOffsetX = options.popupOffsetX;
+	if (options.negatePopupOffsetX) {
+		popupOffsetX = -popupOffsetX;
+	}
+	var popupOffsetY = options.popupOffsetY;
+	if (options.negatePopupOffsetY) {
+		popupOffsetY = -popupOffsetY;
+	}
+
+	positionLeft += popupOffsetX;
+	positionTop -= popupOffsetY;	// invert sign because y is 0 at the top
 
 	var pageWidth = document.documentElement.offsetWidth + window.pageXOffset;
 	var pageHeight = document.documentElement.scrollHeight;
@@ -155,7 +199,7 @@ function getPopupStyle()
 {
 	var css = document.createElement("style");
 	css.type = "text/css";
-	css.innerHTML =
+	css.textContent =
 `#swift-selection-search-engines,
 #swift-selection-search-engines *,
 #swift-selection-search-engines a:hover,
@@ -232,8 +276,8 @@ function getPopupStyle()
 	padding-top: 1px;
 }`;
 
-	if (popupOptions.popupAnimationDuration > 0) {
-		var duration = popupOptions.popupAnimationDuration / 1000.0;
+	if (popupOptions.popupPanelAnimationDuration > 0) {
+		var duration = popupOptions.popupPanelAnimationDuration / 1000.0;
 		css.innerHTML +=
 `#swift-selection-search-engines {
 	animation: fadein `+duration+`s;
@@ -283,7 +327,6 @@ function stopEventPropagation(e)
 
 function hidePopup()
 {
-	// console.log("hidePopup");
 	if (popup != null) {
 		popup.style.display = "none";
 	}
@@ -297,25 +340,8 @@ function showPopup(options, engineObjs)
 	}
 }
 
-function destroyPopup()
-{
-	if (popup != null) {
-		document.documentElement.removeChild(popup);
-		document.documentElement.removeChild(popupCss);
-		popup = null;
-
-		document.removeEventListener('mousemove', onMouseUpdate);
-		document.removeEventListener('mouseenter', onMouseUpdate);
-		document.documentElement.removeEventListener('keypress', hidePopup);
-		document.documentElement.removeEventListener('mousedown', hidePopup);
-		window.removeEventListener("scroll", onPageScroll);
-		// other listeners are destroyed along with the popup objects
-	}
-}
-
 function onMouseUpdate(e)
 {
-	// console.log("on mouse update");
 	mousePositionX = e.pageX;
 	mousePositionY = e.pageY;
 }
@@ -323,7 +349,7 @@ function onMouseUpdate(e)
 function onSearchEngineClick(engineObj)
 {
 	return function(e) {
-		if (popupOptions.hidePopupOnSearch) {
+		if (popupOptions.hidePopupPanelOnSearch) {
 			hidePopup();
 		}
 

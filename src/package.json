@@ -5,9 +5,9 @@
 	"description": "Swiftly access your search engines in a popup panel when you select text in a webpage. Context search menu also included!",
 	"author": "Daniel Lobo",
 	"license": "GPL 2.0",
-	"version": "2.13.3",
+	"version": "2.24.0",
 	"icon": "resource://jid1-KdTtiCj6wxVAFA-at-jetpack/icons/icon128.png",
-	"permissions": {"private-browsing": true},
+	"permissions": {"private-browsing": true, "multiprocess": true },
 	"main": "index.js",
 	"engines": {
 		"firefox": ">=32.0"
@@ -45,6 +45,10 @@
 			{
 				"value": "1",
 				"label": "Show"
+			},
+			{
+				"value": "2",
+				"label": "Show at end"
 			}
 		]
 	},
@@ -62,6 +66,10 @@
 			{
 				"value": "1",
 				"label": "Show"
+			},
+			{
+				"value": "2",
+				"label": "Show at end"
 			}
 		]
 	},
@@ -164,6 +172,14 @@
 			{
 				"value": "2",
 				"label": "Open in new background tab"
+			},
+			{
+				"value": "3",
+				"label": "Open in new tab (next to current tab)"
+			},
+			{
+				"value": "4",
+				"label": "Open in new background tab (next to current tab)"
 			}
 		]
 	},
@@ -185,6 +201,14 @@
 			{
 				"value": "2",
 				"label": "Open in new background tab"
+			},
+			{
+				"value": "3",
+				"label": "Open in new tab (next to current tab)"
+			},
+			{
+				"value": "4",
+				"label": "Open in new background tab (next to current tab)"
 			}
 		]
 	},
@@ -202,9 +226,9 @@
 	},
 	{
 		"name": "nItemsPerRow",
-		"title": "Number of icons per row",
+		"title": "Number of icons per row in grid",
 		"type": "integer",
-		"description": "Max number of search engines per row (if \"Use single row\" is off).\n(default: 4)",
+		"description": "Max number of search engines per row when in grid (i.e. if \"Use single row\" is off).\n(default: 4)",
 		"value": 4
 	},
 	{
@@ -245,16 +269,30 @@
 	{
 		"name": "popupPanelBackgroundColor",
 		"title": "Popup panel background color",
+		"type": "string",
+		"description": "Color for the popup panel background. Firefox 49 and newer supports transparency (8-digit #rrggbbaa hexadecimals).\n(default: white, #FFFFFF)",
+		"value": "#FFFFFF"
+	},
+	{
+		"name": "popupPanelBackgroundColorPicker",
+		"title": "Color picker",
 		"type": "color",
-		"description": "Color for the popup panel background.\n(default: white, #ffffff)",
-		"value": "#ffffff"
+		"description": " ",
+		"value": "#FFFFFF"
 	},
 	{
 		"name": "popupPanelHighlightColor",
 		"title": "Popup panel highlight color",
+		"type": "string",
+		"description": "Color for the popup panel highlight. Firefox 49 and newer supports transparency (8-digit #rrggbbaa hexadecimals).\n(default: blue, #3366FF)",
+		"value": "#3366FF"
+	},
+	{
+		"name": "popupPanelHighlightColorPicker",
+		"title": "Color picker",
 		"type": "color",
-		"description": "Color for the popup panel highlight.\n(default: blue, #3366ff)",
-		"value": "#3366ff"
+		"description": " ",
+		"value": "#3366FF"
 	},
 
 
@@ -340,6 +378,14 @@
 			{
 				"value": "2",
 				"label": "Open in new background tab"
+			},
+			{
+				"value": "3",
+				"label": "Open in new tab (next to current tab)"
+			},
+			{
+				"value": "4",
+				"label": "Open in new background tab (next to current tab)"
 			}
 		]
 	},
@@ -368,7 +414,7 @@
 		"name": "autoCopyToClipboard",
 		"title": "Auto copy to clipboard",
 		"type": "menulist",
-		"description": "Automatically copy selected text.\n(default: Off)",
+		"description": "Automatically copy selected text to clipboard when popup panel opens.\n(default: Off)",
 		"value": 0,
 		"options": [
 			{
