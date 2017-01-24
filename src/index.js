@@ -44,6 +44,18 @@ function setup_Requires()
 	sdk.hotkey = require("sdk/hotkeys");
 	sdk.clipboard = require("sdk/clipboard");						// to copy text to clipboard
 	sdk.preferencesService = require('sdk/preferences/service');	// to reset prefs to default values
+	sdk.viewFor = require("sdk/view/core").viewFor;
+}
+
+//Tree Style Tab compatibility
+function openTab(options) {
+	let nsWindow = sdk.viewFor(sdk.tabs.activeTab.window);
+	if ('TreeStyleTabService' in nsWindow) {
+		let nsTab = sdk.viewFor(sdk.tabs.activeTab);
+		nsWindow.TreeStyleTabService.readyToOpenChildTab(nsTab);
+	}
+
+	sdk.tabs.open(options);
 }
 
 /* ------------------------------------ */
@@ -94,7 +106,7 @@ function setCallbacksForPreferences()
 	});
 
 	sdk.simplePrefs.on("openEngineManager", function() {
-		sdk.tabs.open({url: "about:preferences#search"});
+		openTab({url: "about:preferences#search"});
 	});
 
 	sdk.simplePrefs.on("enableEnginesInContextMenu", function() {
@@ -538,16 +550,16 @@ function openUrl(urlToOpen, openingBehavior)
 	switch (openingBehavior)
 	{
 		case 0: sdk.tabs.activeTab.url = urlToOpen; break;
-		case 1: sdk.tabs.open({ url: urlToOpen }); break;
-		case 2: sdk.tabs.open({ url: urlToOpen, inBackground: true }); break;
+		case 1: openTab({ url: urlToOpen }); break;
+		case 2: openTab({ url: urlToOpen, inBackground: true }); break;
 		case 3:
 			var index = sdk.tabs.activeTab.index;
-			sdk.tabs.open({ url: urlToOpen });
+			openTab({ url: urlToOpen });
 			sdk.tabs[sdk.tabs.length-1].index = index + 1;
 			break;
 		case 4:
 			var index = sdk.tabs.activeTab.index;
-			sdk.tabs.open({ url: urlToOpen, inBackground: true });
+			openTab({ url: urlToOpen, inBackground: true });
 			sdk.tabs[sdk.tabs.length-1].index = index + 1;
 			break;
 	}
