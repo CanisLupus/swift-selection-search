@@ -278,7 +278,7 @@ function getPopupStyle()
 
 	if (popupOptions.popupPanelAnimationDuration > 0) {
 		var duration = popupOptions.popupPanelAnimationDuration / 1000.0;
-		css.innerHTML +=
+		css.textContent +=
 `#swift-selection-search-engines {
 	animation: fadein `+duration+`s;
 	animation: pop `+duration+`s;

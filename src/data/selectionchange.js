@@ -70,7 +70,7 @@ var selectionchange = (function (undefined) {
 		if (code === 65 && e[SELECT_ALL_MODIFIER] && !e.shiftKey && !e.altKey || // Ctrl-A or Cmd-A
 			code >= 35 && code <= 40 || // home, end and arrow key
 			e.ctrlKey && MAC && MAC_MOVE_KEYS.indexOf(code) >= 0)
-        {
+		{
 			if (!HAS_OWN_SELECTION[e.target.tagName]) {
 				setTimeout(dispatchIfChanged.bind(null, this), 0);
 			}
