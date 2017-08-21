@@ -1,0 +1,50 @@
+{
+	"manifest_version": 2,
+	"name": "Swift Selection Search (WebExt Test)",
+	"version": "3.0.5",
+
+	"description": "Swiftly access your search engines in a popup panel when you select text in a webpage. Context search menu also included!",
+	"homepage_url": "https://github.com/CanisLupus/swift-selection-search",
+
+	"icons": {
+		"48": "icons/icon-48.png",
+		"96": "icons/icon-96.png"
+	},
+
+	"background": {
+		"scripts": ["swift-selection-search.js"]
+	},
+
+	"applications": {
+		"gecko": {
+			"id": "swift_selection_search@daniellobo.com"
+		}
+	},
+
+	"options_ui": {
+		"page": "settings/settings.html"
+	},
+
+	"permissions": ["<all_urls>", "activeTab", "clipboardWrite", "contextMenus", "storage", "tabs"],
+
+	"commands": {
+		"open-popup": {
+			"suggested_key": {
+				"default": "Ctrl+Shift+Space"
+			},
+			"description": "Key combination to open popup"
+		},
+		"toggle-auto-popup": {
+			"suggested_key": {
+				"default": "Ctrl+Shift+X"
+			},
+			"description": "Key combination to toggle auto popup opening"
+		}
+	},
+
+	"web_accessible_resources": [
+		"data/icons/default.png",
+		"data/icons/sss-icon-copy.svg",
+		"data/icons/sss-icon-open-link.svg"
+	]
+}

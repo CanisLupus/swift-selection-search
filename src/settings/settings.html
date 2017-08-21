@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<style>
+		* {
+			font: message-box;
+			font-size: 1rem;
+			box-sizing: border-box;
+		}
+
+		body {
+			padding: 0;
+			margin: 0;
+		}
+
+		input[type=text], input[type=number], input[type=button], input[type=color], input[type=reset], select {
+			width: 100%;
+			padding: 4px 4px;
+			border: 1px solid #ccc;
+			border-radius: 4px;
+		}
+
+		input:hover, select:hover {
+			border: 1px solid #3366FF;
+		}
+
+		.section-title {
+			padding: 20px 0px 10px 6px;
+			font-weight: 600;
+		}
+
+		.setting {
+			border-top: 1px #bbb solid;
+			padding-top: 2px;
+			padding-left: 6px;
+			margin-bottom: 5px;
+		}
+
+		.setting-content {
+			display: flex;
+		}
+
+		.setting .default {
+			display: none;
+			color: #666;
+			font-size: 90%;
+		}
+
+		.left-col {
+			width: 350px;
+			min-width: 350px;
+			margin-right: 20px;
+		}
+
+		.right-col {
+			width: 250px;
+			min-width: 250px;
+			margin-top: 2px;
+		}
+
+		.setting:hover .description {
+			visibility: visible;
+		}
+
+		.description {
+			/* visibility: hidden; */
+			/* display: none; */
+			min-width: 350px;
+			padding-left: 20px;
+			color: #666;
+			font-size: 90%;
+		}
+	</style>
+</head>
+
+<body>
+	<form id="settings-form">
+		<div class="section-title">Main features</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Manage browser search engines</div>
+				</div>
+				<div class="right-col">
+					<input type="button" name="openEngineManager" value="Manage">
+				</div>
+				<div class="description">Opens Firefox's search engines manager. To select which engines are shown in the popup panel, use the "Select from available search engines" button below.</div>
+			</div>
+		</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Select engines for popup</div>
+				</div>
+				<div class="right-col">
+					<input type="button" name="selectEnginesButton" value="Select">
+				</div>
+				<div class="description">Enable/disable the search engines that are displayed on the popup panel (the context menu still shows all of them).</div>
+			</div>
+		</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Show icon to copy selection</div>
+				</div>
+				<div class="right-col">
+					<select name="doShowCopyIconInPanel">
+						<option value="0" selected="selected">Don't show</option>
+						<option value="1">Show</option>
+						<option value="2">Show at end</option>
+					</select>
+					<div class="default">(default: Don't show)</div>
+				</div>
+				<div class="description">Show "Copy to clipboard" icon in the panel.<br>(default: Don't show)</div>
+			</div>
+		</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Show icon to open selection as a link</div>
+				</div>
+				<div class="right-col">
+					<select name="doShowOpenLinkIconInPanel">
+						<option value="0" selected="selected">Don't show</option>
+						<option value="1">Show</option>
+						<option value="2">Show at end</option>
+					</select>
+					<div class="default">(default: Don't show)</div>
+				</div>
+				<div class="description">Show "Open as link" icon in the panel.<br>(default: Don't show)</div>
+			</div>
+		</div>
+
+		<div class="section-title">Behaviour</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Opening behaviour</div>
+				</div>
+				<div class="right-col">
+					<select name="popupPanelOpenBehaviour">
+						<option value="0">Off (never)</option>
+						<option value="1" selected="selected">Auto (opens on text selection)</option>
+						<option value="2">Keyboard-only (press the key combination when text is selected)</option>
+					</select>
+					<div class="default">(default: Auto)</div>
+				</div>
+				<div class="description">When to open the popup panel.<br>(default: Auto)</div>
+			</div>
+		</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Popup location</div>
+				</div>
+				<div class="right-col">
+					<select name="popupLocation">
+						<option value="0">Bottom right corner of selection "rectangle"</option>
+						<option value="1" selected="selected">At cursor location</option>
+					</select>
+					<div class="default">(default: At cursor location)</div>
+				</div>
+				<div class="description">Where the popup should appear after selecting text.<br>(default: At cursor location)</div>
+			</div>
+		</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Hide popup on page scroll</div>
+				</div>
+				<div class="right-col">
+					<input type="checkbox" name="hidePopupPanelOnPageScroll" autocomplete="off">
+					<div class="default">(default: On)</div>
+				</div>
+				<div class="description">Hides the popup panel when the page moves.<br>(default: On)</div>
+			</div>
+		</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Hide popup on search engine click</div>
+				</div>
+				<div class="right-col">
+					<input type="checkbox" name="hidePopupPanelOnSearch" autocomplete="off" checked>
+					<div class="default">(default: On)</div>
+				</div>
+				<div class="description">Hides the popup panel when a search engine is clicked.<br>(default: On)</div>
+			</div>
+		</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Key combination to open popup</div>
+				</div>
+				<div class="right-col">
+					<input type="text" name="popupPanelHotkey" value="accel-shift-space">
+					<div class="default">(default: accel-shift-space, which is Ctrl+Shift+Spacebar on Windows/Linux and Cmd+Shift+Spacebar on Mac)</div>
+				</div>
+				<div class="description">Opens the popup panel if you have text selected.<br>Use at least one: shift, control, alt, meta (Mac Command), accel (Control on Windows/Linux, Command on Mac). Clear the text box to disable the hotkey.<br>(default: accel-shift-space, which is Ctrl+Shift+Spacebar on Windows/Linux and Cmd+Shift+Spacebar on Mac)</div>
+			</div>
+		</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Key combination to toggle auto popup opening</div>
+				</div>
+				<div class="right-col">
+					<input type="text" name="popupPanelDisableHotkey" value="accel-shift-x">
+					<div class="default">(default: accel-shift-x)</div>
+				</div>
+				<div class="description">Toggles "Popup opening behaviour" between Auto and Keyboard-only modes (if not already Off). Use this when the popup is getting in the way of your browsing or text writing.<br>(default: accel-shift-x)</div>
+			</div>
+		</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Left mouse button behaviour</div>
+				</div>
+				<div class="right-col">
+					<select name="mouseLeftButtonBehaviour">
+						<option value="0" selected="selected">Open in this tab</option>
+						<option value="1">Open in new tab</option>
+						<option value="2">Open in new background tab</option>
+						<option value="3">Open in new tab (next to current tab)</option>
+						<option value="4">Open in new background tab (next to current tab)</option>
+					</select>
+					<div class="default">(default: Open in this tab)</div>
+				</div>
+				<div class="description">What to do when a search engine is clicked with the left mouse button.<br>(default: Open in this tab)</div>
+			</div>
+		</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Middle mouse button behaviour</div>
+				</div>
+				<div class="right-col">
+					<select name="mouseMiddleButtonBehaviour">
+						<option value="0">Open in this tab</option>
+						<option value="1">Open in new tab</option>
+						<option value="2" selected="selected">Open in new background tab</option>
+						<option value="3">Open in new tab (next to current tab)</option>
+						<option value="4">Open in new background tab (next to current tab)</option>
+					</select>
+					<div class="default">(default: Open in new background tab)</div>
+				</div>
+				<div class="description">What to do when a search engine is clicked with the middle mouse button.<br>(default: Open in new background tab)</div>
+			</div>
+		</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Panel animation duration</div>
+				</div>
+				<div class="right-col">
+					<input type="number" name="popupPanelAnimationDuration" min="0" value="200">
+					<div class="default">(default: 200)</div>
+				</div>
+				<div class="description">Duration of panel animation, in milliseconds. 0 ms makes panel show instantly.<br>(default: 200)</div>
+			</div>
+		</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Auto copy to clipboard</div>
+				</div>
+				<div class="right-col">
+					<select name="autoCopyToClipboard">
+						<option value="0" selected="selected">Off</option>
+						<option value="1">Always</option>
+					</select>
+					<div class="default">(default: Off)</div>
+				</div>
+				<div class="description">Automatically copy selected text to clipboard when popup panel opens.<br>(default: Off)</div>
+			</div>
+		</div>
+
+		<div class="section-title">Appearance</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Use single row</div>
+				</div>
+				<div class="right-col">
+					<input type="checkbox" name="useSingleRow" autocomplete="off" checked>
+					<div class="default">(default: On)</div>
+				</div>
+				<div class="description">Places all search engines in a single row, instead of a grid.<br>(default: On)</div>
+			</div>
+		</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Number of icons per row in grid</div>
+				</div>
+				<div class="right-col">
+					<input type="number" name="nItemsPerRow" min="1" value="4">
+					<div class="default">(default: 4)</div>
+				</div>
+				<div class="description">Max number of search engines per row when in grid (i.e. if "Use single row" is off).<br>(default: 4)</div>
+			</div>
+		</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Icon size</div>
+				</div>
+				<div class="right-col">
+					<input type="number" name="itemSize" value="24">
+					<div class="default">(default: 24)</div>
+				</div>
+				<div class="description">Search engine icon size in pixels.<br>(default: 24)</div>
+			</div>
+		</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Icon padding</div>
+				</div>
+				<div class="right-col">
+					<input type="number" name="itemPadding" value="2">
+					<div class="default">(default: 2)</div>
+				</div>
+				<div class="description">Search engine icon horizontal padding in pixels.<br>(default: 2)</div>
+			</div>
+		</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Icon hover behaviour</div>
+				</div>
+				<div class="right-col">
+					<select name="itemHoverBehaviour">
+						<option value="0">Nothing (no hover effect)</option>
+						<option value="1">Highlight-only</option>
+						<option value="2" selected="selected">Highlight & Move</option>
+					</select>
+					<div class="default">(default: Highlight & Move)</div>
+				</div>
+				<div class="description">What happens to hovered search engine icons.<br>(default: Highlight & Move)</div>
+			</div>
+		</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Popup background color</div>
+				</div>
+				<div class="right-col">
+					<input type="color" name="popupPanelBackgroundColorPicker" value="#FFFFFF">
+					<input type="text" name="popupPanelBackgroundColor" value="#FFFFFF">
+					<div class="default">(default: white, #FFFFFF)</div>
+				</div>
+				<div class="description">Color for the popup panel background. Firefox 49 and newer supports transparency (8-digit #rrggbbaa hexadecimals).<br>(default: white, #FFFFFF)</div>
+			</div>
+		</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Popup highlight color</div>
+				</div>
+				<div class="right-col">
+					<input type="color" name="popupPanelHighlightColorPicker" value="#3366FF">
+					<input type="text" name="popupPanelHighlightColor" value="#3366FF">
+					<div class="default">(default: blue, #3366FF)</div>
+				</div>
+				<div class="description">Color for the popup panel highlight. Firefox 49 and newer supports transparency (8-digit #rrggbbaa hexadecimals).<br>(default: blue, #3366FF)</div>
+			</div>
+		</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Popup horizontal padding</div>
+				</div>
+				<div class="right-col">
+					<input type="number" name="popupPaddingX" min="0" value="3">
+					<div class="default">(default: 3)</div>
+				</div>
+				<div class="description">Popup panel left/right padding, in pixels.<br>(default: 3)</div>
+			</div>
+		</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Popup vertical padding</div>
+				</div>
+				<div class="right-col">
+					<input type="number" name="popupPaddingY" min="0" value="1">
+					<div class="default">(default: 1)</div>
+				</div>
+				<div class="description">Popup panel top/bottom padding, in pixels.<br>(default: 1)</div>
+			</div>
+		</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Popup horizontal offset</div>
+				</div>
+				<div class="right-col">
+					<input type="number" name="popupOffsetX" value="0">
+					<div class="default">(default: 0)</div>
+				</div>
+				<div class="description">Popup panel horizontal offset in pixels (positive values move right).<br>(default: 0)</div>
+			</div>
+		</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Popup vertical offset</div>
+				</div>
+				<div class="right-col">
+					<input type="number" name="popupOffsetY" value="0">
+					<div class="default">(default: 0)</div>
+				</div>
+				<div class="description">Popup panel vertical offset in pixels (positive values move up).<br>(default: 0)</div>
+			</div>
+		</div>
+
+		<div class="section-title">Context menu</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Is the context menu enabled?</div>
+				</div>
+				<div class="right-col">
+					<input type="checkbox" name="enableEnginesInContextMenu" autocomplete="off" checked>
+					<div class="default">(default: On)</div>
+				</div>
+				<div class="description">Enables a "Search with..." sub-menu with all search engines. Appears in the context menu when you right click a page with text selected.<br>(default: On)</div>
+			</div>
+		</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Context menu item click behaviour</div>
+				</div>
+				<div class="right-col">
+					<select name="contextMenuItemBehaviour">
+						<option value="0">Open in this tab</option>
+						<option value="1">Open in new tab</option>
+						<option value="2" selected="selected">Open in new background tab</option>
+						<option value="3">Open in new tab (next to current tab)</option>
+						<option value="4">Open in new background tab (next to current tab)</option>
+					</select>
+					<div class="default">(default: Open in new background tab)</div>
+				</div>
+				<div class="description">What to do when a search engine is clicked in the context menu.<br>(default: Open in new background tab)</div>
+			</div>
+		</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Context menu engines filter</div>
+				</div>
+				<div class="right-col">
+					<select name="contextMenuEnginesFilter">
+						<option value="0" selected="selected">All</option>
+						<option value="1">Same as popup panel</option>
+					</select>
+					<div class="default">(default: All)</div>
+				</div>
+				<div class="description">What engines to show on the context menu.<br>(default: All)</div>
+			</div>
+		</div>
+
+		<div class="section-title">Reset</div>
+
+		<div class="setting">
+			<div class="setting-content">
+				<div class="left-col">
+					<div class="title">Reset all settings</div>
+				</div>
+				<div class="right-col">
+					<input type="reset" name="resetAllSettings" value="Reset">
+				</div>
+				<div class="description">Immediately resets all options to their defaults.</div>
+			</div>
+		</div>
+	</form>
+
+	<script src="settings.js"></script>
+</body>
+
+</html>
