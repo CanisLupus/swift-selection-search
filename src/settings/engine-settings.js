@@ -1,5 +1,7 @@
-self.port.on('setupSettingsPanel', setupSettingsPanel);
-// self.port.on('logInnerHTML', logInnerHTML);
+"use strict";
+
+self.port.on("setupSettingsPanel", setupSettingsPanel);
+// self.port.on("logInnerHTML", logInnerHTML);
 
 function setupSettingsPanel(engines)
 {
@@ -8,9 +10,9 @@ function setupSettingsPanel(engines)
 
 function addEngineToLayout(engine)
 {
-	var element = document.createElement("div");
-	var description = document.createTextNode(engine.name);
-	var checkbox = document.createElement("input");
+	let element = document.createElement("div");
+	let description = document.createTextNode(engine.name);
+	let checkbox = document.createElement("input");
 
 	checkbox.type = "checkbox";
 	checkbox.value = engine.name;
@@ -18,7 +20,7 @@ function addEngineToLayout(engine)
 
 	element.appendChild(checkbox);
 
-	var icon = document.createElement("img");
+	let icon = document.createElement("img");
 	icon.setAttribute("src", (engine.iconSpec != null ? engine.iconSpec : "icons/default.png"));
 	element.appendChild(document.createElement("span"));
 	element.appendChild(icon);
@@ -26,11 +28,11 @@ function addEngineToLayout(engine)
 	element.appendChild(document.createElement("span"));
 	element.appendChild(description);
 
-	document.getElementById('engines').appendChild(element);
+	document.getElementById("engines").appendChild(element);
 
 	checkbox.addEventListener("mouseup", function(e) {
 		engine.active = !engine.active;
-		self.port.emit('onSearchEngineToggle', engine);
+		self.port.emit("onSearchEngineToggle", engine);
 	});
 }
 

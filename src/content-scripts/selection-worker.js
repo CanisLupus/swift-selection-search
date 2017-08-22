@@ -1,31 +1,43 @@
+"use strict";
+
 browser.runtime.onMessage.addListener(onMessageReceived);
 
 function onMessageReceived(msg, sender, sendResponse) {
-	if (msg.type == 'activate') {
+	if (msg.type == "activate") {
 		activate(msg.settings, msg.engineObjs);
-	} else if (msg.type == 'deactivate') {
+	} else if (msg.type == "deactivate") {
 		deactivate();
-	} else if (msg.type == 'showPopup') {
+	} else if (msg.type == "showPopup") {
 		showPopup(msg.settings, msg.engineObjs);
 	}
 	// browser.runtime.onMessage.removeListener(onMessageReceived);
 }
 
-var AutoCopyToClipboard_Always = "1";
+const consts = {
+	PopupOpenBehaviour_Auto: "1",
 
-popup = null;
-selection = null;
-popupEngineObjs = null;
-popupSettings = null;
-popupCss = null;
+	PopupLocation_Selection: "0",
+	PopupLocation_Cursor: "1",
 
-mousePositionX = 0;
-mousePositionY = 0;
+	AutoCopyToClipboard_Always: "1",
+
+	ItemHoverBehaviour_Nothing: "0",
+	ItemHoverBehaviour_Highlight: "1",
+	ItemHoverBehaviour_HighlightAndMove: "2",
+};
+
+let popup = null;
+let selection = null;
+let popupEngineObjs = null;
+let popupSettings = null;
+let popupCss = null;
+
+let mousePositionX = 0;
+let mousePositionY = 0;
 
 browser.runtime.sendMessage({ type: "log", log: "content script has started!" });
 
-var sending = browser.runtime.sendMessage({ type: "activation" });
-sending.then(handleResponse, handleError);
+browser.runtime.sendMessage({ type: "activation" }).then(handleResponse, handleError);
 
 function handleResponse(msg) {
 	activate(msg.settings, msg.engineObjs);
@@ -38,17 +50,18 @@ function handleError(error) {
 function activate(settings, engineObjs)
 {
 	browser.runtime.sendMessage({ type: "log", log: "activate content script" });
+	browser.runtime.sendMessage({ type: "log", log: settings });
 	popupSettings = settings;
 	popupEngineObjs = engineObjs;
 
-	if (settings.popupLocation === "1") {	// option "At cursor location"
-		document.addEventListener('mousemove', onMouseUpdate);
-		document.addEventListener('mouseenter', onMouseUpdate);
+	if (settings.popupLocation === consts.PopupLocation_Cursor) {
+		document.addEventListener("mousemove", onMouseUpdate);
+		document.addEventListener("mouseenter", onMouseUpdate);
 	}
 
-	if (settings.popupPanelOpenBehaviour === "1") {	// option "Auto"
+	if (settings.popupPanelOpenBehaviour === consts.PopupOpenBehaviour_Auto) {
 		selectionchange.start();
-		document.addEventListener('customselectionchange', onselectionchange);
+		document.addEventListener("customselectionchange", onselectionchange);
 	}
 }
 
@@ -60,14 +73,14 @@ function deactivate()
 		popup = null;
 	}
 
-	document.removeEventListener('mousemove', onMouseUpdate);
-	document.removeEventListener('mouseenter', onMouseUpdate);
-	document.documentElement.removeEventListener('keypress', hidePopup);
-	document.documentElement.removeEventListener('mousedown', hidePopup);
+	document.removeEventListener("mousemove", onMouseUpdate);
+	document.removeEventListener("mouseenter", onMouseUpdate);
+	document.documentElement.removeEventListener("keypress", hidePopup);
+	document.documentElement.removeEventListener("mousedown", hidePopup);
 	window.removeEventListener("scroll", onPageScroll);
 	// other listeners are destroyed along with the popup objects
 
-	document.removeEventListener('customselectionchange', onselectionchange);
+	document.removeEventListener("customselectionchange", onselectionchange);
 	// selectionchange.stop();
 }
 
@@ -78,14 +91,14 @@ function onselectionchange()
 
 function showPopupForSelectedText(settings, engineObjs)
 {
-	var s = window.getSelection();
+	let s = window.getSelection();
 
 	if (s == null || s.toString().length == 0) {
 		return;
 	}
 
 	// disable popup in contentEditable elements, such as Gmail's compose window
-	for (var elem = s.anchorNode; elem !== document; elem = elem.parentNode)
+	for (let elem = s.anchorNode; elem !== document; elem = elem.parentNode)
 	{
 		if (elem.isContentEditable === undefined) {
 			continue;	// check parent for value
@@ -99,7 +112,7 @@ function showPopupForSelectedText(settings, engineObjs)
 	selection = s;
 	// browser.runtime.sendMessage({ type: "log", log: "showPopupForSelectedText " + selection.toString() });
 
-	if (settings.autoCopyToClipboard === AutoCopyToClipboard_Always) {
+	if (settings.autoCopyToClipboard === consts.AutoCopyToClipboard_Always) {
 		document.execCommand("Copy");
 	}
 
@@ -117,7 +130,7 @@ function createPopup(settings, engineObjs)
 		deactivate();
 	}
 
-	popup = document.createElement('engines');
+	popup = document.createElement("engines");
 	popup.id = "swift-selection-search-engines";
 	popup.style.paddingTop = settings.popupPaddingY + "px";
 	popup.style.paddingBottom = settings.popupPaddingY + "px";
@@ -127,19 +140,19 @@ function createPopup(settings, engineObjs)
 	setPopupPositionAndSize(popup, selection, engineObjs, settings);
 
 	switch (settings.itemHoverBehaviour) {
-		case "0": popup.className = "hover-nothing"; break;
-		case "1": popup.className = "hover-highlight-only"; break;
-		case "2": popup.className = "hover-highlight-and-move"; break;
+		case consts.ItemHoverBehaviour_Nothing:          popup.className = "hover-nothing"; break;
+		case consts.ItemHoverBehaviour_Highlight:        popup.className = "hover-highlight-only"; break;
+		case consts.ItemHoverBehaviour_HighlightAndMove: popup.className = "hover-highlight-and-move"; break;
 		default: break;
 	}
 
 	document.documentElement.appendChild(popup);
 
-	var padding = settings.itemPadding + "px";
-	var size = settings.itemSize + "px";
+	let padding = settings.itemPadding + "px";
+	let size = settings.itemSize + "px";
 
-	for (var i = 0; i < engineObjs.length; i++) {
-		var icon = addEngineToLayout(engineObjs[i], popup);
+	for (let i = 0; i < engineObjs.length; i++) {
+		let icon = addEngineToLayout(engineObjs[i], popup);
 		icon.style.height = size;
 		icon.style.width = size;
 		icon.style.paddingLeft = padding;
@@ -149,9 +162,9 @@ function createPopup(settings, engineObjs)
 	popupCss = getPopupStyle();
 	document.documentElement.appendChild(popupCss);
 
-	document.documentElement.addEventListener('keypress', hidePopup);
-	document.documentElement.addEventListener('mousedown', hidePopup);	// hide popup from a press down anywhere...
-	popup.addEventListener('mousedown', stopEventPropagation);	// ...except on the popup itself
+	document.documentElement.addEventListener("keypress", hidePopup);
+	document.documentElement.addEventListener("mousedown", hidePopup);	// hide popup from a press down anywhere...
+	popup.addEventListener("mousedown", stopEventPropagation);	// ...except on the popup itself
 
 	if (popupSettings.hidePopupPanelOnPageScroll) {
 		window.addEventListener("scroll", onPageScroll);
@@ -160,38 +173,38 @@ function createPopup(settings, engineObjs)
 
 function setPopupPositionAndSize(popup, selection, engineObjs, settings)
 {
-	var itemHeight = settings.itemSize + 8;
-	var itemWidth = settings.itemSize + settings.itemPadding * 2;
+	let itemHeight = settings.itemSize + 8;
+	let itemWidth = settings.itemSize + settings.itemPadding * 2;
 
-	var nItemsPerRow = engineObjs.length;
+	let nItemsPerRow = engineObjs.length;
 	if (!settings.useSingleRow && settings.nItemsPerRow < nItemsPerRow) {
 		nItemsPerRow = settings.nItemsPerRow;
 	}
-	var height = itemHeight * Math.ceil(engineObjs.length / nItemsPerRow) + settings.popupPaddingY * 2;
-	var width = itemWidth * nItemsPerRow + settings.popupPaddingX * 2;
+	let height = itemHeight * Math.ceil(engineObjs.length / nItemsPerRow) + settings.popupPaddingY * 2;
+	let width = itemWidth * nItemsPerRow + settings.popupPaddingX * 2;
 
-	var range = selection.getRangeAt(0); // get the text range
-	var rect = range.getBoundingClientRect();
+	let range = selection.getRangeAt(0); // get the text range
+	let rect = range.getBoundingClientRect();
 
-	var positionLeft;
-	var positionTop;
+	let positionLeft;
+	let positionTop;
 
-	if (settings.popupLocation === "1") {	// option "At cursor location"
-		positionLeft = mousePositionX;
-		positionTop = mousePositionY - height;
-	} else /*if (options.popupLocation === "0") {*/ {
+	if (settings.popupLocation === consts.PopupLocation_Selection) {
 		positionLeft = rect.right + window.pageXOffset;
 		positionTop = rect.bottom + window.pageYOffset;
+	} else if (settings.popupLocation === consts.PopupLocation_Cursor) {
+		positionLeft = mousePositionX;
+		positionTop = mousePositionY - height;
 	}
 
 	// center horizontally
 	positionLeft -= width / 2;
 
-	var popupOffsetX = settings.popupOffsetX;
+	let popupOffsetX = settings.popupOffsetX;
 	if (settings.negatePopupOffsetX) {
 		popupOffsetX = -popupOffsetX;
 	}
-	var popupOffsetY = settings.popupOffsetY;
+	let popupOffsetY = settings.popupOffsetY;
 	if (settings.negatePopupOffsetY) {
 		popupOffsetY = -popupOffsetY;
 	}
@@ -199,8 +212,8 @@ function setPopupPositionAndSize(popup, selection, engineObjs, settings)
 	positionLeft += popupOffsetX;
 	positionTop -= popupOffsetY;	// invert sign because y is 0 at the top
 
-	var pageWidth = document.documentElement.offsetWidth + window.pageXOffset;
-	var pageHeight = document.documentElement.scrollHeight;
+	let pageWidth = document.documentElement.offsetWidth + window.pageXOffset;
+	let pageHeight = document.documentElement.scrollHeight;
 
 	// don't leave the page
 	if (positionLeft < 5) {
@@ -224,7 +237,7 @@ function setPopupPositionAndSize(popup, selection, engineObjs, settings)
 
 function getPopupStyle()
 {
-	var css = document.createElement("style");
+	let css = document.createElement("style");
 	css.type = "text/css";
 	css.textContent =
 `#swift-selection-search-engines,
@@ -304,7 +317,7 @@ function getPopupStyle()
 }`;
 
 	if (popupSettings.popupPanelAnimationDuration > 0) {
-		var duration = popupSettings.popupPanelAnimationDuration / 1000.0;
+		let duration = popupSettings.popupPanelAnimationDuration / 1000.0;
 		css.textContent +=
 `#swift-selection-search-engines {
 	animation: fadein `+duration+`s;
@@ -327,7 +340,7 @@ function getPopupStyle()
 
 function addEngineToLayout(engineObj, popup)
 {
-	var icon = document.createElement("img");
+	let icon = document.createElement("img");
 	icon.setAttribute("src", engineObj.iconSpec);
 	icon.addEventListener("mouseup", onSearchEngineClick(engineObj));
 	icon.addEventListener("mousedown", function(e) {
@@ -382,7 +395,7 @@ function onSearchEngineClick(engineObj)
 
 		if (e.which === 1 || e.which === 2)
 		{
-			var message = {
+			let message = {
 				type: "engineClick",
 				selection: selection.toString(),
 				engine: engineObj,

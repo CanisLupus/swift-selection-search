@@ -1,13 +1,13 @@
 "use strict";
 
-var form = {};
+let form = {};
 
 document.addEventListener("DOMContentLoaded", onPageLoaded);
 
 function onPageLoaded()
 {
 	// clear all settings (for test purposes)
-	// browser.storage.local.clear();
+	browser.storage.local.clear();
 
 	// save all form elements for easy access
 	form.formElement = document.getElementById("settings-form");
@@ -19,16 +19,18 @@ function onPageLoaded()
 
 	// register change event for anything in the form
 	form.formElement.onchange = function onFormChanged(ev) {
-		console.log("onFormChanged target: " + ev.target.name);
-		var item = ev.target;
-		browser.storage.local.set({ [item.name]: item.value });
+		let item = ev.target;
+		if (item.type != "color") {
+			console.log("onFormChanged target: " + item.name);
+			browser.storage.local.set({ [item.name]: item.value });
+		}
 	};
 
 	// register events for specific behaviour when certain fields change
-	form.popupPanelBackgroundColorPicker.oninput = function(ev) { updateIfDifferent(form.popupPanelBackgroundColor,       form.popupPanelBackgroundColorPicker); };
-	form.popupPanelBackgroundColor.oninput       = function(ev) { updateIfDifferent(form.popupPanelBackgroundColorPicker, form.popupPanelBackgroundColor); };
-	form.popupPanelHighlightColorPicker.oninput  = function(ev) { updateIfDifferent(form.popupPanelHighlightColor,        form.popupPanelHighlightColorPicker); };
-	form.popupPanelHighlightColor.oninput        = function(ev) { updateIfDifferent(form.popupPanelHighlightColorPicker,  form.popupPanelHighlightColor); };
+	form.popupPanelBackgroundColorPicker.oninput = function(ev) { updateColorText  (form.popupPanelBackgroundColor,       form.popupPanelBackgroundColorPicker.value); };
+	form.popupPanelBackgroundColor.oninput       = function(ev) { updatePickerColor(form.popupPanelBackgroundColorPicker, form.popupPanelBackgroundColor.value);       };
+	form.popupPanelHighlightColorPicker.oninput  = function(ev) { updateColorText  (form.popupPanelHighlightColor,        form.popupPanelHighlightColorPicker.value);  };
+	form.popupPanelHighlightColor.oninput        = function(ev) { updatePickerColor(form.popupPanelHighlightColorPicker,  form.popupPanelHighlightColor.value);        };
 
 	// register events for button clicks
 	form.openEngineManager.onclick = function(ev) {
@@ -46,8 +48,7 @@ function onPageLoaded()
 	};
 
 	// load settings
-	const gettingStoredSettings = browser.storage.local.get();
-	gettingStoredSettings.then(updateUIWithSettings, handleError);
+	browser.storage.local.get().then(updateUIWithSettings, handleError);
 }
 
 function handleError(error)
@@ -76,13 +77,13 @@ function updateUIWithSettings(settings)
 		}
 	}
 
-	form.popupPanelBackgroundColorPicker.value = form.popupPanelBackgroundColor.value;
-	form.popupPanelHighlightColorPicker.value = form.popupPanelHighlightColor.value;
+	updatePickerColor(form.popupPanelBackgroundColorPicker, form.popupPanelBackgroundColor.value);
+	updatePickerColor(form.popupPanelHighlightColorPicker, form.popupPanelHighlightColor.value);
 }
 
 function storeSettings()
 {
-	var settings = {}
+	let settings = {}
 
 	for (let item of form.inputs) {
 		if (item.type == "select-one") {
@@ -104,19 +105,30 @@ function storeSettings()
 	console.log("saved");
 }
 
-function updateIfDifferent(target, source)
+function updateColorText(text, value)
 {
-	if (target.value !== source.value) {
-		console.log("target " + target.name + ", source: " + source.name);
-		target.value = source.value;
+	value = value.toUpperCase();
+
+	if (text.value !== value) {
+		text.value = value;
+		browser.storage.local.set({ [text.name]: value });
+	}
+}
+
+function updatePickerColor(picker, value)
+{
+	value = value.substring(0, 7);
+
+	if (picker.value !== value) {
+		picker.value = value;
 	}
 }
 
 // function createEngineSelectionPanel()
 // {
-// 	var visibleEngines = sdk.searchService.getVisibleEngines({});
+// 	let visibleEngines = sdk.searchService.getVisibleEngines({});
 
-// 	var engineObjects = visibleEngines.map(function(engine) {
+// 	let engineObjects = visibleEngines.map(function(engine) {
 // 		return {
 // 			name: engine.name,
 // 			iconSpec: (engine.iconURI !== null ? engine.iconURI.spec : null),
@@ -124,18 +136,18 @@ function updateIfDifferent(target, source)
 // 		}
 // 	});
 
-// 	var calculatedHeight = engineObjects.length * 20 + 100;
+// 	let calculatedHeight = engineObjects.length * 20 + 100;
 // 	if (calculatedHeight > 450) {
 // 		calculatedHeight = 450;
 // 	}
 
-// 	var panel = sdk.panel.Panel({
+// 	let panel = sdk.panel.Panel({
 // 		contentURL: sdk.data.url("engine-settings.html"),
 // 		contentScriptFile: sdk.data.url("engine-settings.js"),
 // 		height: calculatedHeight
 // 	});
 
-// 	panel.port.emit('setupSettingsPanel', engineObjects);
+// 	panel.port.emit("setupSettingsPanel", engineObjects);
 // 	panel.port.on("onSearchEngineToggle", onSearchEngineToggle);
 
 // 	panel.show();
