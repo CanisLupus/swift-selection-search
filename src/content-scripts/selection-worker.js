@@ -1,19 +1,22 @@
 "use strict";
 
+// browser.runtime.sendMessage({ type: "log", log: "content script!" });
+
 browser.runtime.onMessage.addListener(onMessageReceived);
 
-function onMessageReceived(msg, sender, sendResponse) {
+function onMessageReceived(msg, sender, sendResponse)
+{
 	if (msg.type == "activate") {
-		activate(msg.settings, msg.engineObjs);
+		activate(msg.settings, msg.engineObjects);
 	} else if (msg.type == "deactivate") {
 		deactivate();
 	} else if (msg.type == "showPopup") {
-		showPopup(msg.settings, msg.engineObjs);
+		showPopup(msg.settings, msg.engineObjects);
 	}
 	// browser.runtime.onMessage.removeListener(onMessageReceived);
 }
 
-const consts = {
+var consts = {
 	PopupOpenBehaviour_Auto: "1",
 
 	PopupLocation_Selection: "0",
@@ -26,42 +29,46 @@ const consts = {
 	ItemHoverBehaviour_HighlightAndMove: "2",
 };
 
-let popup = null;
-let selection = null;
-let popupEngineObjs = null;
-let popupSettings = null;
-let popupCss = null;
+var globalSettings = null;
+var globalEngineObjects = null;
 
-let mousePositionX = 0;
-let mousePositionY = 0;
+var popup = null;
+var selection = null;
+var popupCss = null;
+
+var mousePositionX = 0;
+var mousePositionY = 0;
 
 browser.runtime.sendMessage({ type: "log", log: "content script has started!" });
 
-browser.runtime.sendMessage({ type: "activation" }).then(handleResponse, handleError);
+browser.runtime.sendMessage({ type: "activation" }).then(handleResponse, getErrorHandler("Error sending activation message from worker."));
 
-function handleResponse(msg) {
-	activate(msg.settings, msg.engineObjs);
-}
-
-function handleError(error) {
-	browser.runtime.sendMessage({ type: "log", log: `Error: ${error}` });
-}
-
-function activate(settings, engineObjs)
+function handleResponse(msg)
 {
-	browser.runtime.sendMessage({ type: "log", log: "activate content script" });
-	browser.runtime.sendMessage({ type: "log", log: settings });
-	popupSettings = settings;
-	popupEngineObjs = engineObjs;
+	activate(msg.settings, msg.engineObjects);
+}
 
-	if (settings.popupLocation === consts.PopupLocation_Cursor) {
+function getErrorHandler(text)
+{
+	return error => browser.runtime.sendMessage({ type: "log", log: `${text} (${error})` });
+}
+
+function activate(_settings, _engineObjects)
+{
+	globalSettings = _settings;
+	globalEngineObjects = _engineObjects;
+
+	browser.runtime.sendMessage({ type: "log", log: "activate content script" });
+	browser.runtime.sendMessage({ type: "log", log: _settings });
+
+	if (globalSettings.popupLocation === consts.PopupLocation_Cursor) {
 		document.addEventListener("mousemove", onMouseUpdate);
 		document.addEventListener("mouseenter", onMouseUpdate);
 	}
 
-	if (settings.popupPanelOpenBehaviour === consts.PopupOpenBehaviour_Auto) {
+	if (globalSettings.popupPanelOpenBehaviour === consts.PopupOpenBehaviour_Auto) {
 		selectionchange.start();
-		document.addEventListener("customselectionchange", onselectionchange);
+		document.addEventListener("customselectionchange", onSelectionChange);
 	}
 }
 
@@ -80,16 +87,16 @@ function deactivate()
 	window.removeEventListener("scroll", onPageScroll);
 	// other listeners are destroyed along with the popup objects
 
-	document.removeEventListener("customselectionchange", onselectionchange);
+	document.removeEventListener("customselectionchange", onSelectionChange);
 	// selectionchange.stop();
 }
 
-function onselectionchange()
+function onSelectionChange()
 {
-	showPopupForSelectedText(popupSettings, popupEngineObjs);
+	showPopupForSelectedText(globalSettings, globalEngineObjects);
 }
 
-function showPopupForSelectedText(settings, engineObjs)
+function showPopupForSelectedText(settings, engineObjects)
 {
 	let s = window.getSelection();
 
@@ -117,13 +124,13 @@ function showPopupForSelectedText(settings, engineObjs)
 	}
 
 	if (popup != null) {
-		showPopup(settings, engineObjs);
+		showPopup(settings, engineObjects);
 	} else {
-		createPopup(settings, engineObjs);
+		createPopup(settings, engineObjects);
 	}
 }
 
-function createPopup(settings, engineObjs)
+function createPopup(settings, engineObjects)
 {
 	// destroy old popup, if any
 	if (popup != null) {
@@ -137,7 +144,7 @@ function createPopup(settings, engineObjs)
 	popup.style.paddingLeft = settings.popupPaddingX + "px";
 	popup.style.paddingRight = settings.popupPaddingX + "px";
 
-	setPopupPositionAndSize(popup, selection, engineObjs, settings);
+	setPopupPositionAndSize(popup, selection, engineObjects, settings);
 
 	switch (settings.itemHoverBehaviour) {
 		case consts.ItemHoverBehaviour_Nothing:          popup.className = "hover-nothing"; break;
@@ -151,8 +158,8 @@ function createPopup(settings, engineObjs)
 	let padding = settings.itemPadding + "px";
 	let size = settings.itemSize + "px";
 
-	for (let i = 0; i < engineObjs.length; i++) {
-		let icon = addEngineToLayout(engineObjs[i], popup);
+	for (let i = 0; i < engineObjects.length; i++) {
+		let icon = addEngineToLayout(engineObjects[i], popup);
 		icon.style.height = size;
 		icon.style.width = size;
 		icon.style.paddingLeft = padding;
@@ -166,21 +173,21 @@ function createPopup(settings, engineObjs)
 	document.documentElement.addEventListener("mousedown", hidePopup);	// hide popup from a press down anywhere...
 	popup.addEventListener("mousedown", stopEventPropagation);	// ...except on the popup itself
 
-	if (popupSettings.hidePopupPanelOnPageScroll) {
+	if (settings.hidePopupPanelOnPageScroll) {
 		window.addEventListener("scroll", onPageScroll);
 	}
 }
 
-function setPopupPositionAndSize(popup, selection, engineObjs, settings)
+function setPopupPositionAndSize(popup, selection, engineObjects, settings)
 {
 	let itemHeight = settings.itemSize + 8;
 	let itemWidth = settings.itemSize + settings.itemPadding * 2;
 
-	let nItemsPerRow = engineObjs.length;
+	let nItemsPerRow = engineObjects.length;
 	if (!settings.useSingleRow && settings.nItemsPerRow < nItemsPerRow) {
 		nItemsPerRow = settings.nItemsPerRow;
 	}
-	let height = itemHeight * Math.ceil(engineObjs.length / nItemsPerRow) + settings.popupPaddingY * 2;
+	let height = itemHeight * Math.ceil(engineObjects.length / nItemsPerRow) + settings.popupPaddingY * 2;
 	let width = itemWidth * nItemsPerRow + settings.popupPaddingX * 2;
 
 	let range = selection.getRangeAt(0); // get the text range
@@ -289,7 +296,7 @@ function getPopupStyle()
 	pointer-events: none;
 	overflow: hidden;
 	display: inline-block;
-	background-color: `+popupSettings.popupPanelBackgroundColor+`;
+	background-color: `+globalSettings.popupPanelBackgroundColor+`;
 	box-shadow: 0px 0px 3px rgba(0,0,0,.5);
 	border-radius: 2px;
 }
@@ -305,19 +312,19 @@ function getPopupStyle()
 }
 
 #swift-selection-search-engines.hover-highlight-only img:hover {
-	border-bottom: 2px `+popupSettings.popupPanelHighlightColor+` solid;
+	border-bottom: 2px `+globalSettings.popupPanelHighlightColor+` solid;
 	border-radius: 2px;
 	padding-bottom: 2px;
 }
 
 #swift-selection-search-engines.hover-highlight-and-move img:hover {
-	border-bottom: 2px `+popupSettings.popupPanelHighlightColor+` solid;
+	border-bottom: 2px `+globalSettings.popupPanelHighlightColor+` solid;
 	border-radius: 2px;
 	padding-top: 1px;
 }`;
 
-	if (popupSettings.popupPanelAnimationDuration > 0) {
-		let duration = popupSettings.popupPanelAnimationDuration / 1000.0;
+	if (globalSettings.popupPanelAnimationDuration > 0) {
+		let duration = globalSettings.popupPanelAnimationDuration / 1000.0;
 		css.textContent +=
 `#swift-selection-search-engines {
 	animation: fadein `+duration+`s;
@@ -338,17 +345,18 @@ function getPopupStyle()
 	return css;
 }
 
-function addEngineToLayout(engineObj, popup)
+function addEngineToLayout(engineObject, popup)
 {
 	let icon = document.createElement("img");
-	icon.setAttribute("src", engineObj.iconSpec);
-	icon.addEventListener("mouseup", onSearchEngineClick(engineObj));
+	icon.setAttribute("src", engineObject.iconUrl);
+	icon.addEventListener("mouseup", onSearchEngineClick(engineObject));
 	icon.addEventListener("mousedown", function(e) {
 		if (e.which == 2) {
 			e.preventDefault();
 		}
 	});
-	icon.title = engineObj.name;
+	icon.title = engineObject.name;
+	icon.ondragstart = function() { return false; };	// disable dragging popup images
 	popup.appendChild(icon);
 	return icon;
 }
@@ -372,11 +380,11 @@ function hidePopup()
 	}
 }
 
-function showPopup(settings, engineObjs)
+function showPopup(settings, engineObjects)
 {
 	if (popup != null) {
 		popup.style.display = "inline-block";
-		setPopupPositionAndSize(popup, selection, engineObjs, settings);
+		setPopupPositionAndSize(popup, selection, engineObjects, settings);
 	}
 }
 
@@ -386,10 +394,10 @@ function onMouseUpdate(e)
 	mousePositionY = e.pageY;
 }
 
-function onSearchEngineClick(engineObj)
+function onSearchEngineClick(engineObject)
 {
 	return function(e) {
-		if (popupSettings.hidePopupPanelOnSearch) {
+		if (globalSettings.hidePopupPanelOnSearch) {
 			hidePopup();
 		}
 
@@ -398,7 +406,7 @@ function onSearchEngineClick(engineObj)
 			let message = {
 				type: "engineClick",
 				selection: selection.toString(),
-				engine: engineObj,
+				engine: engineObject,
 			};
 
 			if (e.ctrlKey) {

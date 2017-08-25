@@ -9,13 +9,10 @@
 			font: message-box;
 			font-size: 1rem;
 			box-sizing: border-box;
-		}
-		body {
 			padding: 0;
 			margin: 0;
-			/* overflow: hidden; */
 		}
-		input[type=text], input[type=number], input[type=button], input[type=color], input[type=reset], select {
+		input[type=text], input[type=number], input[type=button], input[type=color], input[type=reset], select, button {
 			width: 100%;
 			padding: 4px 4px;
 			border: 1px solid #ccc;
@@ -28,12 +25,43 @@
 			padding: 20px 0px 10px 6px;
 			font-weight: 600;
 		}
+		#engines-table * {
+			font-size: 0.8rem;
+		}
+		#engines-table button {
+			padding: 2px 4px;
+			width: 24px;
+			text-align: center;
+		}
+		.engine-icon-img {
+			padding: 0;
+		}
+		.engine-icon-img img {
+			padding: 0;
+			width: 22px;
+		}
+		.engine-name {
+			width: 15%;
+			max-width: 150px;
+		}
+		.engine-search-link {
+			width: 40%;
+			max-width: 500px;
+		}
+		.engine-icon-link {
+			width: 35%;
+			max-width: 500px;
+		}
+		.engine-native {
+			padding: 4px 4px;
+			border: 1px solid #ccc;
+			background-color: #f5f5f5;
+			border-radius: 4px;
+		}
 		.setting {
 			display: flex;
 			border-top: 1px #bbb solid;
-			padding-top: 2px;
-			padding-left: 6px;
-			padding-bottom: 5px;
+			padding: 2px 0px 5px 6px;
 		}
 		.setting:hover {
 			background-color: #ffe;
@@ -49,82 +77,70 @@
 			margin-top: 2px;
 		}
 		.setting-description {
+			font-size: 0.8rem;
 			width: 80%;
 			padding-left: 20px;
 			color: #666;
-			font-size: 80%;
-		}
-		.engines {
-			padding-top: 2px;
-			padding-left: 6px;
-			padding-bottom: 5px;
-		}
-		.engines input[type=text] {
-			font-size: 80%;
-		}
-		.engine-name {
-			width: 20%;
-			max-width: 150px;
-		}
-		.engine-search-link {
-			width: 40%;
-			max-width: 500px;
-		}
-		.engine-icon-link {
-			width: 40%;
-			max-width: 500px;
-		}
-		.engine-icon-img {
-			width: 24px;
-			min-width: 24px;
-			max-width: 24px;
-		}
-		.engine-icon-img img {
-			width: 100%;
 		}
 	</style>
 </head>
 
 <body>
-	<form id="settings-form">
-		<div class="section-name">Custom search engines</div>
+	<div id="settings">
+		<div class="section-name">Search engines</div>
 
-		<!-- <div class="setting"> -->
-				<!-- <div class="setting-name">Manage search engines</div> -->
-				<table class="engines">
+		<div class="setting">
+			<table id="engines-table">
+				<thead>
+					<tr id="engines-header">
+						<td class="engine-dragger"></td>
+						<td class="engine-is-enabled"></td>
+						<td class="engine-icon-img"></td>
+						<td class="engine-name">Name</td>
+						<td class="engine-search-link">Search link</td>
+						<td class="engine-icon-link">Icon link</td>
+						<td class="engine-delete"></td>
+					</tr>
+				</thead>
+				<tfoot>
 					<tr>
-						<th class="engine-icon-img"></th>
-						<th class="engine-name">Name</th>
-						<th class="engine-search-link">Search link</th>
-						<th class="engine-icon-link">Icon link</th>
+						<td class="engine-dragger"><div>☰</div></td>
+						<td class="engine-is-enabled"><input type="checkbox" autocomplete="off"></td>
+						<td class="engine-icon-img"><img src="http://iconshow.me/media/images/social/simple-icons/png/32/google.png"></td>
+						<td class="engine-native">Copy to clipboard</td>
+						<td class="engine-native" colspan=2>Adds a "Copy selection to clipboard" icon to the panel.</td>
+						<td><button type="button">↑</td>
+						<td><button type="button">↓</td>
+						<td></td>
 					</tr>
 					<tr>
-						<th class="engine-icon-img">   <img src="http://iconshow.me/media/images/social/simple-icons/png/32/google.png"></th>
-						<th class="engine-name">       <input type="text" name="engine1-name"        value="Google"></th>
-						<th class="engine-search-link"><input type="text" name="engine1-search-link" value="https://www.google.pt/search?q={searchText}"></th>
-						<th class="engine-icon-link">  <input type="text" name="engine1-icon-link"   value="http://iconshow.me/media/images/social/simple-icons/png/32/google.png"></th>
+						<td class="engine-dragger"><div>☰</div></td>
+						<td class="engine-is-enabled"><input type="checkbox" autocomplete="off"></td>
+						<td class="engine-icon-img"><img src="http://iconshow.me/media/images/social/simple-icons/png/32/google.png"></td>
+						<td class="engine-native">Open as link</td>
+						<td class="engine-native" colspan=2>Adds an "Open selection as link" icon to the panel.</td>
+						<td><button type="button">↑</td>
+						<td><button type="button">↓</td>
+						<td></td>
 					</tr>
-					<tr>
-						<th class="engine-icon-img">   <img src="https://www.youtube.com/yts/img/favicon_32-vfl8NGn4k.png"></th>
-						<th class="engine-name">       <input type="text" name="engine2-name"        value="YouTube"></th>
-						<th class="engine-search-link"><input type="text" name="engine2-search-link" value="https://www.youtube.com/results?search_query={searchText}"></th>
-						<th class="engine-icon-link">  <input type="text" name="engine2-icon-link"   value="https://www.youtube.com/yts/img/favicon_32-vfl8NGn4k.png"></th>
+					<tr id="engines-footer">
+						<td colspan=3></td>
+						<td class="engine-name"><input type="button" name="addEngineButton" value="Add"></td>
 					</tr>
-					<tr>
-						<th class="engine-icon-img">   <img src="https://cdn4.iconfinder.com/data/icons/Classy_Social_Media_Icons/32/imdb.png"></th>
-						<th class="engine-name">       <input type="text" name="engine3-name"        value="IMDB"></th>
-						<th class="engine-search-link"><input type="text" name="engine3-search-link" value="http://www.imdb.com/find?s=all&q={searchText}"></th>
-						<th class="engine-icon-link">  <input type="text" name="engine3-icon-link"   value="https://cdn4.iconfinder.com/data/icons/Classy_Social_Media_Icons/32/imdb.png"></th>
+				</tfoot>
+				<tbody id="engines">
+					<tr class="engine">
+						<td class="engine-dragger">    <div>☰</div></td>
+						<td class="engine-is-enabled"> <input type="checkbox" autocomplete="off" checked></td>
+						<td class="engine-icon-img">   <img src="http://iconshow.me/media/images/social/simple-icons/png/32/google.png"></td>
+						<td class="engine-name">       <input type="text" name="engine1-name"        value="Google"></td>
+						<td class="engine-search-link"><input type="text" name="engine1-search-link" value="https://www.google.pt/search?q={searchText}"></td>
+						<td class="engine-icon-link">  <input type="text" name="engine1-icon-link"   value="http://iconshow.me/media/images/social/simple-icons/png/32/google.png"></td>
+						<td class="engine-delete">     <input type="button" name="deleteEngineButton" value="✖"></td>
 					</tr>
-					<tr>
-						<th class="engine-icon-img">   <img src="http://findicons.com/files/icons/111/popular_sites/128/wikipedia_icon.png"></th>
-						<th class="engine-name">       <input type="text" name="engine4-name"        value="Wikipedia"></th>
-						<th class="engine-search-link"><input type="text" name="engine4-search-link" value="https://en.wikipedia.org/wiki/Special:Search?search={searchText}"></th>
-						<th class="engine-icon-link">  <input type="text" name="engine4-icon-link"   value="http://findicons.com/files/icons/111/popular_sites/128/wikipedia_icon.png"></th>
-					</tr>
-				</table>
-			<!-- </div> -->
-		<!-- </div> -->
+				</tbody>
+			</table>
+		</div>
 
 		<div class="section-name">Main features</div>
 
@@ -408,11 +424,11 @@
 		<div class="setting">
 			<div class="setting-name">Reset all settings</div>
 			<div class="setting-value">
-				<input type="reset" name="resetAllSettings" value="Reset">
+				<input type="button" name="resetAllSettingsButton" value="Reset">
 			</div>
 			<div class="setting-description">Immediately resets all options to their defaults.</div>
 		</div>
-	</form>
+	</div>
 
 	<script src="settings.js"></script>
 </body>
