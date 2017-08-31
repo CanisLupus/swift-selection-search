@@ -1,20 +1,9 @@
 "use strict";
 
-// browser.runtime.sendMessage({ type: "log", log: "content script!" });
-
-browser.runtime.onMessage.addListener(onMessageReceived);
-
-function onMessageReceived(msg, sender, sendResponse)
-{
-	if (msg.type == "activate") {
-		activate(msg.settings, msg.engineObjects);
-	} else if (msg.type == "deactivate") {
-		deactivate();
-	} else if (msg.type == "showPopup") {
-		showPopup(msg.settings, msg.engineObjects);
-	}
-	// browser.runtime.onMessage.removeListener(onMessageReceived);
-}
+// if (browser.runtime.onMessage.hasListener(onMessageReceived)) {
+// 	browser.runtime.sendMessage({ type: "log", log: "already injected. returning!" });
+// 	// return;
+// }
 
 var consts = {
 	PopupOpenBehaviour_Auto: "1",
@@ -39,11 +28,26 @@ var popupCss = null;
 var mousePositionX = 0;
 var mousePositionY = 0;
 
+browser.runtime.onMessage.addListener(onMessageReceived);
+
 browser.runtime.sendMessage({ type: "log", log: "content script has started!" });
 
-browser.runtime.sendMessage({ type: "activation" }).then(handleResponse, getErrorHandler("Error sending activation message from worker."));
+browser.runtime.sendMessage({ type: "activation" }).then(onActivationResponse, getErrorHandler("Error sending activation message from worker."));
 
-function handleResponse(msg)
+function onMessageReceived(msg, sender, responseCallback)
+{
+	if (msg.type === "activate") {
+		activate(msg.settings, msg.engineObjects);
+	} else if (msg.type === "deactivate") {
+		deactivate();
+	} else if (msg.type === "showPopup") {
+		showPopup(msg.settings, msg.engineObjects);
+	} else if (msg.type === "copyToClipboard") {
+		document.execCommand("copy");
+	}
+}
+
+function onActivationResponse(msg)
 {
 	activate(msg.settings, msg.engineObjects);
 }
@@ -95,7 +99,7 @@ function onSelectionChange()
 {
 	showPopupForSelectedText(globalSettings, globalEngineObjects);
 }
-
+var asd_i = 0;
 function showPopupForSelectedText(settings, engineObjects)
 {
 	let s = window.getSelection();
@@ -109,21 +113,25 @@ function showPopupForSelectedText(settings, engineObjects)
 	{
 		if (elem.isContentEditable === undefined) {
 			continue;	// check parent for value
-		} else if (elem.isContentEditable === true) {
+		} else if (elem.isContentEditable) {
 			return;		// quit
-		} else /*if (elem.isContentEditable === false)*/ {
+		} else /*if (!elem.isContentEditable)*/ {
 			break;		// create popup
 		}
 	}
 
+	// browser.runtime.sendMessage({ type: "textSelection", text: s.toString() });
+
 	selection = s;
-	// browser.runtime.sendMessage({ type: "log", log: "showPopupForSelectedText " + selection.toString() });
 
 	if (settings.autoCopyToClipboard === consts.AutoCopyToClipboard_Always) {
-		document.execCommand("Copy");
+		document.execCommand("copy");
 	}
 
-	if (popup != null) {
+	browser.runtime.sendMessage({ type: "log", log: asd_i + "..." + popup });
+	asd_i++;
+
+	if (popup !== null) {
 		showPopup(settings, engineObjects);
 	} else {
 		createPopup(settings, engineObjects);
@@ -132,11 +140,6 @@ function showPopupForSelectedText(settings, engineObjects)
 
 function createPopup(settings, engineObjects)
 {
-	// destroy old popup, if any
-	if (popup != null) {
-		deactivate();
-	}
-
 	popup = document.createElement("engines");
 	popup.id = "swift-selection-search-engines";
 	popup.style.paddingTop = settings.popupPaddingY + "px";
@@ -396,12 +399,12 @@ function onMouseUpdate(e)
 
 function onSearchEngineClick(engineObject)
 {
-	return function(e) {
+	return function(ev) {
 		if (globalSettings.hidePopupPanelOnSearch) {
 			hidePopup();
 		}
 
-		if (e.which === 1 || e.which === 2)
+		if (ev.which === 1 || ev.which === 2)
 		{
 			let message = {
 				type: "engineClick",
@@ -409,12 +412,12 @@ function onSearchEngineClick(engineObject)
 				engine: engineObject,
 			};
 
-			if (e.ctrlKey) {
-				message["clickType"] = "ctrlClick";
-			} else if (e.which === 1) {
-				message["clickType"] = "leftClick";
+			if (ev.ctrlKey) {
+				message.clickType = "ctrlClick";
+			} else if (ev.which === 1) {
+				message.clickType = "leftClick";
 			} else /*if (e.which == 2)*/ {
-				message["clickType"] = "middleClick";
+				message.clickType = "middleClick";
 			}
 
 			browser.runtime.sendMessage(message);

@@ -31,6 +31,19 @@ const consts = {
 
 	ContextMenuEnginesFilter_All: "0",
 	ContextMenuEnginesFilter_SameAsPopupPanel: "1",
+
+	sssIcons: {
+		copyToClipboard: {
+			name: "Copy to clipboard",
+			description: 'Adds a "Copy selection to clipboard" icon to the panel.',
+			iconUrl: "data/icons/sss-icon-copy.svg",
+		},
+		openAsLink: {
+			name: "Open as link",
+			description: 'Adds an "Open selection as link" icon to the panel.',
+			iconUrl: "data/icons/sss-icon-open-link.svg",
+		}
+	}
 };
 
 const defaultSettings = {
@@ -89,6 +102,16 @@ const defaultSettings = {
 			iconUrl: "http://findicons.com/files/icons/111/popular_sites/128/wikipedia_icon.png",
 			searchUrl: "https://en.wikipedia.org/wiki/Special:Search?search={searchText}",
 			isEnabled: true,
+		},
+		{
+			type: "sss",
+			id: "copyToClipboard",
+			isEnabled: true,
+		},
+		{
+			type: "sss",
+			id: "openAsLink",
+			isEnabled: false,
 		}
 	]
 };
@@ -96,7 +119,7 @@ const defaultSettings = {
 let sss = {};
 
 // clear all settings (for test purposes)
-browser.storage.local.clear();
+// browser.storage.local.clear();
 
 // Get settings. Setup happens when they are ready.
 browser.storage.local.get().then(setup_SSS, getErrorHandler("Error getting settings for setup."));
@@ -143,9 +166,9 @@ function getDefaultSettings()
 }
 
 // Called from settings.
-function getConsts()
+function getSssIcon(id)
 {
-	return consts;
+	return consts.sssIcons[id];
 }
 
 function onSettingsChanged(changes, area)
@@ -163,16 +186,14 @@ function getErrorHandler(text)
 	return error => console.log(`${text} (${error})`);
 }
 
-function onContentScriptMessage(msg, sender, responseFunc)
+function onContentScriptMessage(msg, sender, responseCallback)
 {
 	if (msg.type !== "log") {
 		console.log("msg.type: " + msg.type);
 	}
 
 	if (msg.type === "activation") {
-		responseFunc({ settings: sss.settings, engineObjects: sss.engineObjects });
-	} else if (msg.type === "textSelection") {
-		console.log("text selected! " + msg.text);
+		responseCallback({ settings: sss.settings, engineObjects: sss.engineObjects });
 	} else if (msg.type === "engineClick") {
 		onSearchEngineClick(msg.selection, msg.engine, msg.clickType);
 	} else if (msg.type === "log") {
@@ -193,21 +214,14 @@ function setup_ContextMenu()
 		return;
 	}
 
-	let engines;
+	let engines = sss.settings.searchEngines.filter(engine => engine.type !== "sss");
 
-	// TODO: check this
 	if (sss.settings.contextMenuEnginesFilter === consts.ContextMenuEnginesFilter_SameAsPopupPanel) {
-		engines = sss.engines;
-	} else {
-		engines = sss.settings.searchEngines;
+		engines = engines.filter(engine => engine.isEnabled);
 	}
 
 	for (let engine of engines)
 	{
-		if (engine.hidden) {
-			continue;
-		}
-
 		browser.contextMenus.create({
 			id: engine.name,
 			title: engine.name,
@@ -274,6 +288,7 @@ function setup_Popup()
 
 function onTabActivated(activeInfo)
 {
+	// activeInfo.tabId
 	injectPageWorker();
 }
 
@@ -288,56 +303,49 @@ function injectPageWorker()
 {
 	browser.tabs.executeScript({ file: "/content-scripts/selectionchange.js" }).then(
 		result => browser.tabs.executeScript({ file: "/content-scripts/selection-worker.js" }).then(
-			null,
-			getErrorHandler("Error executing page worker script.")),
+			null, getErrorHandler("Error executing page worker script.")),
 		getErrorHandler("Error executing selectionchange.js script."));
 }
 
 // creates engine objects to be passed to page workers (must be convertible to JSON)
 function generateEngineObjects()
 {
-	let copyEngine = sss.settings.doShowCopyIconInPanel === consts.ShowIconInPanel_Off ? null : {
-		name: "[SSS] Copy to clipboard",
-		iconUrl: browser.extension.getURL("data/icons/sss-icon-copy.svg")
-	};
-
-	let openLinkEngine = sss.settings.doShowOpenLinkIconInPanel === consts.ShowIconInPanel_Off ? null : {
-		name: "[SSS] Open as link",
-		iconUrl: browser.extension.getURL("data/icons/sss-icon-open-link.svg")
-	};
-
 	sss.engineObjects = sss.settings.searchEngines
 		.filter(engine => engine.isEnabled)
-		.map(engine => ({ name: engine.name, iconUrl: engine.iconUrl }));
-
-	if (sss.settings.doShowCopyIconInPanel === consts.ShowIconInPanel_Show) {
-		sss.engineObjects.unshift(copyEngine);
-	} else if (sss.settings.doShowCopyIconInPanel === consts.ShowIconInPanel_ShowAtEnd) {
-		sss.engineObjects.push(copyEngine);
-	}
-
-	if (sss.settings.doShowOpenLinkIconInPanel === consts.ShowIconInPanel_Show) {
-		sss.engineObjects.unshift(openLinkEngine);
-	} else if (sss.settings.doShowOpenLinkIconInPanel === consts.ShowIconInPanel_ShowAtEnd) {
-		sss.engineObjects.push(openLinkEngine);
-	}
+		.map(engine => {
+			if (engine.type === "sss") {
+				let sssIcon = consts.sssIcons[engine.id];
+				return {
+					type: engine.type,
+					id: engine.id,
+					name: sssIcon.name,
+					iconUrl: browser.extension.getURL(sssIcon.iconUrl)
+				};
+			} else {
+				return {
+					type: engine.type,
+					name: engine.name,
+					iconUrl: engine.iconUrl
+				};
+			}
+		});
 }
 
 function onSearchEngineClick(searchText, engineObject, clickType)
 {
-	if (engineObject.name == "[SSS] Copy to clipboard") {
-		document.execCommand("Copy");
-	}
-	else if (engineObject.name == "[SSS] Open as link") {
-		if (clickType === "leftClick") {
-			openUrl(searchText, sss.settings.mouseLeftButtonBehaviour);
-		} else if (clickType === "middleClick") {
-			openUrl(searchText, sss.settings.mouseMiddleButtonBehaviour);
-		} else if (clickType === "ctrlClick") {
-			openUrl(searchText, "2");
+	if (engineObject.type === "sss") {
+		if (engineObject.id === "copyToClipboard") {
+			getCurrentTab(tab => browser.tabs.sendMessage(tab.id, { type: "copyToClipboard" }));
+		} else if (engineObject.id == "openAsLink") {
+			if (clickType === "leftClick") {
+				openUrl(searchText, sss.settings.mouseLeftButtonBehaviour);
+			} else if (clickType === "middleClick") {
+				openUrl(searchText, sss.settings.mouseMiddleButtonBehaviour);
+			} else if (clickType === "ctrlClick") {
+				openUrl(searchText, "2");
+			}
 		}
-	}
-	else {
+	} else {
 		let engine = sss.settings.searchEngines.find(engine => engine.name === engineObject.name);
 
 		if (clickType === "leftClick") {
@@ -362,9 +370,17 @@ function openUrl(urlToOpen, openingBehaviour)
 		case "0": browser.tabs.update({ url: urlToOpen }); break;
 		case "1": browser.tabs.create({ url: urlToOpen }); break;
 		case "2": browser.tabs.create({ url: urlToOpen, active: false }); break;
-		case "3": browser.tabs.create({ url: urlToOpen, index: browser.tabs.getCurrent().index+1 }); break;
-		case "4": browser.tabs.create({ url: urlToOpen, active: false, index: browser.tabs.getCurrent().index+1 }); break;
+		case "3": getCurrentTab(tab => browser.tabs.create({ url: urlToOpen, index: tab.index+1 })); break;
+		case "4": getCurrentTab(tab => browser.tabs.create({ url: urlToOpen, index: tab.index+1, active: false })); break;
 	}
+}
+
+function getCurrentTab(callback)
+{
+	browser.tabs.query({currentWindow: true, active: true})
+		.then(function(tabs) {
+			callback(tabs[0]);
+		}, getErrorHandler("Error getting current tab."));
 }
 
 /* ------------------------------------ */

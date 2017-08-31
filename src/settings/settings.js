@@ -24,6 +24,10 @@ function onPageLoaded()
 	// register change event for anything in the form
 	page.container.onchange = function onFormChanged(ev) {
 		let item = ev.target;
+		// if (page.engines.contains(item)) {
+		// 	console.log("onFormChanged [settings] target: " + item.name + ", value: " + item.value);
+		// 	browser.storage.local.set({ searchEngines: settings.searchEngines });
+		// } else
 		if (item.type !== "color") {
 			console.log("onFormChanged target: " + item.name + ", value: " + item.value);
 			browser.storage.local.set({ [item.name]: item.value });
@@ -40,9 +44,10 @@ function onPageLoaded()
 	page.addEngineButton.onclick = function(ev) {
 		settings.searchEngines.push(
 			{
-				name: "Wikipedia",
-				iconUrl: "http://findicons.com/files/icons/111/popular_sites/128/wikipedia_icon.png",
-				searchUrl: "https://en.wikipedia.org/wiki/Special:Search?search={searchText}",
+				type: "custom",
+				name: "Google",
+				iconUrl: "http://iconshow.me/media/images/social/simple-icons/png/32/google.png",
+				searchUrl: "https://www.google.pt/search?q={searchText}",
 				isEnabled: true,
 			}
 		);
@@ -112,8 +117,13 @@ function updateUIWithSettings()
 			addSearchEngine(engine, i);
 		}
 
-		sortable(page.engines, function(item) {
-			console.log(item);
+		Sortable.create(page.engines, {
+			handle: ".engine-dragger",
+			onEnd: function (ev) {
+				settings.searchEngines.splice(ev.newIndex, 0, settings.searchEngines.splice(ev.oldIndex, 1)[0]);
+				browser.storage.local.set({ searchEngines: settings.searchEngines });
+				updateUIWithSettings();
+			},
 		});
 	}
 }
@@ -126,117 +136,102 @@ function addSearchEngine(engine, i)
 	let cell;
 	let input;
 
+	let sssIcon = engine.type === "sss" ? mainScript.getSssIcon(engine.id) : undefined;
+
 	cell = document.createElement("td");
 	cell.className = "engine-dragger";
-	input = document.createElement("div");
-	input.textContent = "☰";
-	cell.appendChild(input);
+	let div = document.createElement("div");
+	div.textContent = "☰";
+	cell.appendChild(div);
 	row.appendChild(cell);
 
 	cell = document.createElement("td");
 	cell.className = "engine-is-enabled";
-	input = document.createElement("input");
-	input.type = "checkbox";
-	input.checked = engine.isEnabled;
-	input.autocomplete = "off";
-	cell.appendChild(input);
+	let isEnabledInput = document.createElement("input");
+	isEnabledInput.type = "checkbox";
+	isEnabledInput.checked = engine.isEnabled;
+	isEnabledInput.autocomplete = "off";
+	isEnabledInput.onchange = function(ev) {
+		engine.isEnabled = isEnabledInput.checked;
+		browser.storage.local.set({ searchEngines: settings.searchEngines });
+	};
+	cell.appendChild(isEnabledInput);
 	row.appendChild(cell);
 
 	cell = document.createElement("td");
 	cell.className = "engine-icon-img";
 	let icon = document.createElement("img");
-	icon.src = engine.iconUrl;
+	icon.src = sssIcon ? browser.extension.getURL(sssIcon.iconUrl) : engine.iconUrl;
 	cell.appendChild(icon);
 	row.appendChild(cell);
 
-	cell = document.createElement("td");
-	cell.className = "engine-name";
-	input = document.createElement("input");
-	input.type = "text";
-	// input.name = "engine"+(i+1)+"-name";
-	input.value = engine.name;
-	cell.appendChild(input);
-	row.appendChild(cell);
+	if (engine.type === "custom")
+	{
+		cell = document.createElement("td");
+		cell.className = "engine-name";
+		let nameInput = document.createElement("input");
+		nameInput.type = "text";
+		nameInput.value = engine.name;
+		nameInput.onchange = function(ev) {
+			engine.name = nameInput.value;
+			browser.storage.local.set({ searchEngines: settings.searchEngines });
+		};
+		cell.appendChild(nameInput);
+		row.appendChild(cell);
 
-	cell = document.createElement("td");
-	cell.className = "engine-search-link";
-	input = document.createElement("input");
-	input.type = "text";
-	// input.name = "engine"+(i+1)+"-search-link";
-	input.value = engine.searchUrl;
-	cell.appendChild(input);
-	row.appendChild(cell);
+		cell = document.createElement("td");
+		cell.className = "engine-search-link";
+		let searchLinkInput = document.createElement("input");
+		searchLinkInput.type = "text";
+		searchLinkInput.value = engine.searchUrl;
+		searchLinkInput.onchange = function(ev) {
+			engine.searchUrl = searchLinkInput.value;
+			browser.storage.local.set({ searchEngines: settings.searchEngines });
+		};
+		cell.appendChild(searchLinkInput);
+		row.appendChild(cell);
 
-	cell = document.createElement("td");
-	cell.className = "engine-icon-link";
-	input = document.createElement("input");
-	input.type = "text";
-	// input.name = "engine"+(i+1)+"-icon-link";
-	input.value = engine.iconUrl;
-	input.oninput = function(ev) {
-		icon.src = input.value;
-	};
-	cell.appendChild(input);
-	row.appendChild(cell);
+		cell = document.createElement("td");
+		cell.className = "engine-icon-link";
+		let iconLinkInput = document.createElement("input");
+		iconLinkInput.type = "text";
+		iconLinkInput.value = engine.iconUrl;
+		iconLinkInput.oninput = function(ev) {
+			icon.src = iconLinkInput.value;
+		};
+		iconLinkInput.onchange = function(ev) {
+			engine.iconUrl = iconLinkInput.value;
+			browser.storage.local.set({ searchEngines: settings.searchEngines });
+		};
+		cell.appendChild(iconLinkInput);
+		row.appendChild(cell);
 
-	cell = document.createElement("td");
-	cell.className = "engine-move-up";
-	input = document.createElement("button");
-	input.type = "button";
-	input.textContent = "↑";
-	if (i > 0) {
-		input.onclick = function(ev) {
-			if (i <= 0) {
-				return;
-			}
-			console.log("↑", i);
-			let tmp = settings.searchEngines[i];
-			settings.searchEngines[i] = settings.searchEngines[i-1];
-			settings.searchEngines[i-1] = tmp;
+		cell = document.createElement("td");
+		cell.className = "engine-delete";
+		let deleteButton = document.createElement("button");
+		deleteButton.type = "button";
+		deleteButton.textContent = "✖";
+		deleteButton.onclick = function(ev) {
+			settings.searchEngines.splice(i, 1);	// remove element at i
 			browser.storage.local.set({ searchEngines: settings.searchEngines });
 			updateUIWithSettings();
 		};
-	} else {
-		input.style.opacity = 0.5;
+		cell.appendChild(deleteButton);
+		row.appendChild(cell);
 	}
-	cell.appendChild(input);
-	row.appendChild(cell);
+	else if (engine.type === "sss")
+	{
+		cell = document.createElement("td");
+		cell.className = "engine-native";
+		cell.textContent = sssIcon.name;
+		row.appendChild(cell);
 
-	cell = document.createElement("td");
-	cell.className = "engine-move-down";
-	input = document.createElement("button");
-	input.type = "button";
-	input.textContent = "↓";
-	if (i < settings.searchEngines.length-1) {
-		input.onclick = function(ev) {
-			if (i >= settings.searchEngines.length-1) {
-				return;
-			}
-			console.log("↓", i);
-			let tmp = settings.searchEngines[i];
-			settings.searchEngines[i] = settings.searchEngines[i+1];
-			settings.searchEngines[i+1] = tmp;
-			browser.storage.local.set({ searchEngines: settings.searchEngines });
-			updateUIWithSettings();
-		};
-	} else {
-		input.style.opacity = 0.5;
+		cell = document.createElement("td");
+		cell.className = "engine-native";
+		cell.colSpan = 2;
+		cell.textContent = sssIcon.description;
+		row.appendChild(cell);
 	}
-	cell.appendChild(input);
-	row.appendChild(cell);
-
-	cell = document.createElement("td");
-	cell.className = "engine-delete";
-	input = document.createElement("button");
-	input.type = "button";
-	input.textContent = "✖";
-	input.onclick = function(ev) {
-		settings.searchEngines.splice(i, 1);	// remove element at i
-		browser.storage.local.set({ searchEngines: settings.searchEngines });
-		updateUIWithSettings();
-	};
-	cell.appendChild(input);
-	row.appendChild(cell);
 
 	page.engines.appendChild(row);
 }
@@ -260,94 +255,118 @@ function updatePickerColor(picker, value)
 	}
 }
 
-function sortable(rootEl, onUpdate)
-{
-	let dragged;
+// function sortable(rootEl, onUpdate)
+// {
+// 	let dragged;
 
-	function handleDragStart(ev) {
-		console.log("handleDragStart", ev.target);
-		// dragged = ev.target;
-		ev.dataTransfer.effectAllowed = 'move';
-	}
-	function handleDragEnter(ev) {
-		console.log("handleDragEnter", ev.target);
-	}
-	function handleDragOver(ev) {
-		console.log("handleDragOver", ev.target);
-		// ev.preventDefault();
-		ev.dataTransfer.dropEffect = 'move';
+// 	function handleDragStart(ev) {
+// 		console.log("handleDragStart", ev.target, this);
+// 		// dragged = ev.target;
+// 		ev.dataTransfer.effectAllowed = 'move';
+// 		ev.dataTransfer.setData('text/plain', 'dummy');
+// 	}
+// 	function handleDragEnter(ev) {
+// 		console.log("handleDragEnter", ev.target);
+// 		ev.preventDefault();
+// 		if (ev.stopPropagation) {
+// 			ev.stopPropagation();
+// 		}
+// 		return false;
+// 	}
+// 	function handleDragOver(ev) {
+// 		console.log("handleDragOver", ev.target);
+// 		ev.preventDefault();
+// 		ev.dataTransfer.dropEffect = 'move';
 
-		// let target = ev.target;
-		// if (target && target !== dragEl && target.nodeName == 'th') {
-		// 	let rect = target.getBoundingClientRect();
-		// 	let next = (ev.clientY - rect.top)/(rect.bottom - rect.top) > .5;
-		// 	rootEl.insertBefore(dragEl, next && target.nextSibling || target);
-		// }
-	}
-	function handleDragLeave(ev) {
-		console.log("handleDragLeave", ev.target);
-	}
-	function handleDrop(ev) {
-		console.log("handleDrop", ev.target);
-		// if (ev.stopPropagation) {
-		// 	ev.stopPropagation(); // stops the browser from redirecting.
-		// }
-	}
-	function handleDragEnd(ev) {
-		console.log("handleDragEnd", ev.target);
-	}
+// 		if (ev.target.engineElement && this != ev.target) {
+// 			console.log("handleDragOver", this.engineElement.innerHTML, ev.target.engineElement.innerHTML);
+// 			page.engines.insertBefore(this.engineElement, ev.target.engineElement);
+// 			// let target = ev.target;
+// 			// if (target && target !== dragEl && target.nodeName == 'th') {
+// 			// 	let rect = target.getBoundingClientRect();
+// 			// 	let next = (ev.clientY - rect.top)/(rect.bottom - rect.top) > .5;
+// 			// 	rootEl.insertBefore(dragEl, next && target.nextSibling || target);
+// 			// }
+// 		}
+// 		return false;
+// 	}
+// 	function handleDragLeave(ev) {
+// 		console.log("handleDragLeave", ev.target);
+// 		ev.preventDefault();
+// 		if (ev.stopPropagation) {
+// 			ev.stopPropagation();
+// 		}
+// 		return false;
+// 	}
+// 	function handleDrop(ev) {
+// 		console.log("handleDrop", ev.target);
+// 		ev.preventDefault();
+// 		if (ev.stopPropagation) {
+// 			ev.stopPropagation();
+// 		}
+// 		return false;
+// 	}
+// 	function handleDragEnd(ev) {
+// 		console.log("handleDragEnd", ev.target);
+// 		ev.preventDefault();
+// 		if (ev.stopPropagation) {
+// 			ev.stopPropagation();
+// 		}
+// 		return false;
+// 	}
 
-	for (let dragger of page.engines.getElementsByClassName("engine-dragger")) {
-		dragger.draggable = true;
-		console.log(dragger);
-		dragger.addEventListener('dragstart', handleDragStart, false);
-		dragger.addEventListener('dragenter', handleDragEnter, false);
-		dragger.addEventListener('dragover', handleDragOver, false);
-		dragger.addEventListener('dragleave', handleDragLeave, false);
-		dragger.addEventListener('drop', handleDrop, false);
-		dragger.addEventListener('dragend', handleDragEnd, false);
-	}
+// 	for (let engineElement of page.engines.getElementsByClassName("engine")) {
+// 		let dragger = engineElement.getElementsByClassName("engine-dragger")[0];
+// 		dragger.engineElement = engineElement;
+// 		dragger.draggable = true;
+// 		dragger.addEventListener('dragstart', handleDragStart, false);
+// 		dragger.addEventListener('dragenter', handleDragEnter, false);
+// 		dragger.addEventListener('dragover', handleDragOver, false);
+// 		dragger.addEventListener('dragleave', handleDragLeave, false);
+// 		dragger.addEventListener('drop', handleDrop, false);
+// 		dragger.addEventListener('dragend', handleDragEnd, false);
+// 	}
 
-	return;
+// 	return;
 
-	// function _onDragOver(evt) {
-	// 	evt.preventDefault();
-	// 	evt.dataTransfer.dropEffect = 'move';
+// 	// function _onDragOver(evt) {
+// 	// 	evt.preventDefault();
+// 	// 	evt.dataTransfer.dropEffect = 'move';
 
-	// 	let target = evt.target;
-	// 	console.log(target.nodeName);
-	// 	if (target && target !== dragEl && target.nodeName == 'th') {
-	// 		let rect = target.getBoundingClientRect();
-	// 		let next = (evt.clientY - rect.top)/(rect.bottom - rect.top) > .5;
-	// 		rootEl.insertBefore(dragEl, next && target.nextSibling || target);
-	// 	}
-	// }
+// 	// 	let target = evt.target;
+// 	// 	console.log(target.nodeName);
+// 	// 	if (target && target !== dragEl && target.nodeName == 'th') {
+// 	// 		let rect = target.getBoundingClientRect();
+// 	// 		let next = (evt.clientY - rect.top)/(rect.bottom - rect.top) > .5;
+// 	// 		rootEl.insertBefore(dragEl, next && target.nextSibling || target);
+// 	// 	}
+// 	// }
 
-	// function _onDragEnd(evt) {
-	// 	evt.preventDefault();
+// 	// function _onDragEnd(evt) {
+// 	// 	evt.preventDefault();
 
-	// 	dragEl.classList.remove('ghost');
-	// 	rootEl.removeEventListener('dragover', _onDragOver, false);
-	// 	rootEl.removeEventListener('dragend', _onDragEnd, false);
+// 	// 	dragEl.classList.remove('ghost');
+// 	// 	rootEl.removeEventListener('dragover', _onDragOver, false);
+// 	// 	rootEl.removeEventListener('dragend', _onDragEnd, false);
 
-	// 	if (nextEl !== dragEl.nextSibling) {
-	// 		onUpdate(dragEl);
-	// 	}
-	// }
+// 	// 	if (nextEl !== dragEl.nextSibling) {
+// 	// 		onUpdate(dragEl);
+// 	// 	}
+// 	// }
 
-	// rootEl.addEventListener('dragstart', function(evt) {
-	// 	dragEl = evt.target;
-	// 	nextEl = dragEl.nextSibling;
-	// 	console.log(dragEl, nextEl);
+// 	// rootEl.addEventListener('dragstart', function(evt) {
+// 	// 	dragEl = evt.target;
+// 	// 	nextEl = dragEl.nextSibling;
+// 	// 	console.log(dragEl, nextEl);
 
-	// 	evt.dataTransfer.effectAllowed = 'move';
-	// 	evt.dataTransfer.setData('Text', dragEl.textContent);
+// 	// 	evt.dataTransfer.effectAllowed = 'move';
+// 	// 	evt.dataTransfer.setData('Text', dragEl.textContent);
 
-	// 	rootEl.addEventListener('dragover', _onDragOver, false);
-	// 	rootEl.addEventListener('dragend', _onDragEnd, false);
+// 	// 	rootEl.addEventListener('dragover', _onDragOver, false);
+// 	// 	rootEl.addEventListener('dragend', _onDragEnd, false);
 
-	// 	setTimeout(function() {
-	// 		dragEl.classList.add('ghost');
-	// 	}, 0)
-	// }, false);
-}
+// 	// 	setTimeout(function() {
+// 	// 		dragEl.classList.add('ghost');
+// 	// 	}, 0)
+// 	// }, false);
+// }

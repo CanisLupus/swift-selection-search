@@ -93,36 +93,13 @@
 			<table id="engines-table">
 				<thead>
 					<tr id="engines-header">
-						<td class="engine-dragger"></td>
-						<td class="engine-is-enabled"></td>
-						<td class="engine-icon-img"></td>
+						<td colspan=3></td>
 						<td class="engine-name">Name</td>
 						<td class="engine-search-link">Search link</td>
 						<td class="engine-icon-link">Icon link</td>
-						<td class="engine-delete"></td>
 					</tr>
 				</thead>
 				<tfoot>
-					<tr>
-						<td class="engine-dragger"><div>☰</div></td>
-						<td class="engine-is-enabled"><input type="checkbox" autocomplete="off"></td>
-						<td class="engine-icon-img"><img src="http://iconshow.me/media/images/social/simple-icons/png/32/google.png"></td>
-						<td class="engine-native">Copy to clipboard</td>
-						<td class="engine-native" colspan=2>Adds a "Copy selection to clipboard" icon to the panel.</td>
-						<td><button type="button">↑</td>
-						<td><button type="button">↓</td>
-						<td></td>
-					</tr>
-					<tr>
-						<td class="engine-dragger"><div>☰</div></td>
-						<td class="engine-is-enabled"><input type="checkbox" autocomplete="off"></td>
-						<td class="engine-icon-img"><img src="http://iconshow.me/media/images/social/simple-icons/png/32/google.png"></td>
-						<td class="engine-native">Open as link</td>
-						<td class="engine-native" colspan=2>Adds an "Open selection as link" icon to the panel.</td>
-						<td><button type="button">↑</td>
-						<td><button type="button">↓</td>
-						<td></td>
-					</tr>
 					<tr id="engines-footer">
 						<td colspan=3></td>
 						<td class="engine-name"><input type="button" name="addEngineButton" value="Add"></td>
@@ -133,16 +110,14 @@
 						<td class="engine-dragger">    <div>☰</div></td>
 						<td class="engine-is-enabled"> <input type="checkbox" autocomplete="off" checked></td>
 						<td class="engine-icon-img">   <img src="http://iconshow.me/media/images/social/simple-icons/png/32/google.png"></td>
-						<td class="engine-name">       <input type="text" name="engine1-name"        value="Google"></td>
-						<td class="engine-search-link"><input type="text" name="engine1-search-link" value="https://www.google.pt/search?q={searchText}"></td>
-						<td class="engine-icon-link">  <input type="text" name="engine1-icon-link"   value="http://iconshow.me/media/images/social/simple-icons/png/32/google.png"></td>
-						<td class="engine-delete">     <input type="button" name="deleteEngineButton" value="✖"></td>
+						<td class="engine-name">       <input type="text" value="Google"></td>
+						<td class="engine-search-link"><input type="text" value="https://www.google.pt/search?q={searchText}"></td>
+						<td class="engine-icon-link">  <input type="text" value="http://iconshow.me/media/images/social/simple-icons/png/32/google.png"></td>
+						<td class="engine-delete">     <input type="button" value="✖"></td>
 					</tr>
 				</tbody>
 			</table>
 		</div>
-
-		<div class="section-name">Main features</div>
 
 		<!-- <div class="setting">
 			<div class="setting-name">Manage browser search engines</div>
@@ -151,38 +126,6 @@
 			</div>
 			<div class="setting-description">Opens Firefox's search engines manager. To select which engines are shown in the popup panel, use the "Select from available search engines" button below.</div>
 		</div> -->
-
-		<!-- <div class="setting">
-			<div class="setting-name">Select engines for popup</div>
-			<div class="setting-value">
-				<input type="button" name="selectEnginesButton" value="Select">
-			</div>
-			<div class="setting-description">Enable/disable the search engines that are displayed on the popup panel (the context menu still shows all of them).</div>
-		</div> -->
-
-		<div class="setting">
-			<div class="setting-name">Show icon to copy selection</div>
-			<div class="setting-value">
-				<select name="doShowCopyIconInPanel">
-					<option value="0" selected="selected">Don't show</option>
-					<option value="1">Show</option>
-					<option value="2">Show at end</option>
-				</select>
-			</div>
-			<div class="setting-description">Show "Copy to clipboard" icon in the panel.<br>(default: Don't show)</div>
-		</div>
-
-		<div class="setting">
-			<div class="setting-name">Show icon to open selection as a link</div>
-			<div class="setting-value">
-				<select name="doShowOpenLinkIconInPanel">
-					<option value="0" selected="selected">Don't show</option>
-					<option value="1">Show</option>
-					<option value="2">Show at end</option>
-				</select>
-			</div>
-			<div class="setting-description">Show "Open as link" icon in the panel.<br>(default: Don't show)</div>
-		</div>
 
 		<div class="section-name">Behaviour</div>
 
@@ -430,6 +373,7 @@
 		</div>
 	</div>
 
+	<script src="Sortable.min.js"></script>
 	<script src="settings.js"></script>
 </body>
 
