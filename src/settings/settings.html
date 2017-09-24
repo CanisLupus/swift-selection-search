@@ -82,6 +82,10 @@
 			padding-left: 20px;
 			color: #666;
 		}
+		.setting-description a {
+			font-size: 0.8rem;
+			color: #666;
+		}
 	</style>
 </head>
 
@@ -117,6 +121,22 @@
 					</tr>
 				</tbody>
 			</table>
+		</div>
+
+		<div class="setting">
+			<div class="setting-name">Load browser search engines</div>
+			<div class="setting-value">
+				<input name="selectSearchEnginesFileButton" type="file" accept=".json.mozlz4"/>
+				<input name="visibleSelectSearchEnginesFileButton" type="button" value='Select "search.json.mozlz4"' />
+			</div>
+			<div class="setting-description">
+				Adds your browser engines to the list. SSS can't do this automatically, so please select the "search.json.mozlz4" file usually here:
+				<br>(Windows) C:\Users\[user]\AppData\Roaming\Mozilla\Firefox\Profiles\[profile-id]
+				<br>(macOS) Users/[user]/Library/Application Support/Firefox/Profiles/[profile-id]
+				<br>(macOS) Users/[user]/Library/Mozilla/Firefox/Profiles/[profile-id]
+				<br>(Linux) /home/[user]/.mozilla/firefox/[profile-id]
+				<br>Some of these folders are hidden. Please refer to <a href="http://kb.mozillazine.org/Profile_folder_-_Firefox">this page.</a>
+			</div>
 		</div>
 
 		<!-- <div class="setting">

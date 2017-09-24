@@ -10,6 +10,95 @@ browser.storage.local.get().then(onSettingsAcquired, mainScript.getErrorHandler(
 
 document.addEventListener("DOMContentLoaded", onPageLoaded);
 
+// This method was taken from node-lz4 by Pierre Curto. MIT license.
+// CHANGES: Added ; to all lines. Reformated one-liners. Removed n = eIdx. Fixed eIdx skipping end bytes if sIdx != 0.
+function decodeBlock(input, output, sIdx, eIdx)
+{
+	sIdx = sIdx || 0;
+	eIdx = eIdx || input.length;
+
+	// Process each sequence in the incoming data
+	for (var i = sIdx, j = 0; i < eIdx;)
+	{
+		var token = input[i++];
+
+		// Literals
+		var literals_length = (token >> 4);
+		if (literals_length > 0) {
+			// length of literals
+			var l = literals_length + 240;
+			while (l === 255) {
+				l = input[i++];
+				literals_length += l;
+			}
+
+			// Copy the literals
+			var end = i + literals_length;
+			while (i < end) {
+				output[j++] = input[i++];
+			}
+
+			// End of buffer?
+			if (i === eIdx) {
+				return j;
+			}
+		}
+
+		// Match copy
+		// 2 bytes offset (little endian)
+		var offset = input[i++] | (input[i++] << 8);
+
+		// 0 is an invalid offset value
+		if (offset === 0 || offset > j) {
+			return -(i-2);
+		}
+
+		// length of match copy
+		var match_length = (token & 0xf);
+		var l = match_length + 240;
+		while (l === 255) {
+			l = input[i++];
+			match_length += l;
+		}
+
+		// Copy the match
+		var pos = j - offset; // position of the match copy in the current output
+		var end = j + match_length + 4; // minmatch = 4
+		while (j < end) {
+			output[j++] = output[pos++];
+		}
+	}
+
+	return j;
+}
+
+function readMozlz4File(file, onRead, onError)
+{
+	let reader = new FileReader();
+
+	reader.onload = function() {
+		let input = new Uint8Array(reader.result);
+		let output = new Uint8Array(input.length*3);	// size estimate for uncompressed data!
+
+		let uncompressedSize = decodeBlock(input, output, 8+4);	// skip 8 byte magic number + 4 byte data size field
+		// if we there's more data than our estimate, create a bigger output array and retry
+		if (uncompressedSize > output.length) {
+			output = new Uint8Array(uncompressedSize);
+			decodeBlock(input, output, 8+4);
+		}
+		output = output.slice(0, uncompressedSize);	// remove excess bytes
+
+		let decodedText = new TextDecoder().decode(output);
+		onRead(decodedText);
+	};
+
+	if (onError) {
+		reader.onerror = onError;
+	}
+
+	reader.readAsArrayBuffer(file);
+};
+
 function onPageLoaded()
 {
 	// save all form elements for easy access
@@ -30,9 +119,21 @@ function onPageLoaded()
 		// } else
 		if (item.type !== "color") {
 			console.log("onFormChanged target: " + item.name + ", value: " + item.value);
-			browser.storage.local.set({ [item.name]: item.value });
+			if (item.name === "selectSearchEnginesFileButton") {
+				let item = ev.target;
+				let file = item.files[0];
+				readMozlz4File(file, json => {
+					console.log(json);
+					let browserSearchEngines = JSON.parse(json);
+					console.log(browserSearchEngines);
+				});
+			} else {
+				browser.storage.local.set({ [item.name]: item.value });
+			}
 		}
 	};
+
+	page.visibleSelectSearchEnginesFileButton.onclick = ev => page.selectSearchEnginesFileButton.click();
 
 	// register events for specific behaviour when certain fields change
 	page.popupPanelBackgroundColorPicker.oninput = function(ev) { updateColorText  (page.popupPanelBackgroundColor,       page.popupPanelBackgroundColorPicker.value); };
@@ -82,18 +183,18 @@ function onSettingsAcquired(_settings)
 
 function updateUIWithSettings()
 {
-	console.log("updateUIWithSettings", settings);
+	// console.log("updateUIWithSettings", settings);
 
 	for (let item of page.inputs)
 	{
-		if (item.type == "select-one") {
+		if (item.type === "select-one") {
 			if (item.name in settings) {
 				item.value = parseInt(settings[item.name]);
 			}
 		}
-		else if (item.type != "color" && item.type != "button" && item.type != "reset") {
+		else if (item.type !== "color" && item.type !== "button" && item.type !== "reset" && item.type !== "file") {
 			if (item.name in settings) {
-				if (item.type == "checkbox") {
+				if (item.type === "checkbox") {
 					item.checked = settings[item.name];
 				} else {
 					item.value = settings[item.name];
