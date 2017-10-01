@@ -54,7 +54,7 @@
 		}
 		.engine-native {
 			padding: 4px 4px;
-			border: 1px solid #ccc;
+			border: 1px solid #e5e5e5;
 			background-color: #f5f5f5;
 			border-radius: 4px;
 		}
@@ -64,7 +64,7 @@
 			padding: 2px 0px 5px 6px;
 		}
 		.setting:hover {
-			background-color: #ffe;
+			background-color: #fff;
 		}
 		.setting-name {
 			width: 40%;
@@ -109,33 +109,23 @@
 						<td class="engine-name"><input type="button" name="addEngineButton" value="Add"></td>
 					</tr>
 				</tfoot>
-				<tbody id="engines">
-					<tr class="engine">
-						<td class="engine-dragger">    <div>☰</div></td>
-						<td class="engine-is-enabled"> <input type="checkbox" autocomplete="off" checked></td>
-						<td class="engine-icon-img">   <img src="http://iconshow.me/media/images/social/simple-icons/png/32/google.png"></td>
-						<td class="engine-name">       <input type="text" value="Google"></td>
-						<td class="engine-search-link"><input type="text" value="https://www.google.pt/search?q={searchText}"></td>
-						<td class="engine-icon-link">  <input type="text" value="http://iconshow.me/media/images/social/simple-icons/png/32/google.png"></td>
-						<td class="engine-delete">     <input type="button" value="✖"></td>
-					</tr>
-				</tbody>
+				<tbody id="engines"></tbody>
 			</table>
 		</div>
 
 		<div class="setting">
 			<div class="setting-name">Load browser search engines</div>
 			<div class="setting-value">
-				<input name="selectSearchEnginesFileButton" type="file" accept=".json.mozlz4"/>
+				<input name="selectSearchEnginesFileButton" type="file" accept=".json.mozlz4" style="display: none"/>
 				<input name="visibleSelectSearchEnginesFileButton" type="button" value='Select "search.json.mozlz4"' />
 			</div>
 			<div class="setting-description">
-				Adds your browser engines to the list. SSS can't do this automatically, so please select the "search.json.mozlz4" file usually here:
+				Import browser engines. SSS can't do this automatically, so please select the "search.json.mozlz4" file usually located here:
 				<br>(Windows) C:\Users\[user]\AppData\Roaming\Mozilla\Firefox\Profiles\[profile-id]
 				<br>(macOS) Users/[user]/Library/Application Support/Firefox/Profiles/[profile-id]
 				<br>(macOS) Users/[user]/Library/Mozilla/Firefox/Profiles/[profile-id]
 				<br>(Linux) /home/[user]/.mozilla/firefox/[profile-id]
-				<br>Some of these folders are hidden. Please refer to <a href="http://kb.mozillazine.org/Profile_folder_-_Firefox">this page.</a>
+				<br>NOTE: Some of these folders may be hidden. Please refer to <a href="http://kb.mozillazine.org/Profile_folder_-_Firefox">this page.</a>
 			</div>
 		</div>
 
@@ -153,9 +143,9 @@
 			<div class="setting-name">Opening behaviour</div>
 			<div class="setting-value">
 				<select name="popupPanelOpenBehaviour">
-					<option value="0">Off (never)</option>
-					<option value="1" selected="selected">Auto (opens on text selection)</option>
-					<option value="2">Keyboard-only (press the keyboard shortcut when text is selected)</option>
+					<option value="off">Off (never)</option>
+					<option value="auto">Auto (opens on text selection)</option>
+					<option value="keyboard">Keyboard-only (press the keyboard shortcut when text is selected)</option>
 				</select>
 			</div>
 			<div class="setting-description">When to open the popup panel.<br>(default: Auto)</div>
@@ -165,8 +155,8 @@
 			<div class="setting-name">Popup location</div>
 			<div class="setting-value">
 				<select name="popupLocation">
-					<option value="0">Bottom right corner of selection "rectangle"</option>
-					<option value="1" selected="selected">At cursor location</option>
+					<option value="selection">Bottom right corner of selection "rectangle"</option>
+					<option value="cursor">At cursor location</option>
 				</select>
 			</div>
 			<div class="setting-description">Where the popup should appear after selecting text.<br>(default: At cursor location)</div>
@@ -208,11 +198,11 @@
 			<div class="setting-name">Left mouse button behaviour</div>
 			<div class="setting-value">
 				<select name="mouseLeftButtonBehaviour">
-					<option value="0" selected="selected">Open in this tab</option>
-					<option value="1">Open in new tab</option>
-					<option value="2">Open in new background tab</option>
-					<option value="3">Open in new tab (next to current tab)</option>
-					<option value="4">Open in new background tab (next to current tab)</option>
+					<option value="this-tab">Open in this tab</option>
+					<option value="new-tab">Open in new tab</option>
+					<option value="new-bg-tab">Open in new background tab</option>
+					<option value="new-tab-next">Open in new tab (next to current tab)</option>
+					<option value="new-bg-tab-next">Open in new background tab (next to current tab)</option>
 				</select>
 			</div>
 			<div class="setting-description">What to do when a search engine is clicked with the left mouse button.<br>(default: Open in this tab)</div>
@@ -222,11 +212,11 @@
 			<div class="setting-name">Middle mouse button behaviour</div>
 			<div class="setting-value">
 				<select name="mouseMiddleButtonBehaviour">
-					<option value="0">Open in this tab</option>
-					<option value="1">Open in new tab</option>
-					<option value="2" selected="selected">Open in new background tab</option>
-					<option value="3">Open in new tab (next to current tab)</option>
-					<option value="4">Open in new background tab (next to current tab)</option>
+					<option value="this-tab">Open in this tab</option>
+					<option value="new-tab">Open in new tab</option>
+					<option value="new-bg-tab">Open in new background tab</option>
+					<option value="new-tab-next">Open in new tab (next to current tab)</option>
+					<option value="new-bg-tab-next">Open in new background tab (next to current tab)</option>
 				</select>
 			</div>
 			<div class="setting-description">What to do when a search engine is clicked with the middle mouse button.<br>(default: Open in new background tab)</div>
@@ -244,8 +234,8 @@
 			<div class="setting-name">Auto copy to clipboard</div>
 			<div class="setting-value">
 				<select name="autoCopyToClipboard">
-					<option value="0" selected="selected">Off</option>
-					<option value="1">Always</option>
+					<option value="off">Off</option>
+					<option value="always">Always</option>
 				</select>
 			</div>
 			<div class="setting-description">Automatically copy selected text to clipboard when popup panel opens.<br>(default: Off)</div>
@@ -289,9 +279,9 @@
 			<div class="setting-name">Icon hover behaviour</div>
 			<div class="setting-value">
 				<select name="itemHoverBehaviour">
-					<option value="0">Nothing (no hover effect)</option>
-					<option value="1">Highlight-only</option>
-					<option value="2" selected="selected">Highlight & Move</option>
+					<option value="nothing">Nothing (no hover effect)</option>
+					<option value="highlight">Highlight-only</option>
+					<option value="highlight-and-move">Highlight & Move</option>
 				</select>
 			</div>
 			<div class="setting-description">What happens to hovered search engine icons.<br>(default: Highlight & Move)</div>
@@ -354,18 +344,18 @@
 			<div class="setting-value">
 				<input type="checkbox" name="enableEnginesInContextMenu" autocomplete="off" checked>
 			</div>
-			<div class="setting-description">Enables a "Search with..." sub-menu with all search engines. Appears in the context menu when you right click a page with text selected.<br>(default: On)</div>
+			<div class="setting-description">Enables a "Search with..." sub-menu with all search engines. Appears in the context menu when you right click somewhere with text selected.<br>(default: On)</div>
 		</div>
 
 		<div class="setting">
 			<div class="setting-name">Context menu item click behaviour</div>
 			<div class="setting-value">
 				<select name="contextMenuItemBehaviour">
-					<option value="0">Open in this tab</option>
-					<option value="1">Open in new tab</option>
-					<option value="2" selected="selected">Open in new background tab</option>
-					<option value="3">Open in new tab (next to current tab)</option>
-					<option value="4">Open in new background tab (next to current tab)</option>
+					<option value="this-tab">Open in this tab</option>
+					<option value="new-tab">Open in new tab</option>
+					<option value="new-bg-tab">Open in new background tab</option>
+					<option value="new-tab-next">Open in new tab (next to current tab)</option>
+					<option value="new-bg-tab-next">Open in new background tab (next to current tab)</option>
 				</select>
 			</div>
 			<div class="setting-description">What to do when a search engine is clicked in the context menu.<br>(default: Open in new background tab)</div>
@@ -375,8 +365,8 @@
 			<div class="setting-name">Context menu engines filter</div>
 			<div class="setting-value">
 				<select name="contextMenuEnginesFilter">
-					<option value="0" selected="selected">All</option>
-					<option value="1">Same as popup panel</option>
+					<option value="all">All</option>
+					<option value="same-as-popup">Same as popup panel</option>
 				</select>
 			</div>
 			<div class="setting-description">What engines to show on the context menu.<br>(default: All)</div>
@@ -385,11 +375,19 @@
 		<div class="section-name">Reset</div>
 
 		<div class="setting">
-			<div class="setting-name">Reset all settings</div>
+			<div class="setting-name">Reset settings</div>
 			<div class="setting-value">
-				<input type="button" name="resetAllSettingsButton" value="Reset">
+				<input type="button" name="resetSettingsButton" value="Reset settings">
 			</div>
-			<div class="setting-description">Immediately resets all options to their defaults.</div>
+			<div class="setting-description">Immediately resets all options (except search engines) to their defaults.</div>
+		</div>
+
+		<div class="setting">
+			<div class="setting-name">Reset search engines</div>
+			<div class="setting-value">
+				<input type="button" name="resetSearchEnginesButton" value="Reset engines">
+			</div>
+			<div class="setting-description">Immediately resets search engines to the defaults.</div>
 		</div>
 	</div>
 

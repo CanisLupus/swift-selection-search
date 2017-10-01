@@ -10,9 +10,9 @@ browser.storage.local.get().then(onSettingsAcquired, mainScript.getErrorHandler(
 
 document.addEventListener("DOMContentLoaded", onPageLoaded);
 
-// This method was taken from node-lz4 by Pierre Curto. MIT license.
+// This method's code was taken from node-lz4 by Pierre Curto. MIT license.
 // CHANGES: Added ; to all lines. Reformated one-liners. Removed n = eIdx. Fixed eIdx skipping end bytes if sIdx != 0.
-function decodeBlock(input, output, sIdx, eIdx)
+function decodeLz4Block(input, output, sIdx, eIdx)
 {
 	sIdx = sIdx || 0;
 	eIdx = eIdx || input.length;
@@ -80,11 +80,11 @@ function readMozlz4File(file, onRead, onError)
 		let input = new Uint8Array(reader.result);
 		let output = new Uint8Array(input.length*3);	// size estimate for uncompressed data!
 
-		let uncompressedSize = decodeBlock(input, output, 8+4);	// skip 8 byte magic number + 4 byte data size field
+		let uncompressedSize = decodeLz4Block(input, output, 8+4);	// skip 8 byte magic number + 4 byte data size field
 		// if we there's more data than our estimate, create a bigger output array and retry
 		if (uncompressedSize > output.length) {
 			output = new Uint8Array(uncompressedSize);
-			decodeBlock(input, output, 8+4);
+			decodeLz4Block(input, output, 8+4);
 		}
 		output = output.slice(0, uncompressedSize);	// remove excess bytes
 
@@ -99,6 +99,81 @@ function readMozlz4File(file, onRead, onError)
 	reader.readAsArrayBuffer(file);
 };
 
+function updateBrowserEnginesFromSearchJson(browserSearchEngines)
+{
+	// separate all previous browser engines from the rest
+	let wasPreviouslyEnabled = {};
+	let nonBrowserEngines = [];
+
+	for (let engine of settings.searchEngines)
+	{
+		if (engine.type === "browser") {
+			wasPreviouslyEnabled[engine.id] = engine.isEnabled;
+		} else {
+			nonBrowserEngines.push(engine);
+		}
+	}
+
+	settings.searchEngines = nonBrowserEngines;
+
+	// add all current browser engines
+	for (let engine of browserSearchEngines.engines)
+	{
+		if (engine._metaData.hidden) {
+			continue;
+		}
+
+		let urlObj = engine._urls[0];
+		let url = urlObj.template;
+
+		if (urlObj.params.length > 0) {
+			// template has params, so join them to get the full query URL
+			url += "?" + urlObj.params
+				.filter(p => p.value === "{searchTerms}")
+				.map(p => p.name + "=" + p.value)
+				.join("&");
+		} else {
+			// template has no params, so template is the full query URL
+			url = url.replace("{searchTerms}", "[sss-searchTerms]");	// easy way to "save" {searchTerms} from regex replace...
+			url = url.replace(/{(.*)}/g, "");
+			url = url.replace("[sss-searchTerms]", "{searchTerms}");	// ...and add it back afterwards
+		}
+
+		let isEnabled = wasPreviouslyEnabled[engine._loadPath];
+		isEnabled = isEnabled !== undefined ? isEnabled : true;	// if engine didn't exist, assume we want it enabled
+
+		let sssBrowserEngine = {
+			type: "browser",
+			name: engine._name,
+			iconSrc: engine._iconURL,
+			searchUrl: url,
+			isEnabled: isEnabled,
+			id: engine._loadPath,	// used to identify engine in unique way
+		};
+
+		settings.searchEngines.push(sssBrowserEngine);
+	}
+}
+
+function getDataUriFromImgUrl(url, callback)
+{
+	var img = new Image();
+	img.crossOrigin = 'Anonymous';
+	img.onload = function() {
+		let canvas = document.createElement('canvas');
+		canvas.height = this.height;
+		canvas.width = this.width;
+
+		let ctx = canvas.getContext('2d');
+		ctx.drawImage(this, 0, 0);
+
+		let dataURL = canvas.toDataURL();
+		callback(dataURL);
+		canvas = null;
+	};
+	img.src = url;
+}
+
 function onPageLoaded()
 {
 	// save all form elements for easy access
@@ -111,24 +186,38 @@ function onPageLoaded()
 	}
 
 	// register change event for anything in the form
-	page.container.onchange = function onFormChanged(ev) {
+	page.container.onchange = function(ev) {
 		let item = ev.target;
-		// if (page.engines.contains(item)) {
-		// 	console.log("onFormChanged [settings] target: " + item.name + ", value: " + item.value);
-		// 	browser.storage.local.set({ searchEngines: settings.searchEngines });
-		// } else
-		if (item.type !== "color") {
-			console.log("onFormChanged target: " + item.name + ", value: " + item.value);
-			if (item.name === "selectSearchEnginesFileButton") {
-				let item = ev.target;
-				let file = item.files[0];
-				readMozlz4File(file, json => {
-					console.log(json);
-					let browserSearchEngines = JSON.parse(json);
-					console.log(browserSearchEngines);
-				});
-			} else {
-				browser.storage.local.set({ [item.name]: item.value });
+		if (item.type === "color") {
+			return;
+		}
+		console.log("onFormChanged target: " + item.name + ", value: " + item.value);
+
+		if (item.name === "selectSearchEnginesFileButton") {
+			let item = ev.target;
+			let file = item.files[0];
+			readMozlz4File(file, json => {
+				console.log(json);
+				let browserSearchEngines = JSON.parse(json);
+				console.log(browserSearchEngines);
+				updateBrowserEnginesFromSearchJson(browserSearchEngines);
+				browser.storage.local.set({ searchEngines: settings.searchEngines });
+				console.log("saved!", settings);
+				updateUIWithSettings();
+			});
+		} else {
+			if (item.name in settings) {
+				let value;
+				if (item.type === "checkbox") {
+					value = item.checked;
+				} else if (item.type === "number") {
+					value = parseInt(item.value);
+				} else {
+					value = item.value;
+				}
+				settings[item.name] = value;
+				browser.storage.local.set({ [item.name]: value });
+				console.log("saved!", settings);
 			}
 		}
 	};
@@ -143,25 +232,38 @@ function onPageLoaded()
 
 	// register events for button clicks
 	page.addEngineButton.onclick = function(ev) {
-		settings.searchEngines.push(
-			{
-				type: "custom",
-				name: "Google",
-				iconUrl: "http://iconshow.me/media/images/social/simple-icons/png/32/google.png",
-				searchUrl: "https://www.google.pt/search?q={searchText}",
-				isEnabled: true,
-			}
-		);
+		let searchEngine = {
+			type: "custom",
+			name: "Google",
+			iconUrl: "http://iconshow.me/media/images/social/simple-icons/png/32/google.png",
+			iconSrc: "",
+			searchUrl: "https://www.google.pt/search?q={searchTerms}",
+			isEnabled: true,
+		};
+		settings.searchEngines.push(searchEngine);
+
 		browser.storage.local.set({ searchEngines: settings.searchEngines });
+		console.log("saved!", settings);
 		updateUIWithSettings();
 	};
 
-	page.resetAllSettingsButton.onclick = function(ev) {
+	page.resetSettingsButton.onclick = function(ev) {
 		ev.preventDefault();
-		settings = mainScript.getDefaultSettings();
+		let searchEngines = settings.searchEngines;	// save engines
+		settings = JSON.parse(JSON.stringify(mainScript.getDefaultSettings()));	// copy default settings
+		settings.searchEngines = searchEngines;	// restore engines
 		updateUIWithSettings();
 		browser.storage.local.set(settings);
-		console.log("saved");
+		console.log("saved!", settings);
+	};
+
+	page.resetSearchEnginesButton.onclick = function(ev) {
+		ev.preventDefault();
+		let defaultEngines = JSON.parse(JSON.stringify(mainScript.getDefaultSettings().searchEngines));
+		settings.searchEngines = defaultEngines;
+		updateUIWithSettings();
+		browser.storage.local.set({ searchEngines: settings.searchEngines });
+		console.log("saved!", settings);
 	};
 
 	// finish and set elements based on settings, if they are already loaded
@@ -183,22 +285,21 @@ function onSettingsAcquired(_settings)
 
 function updateUIWithSettings()
 {
-	// console.log("updateUIWithSettings", settings);
+	console.log("updateUIWithSettings", settings);
 
 	for (let item of page.inputs)
 	{
-		if (item.type === "select-one") {
-			if (item.name in settings) {
-				item.value = parseInt(settings[item.name]);
-			}
+		if (!(item.name in settings)) {
+			continue;
 		}
-		else if (item.type !== "color" && item.type !== "button" && item.type !== "reset" && item.type !== "file") {
-			if (item.name in settings) {
-				if (item.type === "checkbox") {
-					item.checked = settings[item.name];
-				} else {
-					item.value = settings[item.name];
-				}
+
+		if (item.type === "select-one") {
+			item.value = settings[item.name];
+		} else if (item.type !== "color" && item.type !== "button" && item.type !== "reset" && item.type !== "file") {
+			if (item.type === "checkbox") {
+				item.checked = settings[item.name];
+			} else {
+				item.value = settings[item.name];
 			}
 		}
 	}
@@ -223,6 +324,7 @@ function updateUIWithSettings()
 			onEnd: function (ev) {
 				settings.searchEngines.splice(ev.newIndex, 0, settings.searchEngines.splice(ev.oldIndex, 1)[0]);
 				browser.storage.local.set({ searchEngines: settings.searchEngines });
+				console.log("saved!", settings);
 				updateUIWithSettings();
 			},
 		});
@@ -234,10 +336,9 @@ function addSearchEngine(engine, i)
 	let row = document.createElement("tr");
 	row.className = "engine";
 
-	let cell;
-	let input;
-
 	let sssIcon = engine.type === "sss" ? mainScript.getSssIcon(engine.id) : undefined;
+
+	let cell;
 
 	cell = document.createElement("td");
 	cell.className = "engine-dragger";
@@ -255,6 +356,7 @@ function addSearchEngine(engine, i)
 	isEnabledInput.onchange = function(ev) {
 		engine.isEnabled = isEnabledInput.checked;
 		browser.storage.local.set({ searchEngines: settings.searchEngines });
+		console.log("saved!", settings);
 	};
 	cell.appendChild(isEnabledInput);
 	row.appendChild(cell);
@@ -262,7 +364,7 @@ function addSearchEngine(engine, i)
 	cell = document.createElement("td");
 	cell.className = "engine-icon-img";
 	let icon = document.createElement("img");
-	icon.src = sssIcon ? browser.extension.getURL(sssIcon.iconUrl) : engine.iconUrl;
+	icon.src = sssIcon ? browser.extension.getURL(sssIcon.iconPath) : engine.iconSrc;
 	cell.appendChild(icon);
 	row.appendChild(cell);
 
@@ -276,6 +378,7 @@ function addSearchEngine(engine, i)
 		nameInput.onchange = function(ev) {
 			engine.name = nameInput.value;
 			browser.storage.local.set({ searchEngines: settings.searchEngines });
+			console.log("saved!", settings);
 		};
 		cell.appendChild(nameInput);
 		row.appendChild(cell);
@@ -288,6 +391,7 @@ function addSearchEngine(engine, i)
 		searchLinkInput.onchange = function(ev) {
 			engine.searchUrl = searchLinkInput.value;
 			browser.storage.local.set({ searchEngines: settings.searchEngines });
+			console.log("saved!", settings);
 		};
 		cell.appendChild(searchLinkInput);
 		row.appendChild(cell);
@@ -298,26 +402,48 @@ function addSearchEngine(engine, i)
 		iconLinkInput.type = "text";
 		iconLinkInput.value = engine.iconUrl;
 		iconLinkInput.oninput = function(ev) {
-			icon.src = iconLinkInput.value;
+			engine.iconUrl = iconLinkInput.value;
+			icon.src = "";
+			engine.iconSrc = "";
+			getDataUriFromImgUrl(engine.iconUrl, function(base64Img) {
+				icon.src = base64Img;
+				engine.iconSrc = base64Img;
+				browser.storage.local.set({ searchEngines: settings.searchEngines });
+				console.log("saved!", settings);
+			});
 		};
 		iconLinkInput.onchange = function(ev) {
-			engine.iconUrl = iconLinkInput.value;
 			browser.storage.local.set({ searchEngines: settings.searchEngines });
+			console.log("saved!", settings);
 		};
 		cell.appendChild(iconLinkInput);
 		row.appendChild(cell);
 
 		cell = document.createElement("td");
 		cell.className = "engine-delete";
-		let deleteButton = document.createElement("button");
+		let deleteButton = document.createElement("input");
 		deleteButton.type = "button";
-		deleteButton.textContent = "✖";
+		deleteButton.value = "✖";
 		deleteButton.onclick = function(ev) {
 			settings.searchEngines.splice(i, 1);	// remove element at i
 			browser.storage.local.set({ searchEngines: settings.searchEngines });
+			console.log("saved!", settings);
 			updateUIWithSettings();
 		};
 		cell.appendChild(deleteButton);
+		row.appendChild(cell);
+	}
+	else if (engine.type === "browser")
+	{
+		cell = document.createElement("td");
+		cell.className = "engine-native";
+		cell.textContent = engine.name;
+		row.appendChild(cell);
+
+		cell = document.createElement("td");
+		cell.className = "engine-native";
+		cell.colSpan = 2;
+		cell.textContent = engine.searchUrl;
 		row.appendChild(cell);
 	}
 	else if (engine.type === "sss")
@@ -344,6 +470,7 @@ function updateColorText(text, value)
 	if (text.value !== value) {
 		text.value = value;
 		browser.storage.local.set({ [text.name]: value });
+		console.log("saved!", settings);
 	}
 }
 
@@ -355,119 +482,3 @@ function updatePickerColor(picker, value)
 		picker.value = value;
 	}
 }
-
-// function sortable(rootEl, onUpdate)
-// {
-// 	let dragged;
-
-// 	function handleDragStart(ev) {
-// 		console.log("handleDragStart", ev.target, this);
-// 		// dragged = ev.target;
-// 		ev.dataTransfer.effectAllowed = 'move';
-// 		ev.dataTransfer.setData('text/plain', 'dummy');
-// 	}
-// 	function handleDragEnter(ev) {
-// 		console.log("handleDragEnter", ev.target);
-// 		ev.preventDefault();
-// 		if (ev.stopPropagation) {
-// 			ev.stopPropagation();
-// 		}
-// 		return false;
-// 	}
-// 	function handleDragOver(ev) {
-// 		console.log("handleDragOver", ev.target);
-// 		ev.preventDefault();
-// 		ev.dataTransfer.dropEffect = 'move';
-
-// 		if (ev.target.engineElement && this != ev.target) {
-// 			console.log("handleDragOver", this.engineElement.innerHTML, ev.target.engineElement.innerHTML);
-// 			page.engines.insertBefore(this.engineElement, ev.target.engineElement);
-// 			// let target = ev.target;
-// 			// if (target && target !== dragEl && target.nodeName == 'th') {
-// 			// 	let rect = target.getBoundingClientRect();
-// 			// 	let next = (ev.clientY - rect.top)/(rect.bottom - rect.top) > .5;
-// 			// 	rootEl.insertBefore(dragEl, next && target.nextSibling || target);
-// 			// }
-// 		}
-// 		return false;
-// 	}
-// 	function handleDragLeave(ev) {
-// 		console.log("handleDragLeave", ev.target);
-// 		ev.preventDefault();
-// 		if (ev.stopPropagation) {
-// 			ev.stopPropagation();
-// 		}
-// 		return false;
-// 	}
-// 	function handleDrop(ev) {
-// 		console.log("handleDrop", ev.target);
-// 		ev.preventDefault();
-// 		if (ev.stopPropagation) {
-// 			ev.stopPropagation();
-// 		}
-// 		return false;
-// 	}
-// 	function handleDragEnd(ev) {
-// 		console.log("handleDragEnd", ev.target);
-// 		ev.preventDefault();
-// 		if (ev.stopPropagation) {
-// 			ev.stopPropagation();
-// 		}
-// 		return false;
-// 	}
-
-// 	for (let engineElement of page.engines.getElementsByClassName("engine")) {
-// 		let dragger = engineElement.getElementsByClassName("engine-dragger")[0];
-// 		dragger.engineElement = engineElement;
-// 		dragger.draggable = true;
-// 		dragger.addEventListener('dragstart', handleDragStart, false);
-// 		dragger.addEventListener('dragenter', handleDragEnter, false);
-// 		dragger.addEventListener('dragover', handleDragOver, false);
-// 		dragger.addEventListener('dragleave', handleDragLeave, false);
-// 		dragger.addEventListener('drop', handleDrop, false);
-// 		dragger.addEventListener('dragend', handleDragEnd, false);
-// 	}
-
-// 	return;
-
-// 	// function _onDragOver(evt) {
-// 	// 	evt.preventDefault();
-// 	// 	evt.dataTransfer.dropEffect = 'move';
-
-// 	// 	let target = evt.target;
-// 	// 	console.log(target.nodeName);
-// 	// 	if (target && target !== dragEl && target.nodeName == 'th') {
-// 	// 		let rect = target.getBoundingClientRect();
-// 	// 		let next = (evt.clientY - rect.top)/(rect.bottom - rect.top) > .5;
-// 	// 		rootEl.insertBefore(dragEl, next && target.nextSibling || target);
-// 	// 	}
-// 	// }
-
-// 	// function _onDragEnd(evt) {
-// 	// 	evt.preventDefault();
-
-// 	// 	dragEl.classList.remove('ghost');
-// 	// 	rootEl.removeEventListener('dragover', _onDragOver, false);
-// 	// 	rootEl.removeEventListener('dragend', _onDragEnd, false);
-
-// 	// 	if (nextEl !== dragEl.nextSibling) {
-// 	// 		onUpdate(dragEl);
-// 	// 	}
-// 	// }
-
-// 	// rootEl.addEventListener('dragstart', function(evt) {
-// 	// 	dragEl = evt.target;
-// 	// 	nextEl = dragEl.nextSibling;
-// 	// 	console.log(dragEl, nextEl);
-
-// 	// 	evt.dataTransfer.effectAllowed = 'move';
-// 	// 	evt.dataTransfer.setData('Text', dragEl.textContent);
-
-// 	// 	rootEl.addEventListener('dragover', _onDragOver, false);
-// 	// 	rootEl.addEventListener('dragend', _onDragEnd, false);
-
-// 	// 	setTimeout(function() {
-// 	// 		dragEl.classList.add('ghost');
-// 	// 	}, 0)
-// 	// }, false);
-// }

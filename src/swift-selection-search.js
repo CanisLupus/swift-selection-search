@@ -5,50 +5,44 @@
 "use strict";
 
 const consts = {
-	ShowIconInPanel_Off: "0",
-	ShowIconInPanel_Show: "1",
-	ShowIconInPanel_ShowAtEnd: "2",
+	PopupOpenBehaviour_Off: "off",
+	PopupOpenBehaviour_Auto: "auto",
+	PopupOpenBehaviour_Keyboard: "keyboard",
 
-	PopupOpenBehaviour_Off: "0",
-	PopupOpenBehaviour_Auto: "1",
-	PopupOpenBehaviour_Keyboard: "2",
+	PopupLocation_Selection: "selection",
+	PopupLocation_Cursor: "cursor",
 
-	PopupLocation_Selection: "0",
-	PopupLocation_Cursor: "1",
+	MouseButtonBehaviour_ThisTab: "this-tab",
+	MouseButtonBehaviour_NewTab: "new-tab",
+	MouseButtonBehaviour_NewBgTab: "new-bg-tab",
+	MouseButtonBehaviour_NewTabNextToThis: "new-tab-next",
+	MouseButtonBehaviour_NewBgTabNextToThis: "new-bg-tab-next",
 
-	MouseButtonBehaviour_ThisTab: "0",
-	MouseButtonBehaviour_NewTab: "1",
-	MouseButtonBehaviour_NewBgTab: "2",
-	MouseButtonBehaviour_NewTabNextToThis: "3",
-	MouseButtonBehaviour_NewBgTabNextToThis: "4",
+	AutoCopyToClipboard_Off: "off",
+	AutoCopyToClipboard_Always: "always",
 
-	AutoCopyToClipboard_Off: "0",
-	AutoCopyToClipboard_Always: "1",
+	ItemHoverBehaviour_Nothing: "nothing",
+	ItemHoverBehaviour_Highlight: "highlight",
+	ItemHoverBehaviour_HighlightAndMove: "highlight-and-move",
 
-	ItemHoverBehaviour_Nothing: "0",
-	ItemHoverBehaviour_Highlight: "1",
-	ItemHoverBehaviour_HighlightAndMove: "2",
-
-	ContextMenuEnginesFilter_All: "0",
-	ContextMenuEnginesFilter_SameAsPopupPanel: "1",
+	ContextMenuEnginesFilter_All: "all",
+	ContextMenuEnginesFilter_SameAsPopupPanel: "same-as-popup",
 
 	sssIcons: {
 		copyToClipboard: {
 			name: "Copy to clipboard",
-			description: 'Adds a "Copy selection to clipboard" icon to the panel.',
-			iconUrl: "data/icons/sss-icon-copy.svg",
+			description: '[SSS] Adds a "Copy selection to clipboard" icon to the panel.',
+			iconPath: "data/icons/sss-icon-copy.svg",
 		},
 		openAsLink: {
 			name: "Open as link",
-			description: 'Adds an "Open selection as link" icon to the panel.',
-			iconUrl: "data/icons/sss-icon-open-link.svg",
+			description: '[SSS] Adds an "Open selection as link" icon to the panel.',
+			iconPath: "data/icons/sss-icon-open-link.svg",
 		}
 	}
 };
 
 const defaultSettings = {
-	doShowCopyIconInPanel: consts.ShowIconInPanel_Off,
-	doShowOpenLinkIconInPanel: consts.ShowIconInPanel_Off,
 	popupPanelOpenBehaviour: consts.PopupOpenBehaviour_Auto,
 	popupLocation: consts.PopupLocation_Cursor,
 	hidePopupPanelOnPageScroll: true,
@@ -79,28 +73,32 @@ const defaultSettings = {
 			type: "custom",
 			name: "Google",
 			iconUrl: "http://iconshow.me/media/images/social/simple-icons/png/32/google.png",
-			searchUrl: "https://www.google.pt/search?q={searchText}",
+			iconSrc: "",
+			searchUrl: "https://www.google.pt/search?q={searchTerms}",
 			isEnabled: true,
 		},
 		{
 			type: "custom",
 			name: "YouTube",
 			iconUrl: "https://www.youtube.com/yts/img/favicon_32-vfl8NGn4k.png",
-			searchUrl: "https://www.youtube.com/results?search_query={searchText}",
+			iconSrc: "",
+			searchUrl: "https://www.youtube.com/results?search_query={searchTerms}",
 			isEnabled: true,
 		},
 		{
 			type: "custom",
 			name: "IMDB",
 			iconUrl: "https://cdn4.iconfinder.com/data/icons/Classy_Social_Media_Icons/32/imdb.png",
-			searchUrl: "http://www.imdb.com/find?s=all&q={searchText}",
+			iconSrc: "",
+			searchUrl: "http://www.imdb.com/find?s=all&q={searchTerms}",
 			isEnabled: true,
 		},
 		{
 			type: "custom",
 			name: "Wikipedia",
 			iconUrl: "http://findicons.com/files/icons/111/popular_sites/128/wikipedia_icon.png",
-			searchUrl: "https://en.wikipedia.org/wiki/Special:Search?search={searchText}",
+			iconSrc: "",
+			searchUrl: "https://en.wikipedia.org/wiki/Special:Search?search={searchTerms}",
 			isEnabled: true,
 		},
 		{
@@ -116,20 +114,25 @@ const defaultSettings = {
 	]
 };
 
+let isFirstLoad = true;
 let sss = {};
 
 // clear all settings (for test purposes)
 // browser.storage.local.clear();
 
+// register with worker messages and changes to settings
+browser.runtime.onMessage.addListener(onContentScriptMessage);
+browser.storage.onChanged.addListener(onSettingsChanged);
+
 // Get settings. Setup happens when they are ready.
-browser.storage.local.get().then(setup_SSS, getErrorHandler("Error getting settings for setup."));
+browser.storage.local.get().then(onSettingsAcquired, getErrorHandler("Error getting settings for setup."));
 
 /* ------------------------------------ */
 /* -------------- SETUP --------------- */
 /* ------------------------------------ */
 
 // Main SSS setup. Called when settings are acquired. Prepares everything.
-function setup_SSS(settings)
+function onSettingsAcquired(settings)
 {
 	// if settings object is empty, use defaults
 	if (settings === undefined || Object.keys(settings).length === 0) {
@@ -140,23 +143,21 @@ function setup_SSS(settings)
 
 	sss.settings = settings;
 
-	console.log("loading ", settings);
+	if (isFirstLoad) {
+		console.log("loading ", settings);
+	}
 
-	generateEngineObjects();
+	// generateEngineObjects();
 
 	setup_ContextMenu();
 	setup_PopupHotkeys();
 	setup_Popup();
 
-	if (!browser.runtime.onMessage.hasListener(onContentScriptMessage)) {
-		browser.runtime.onMessage.addListener(onContentScriptMessage);
+	if (isFirstLoad) {
+		console.log("Swift Selection Search has started!");
 	}
 
-	if (!browser.storage.onChanged.hasListener(onSettingsChanged)) {
-		browser.storage.onChanged.addListener(onSettingsChanged);
-	}
-
-	console.log("Swift Selection Search has started!");
+	isFirstLoad = false;
 }
 
 // Called from settings.
@@ -178,7 +179,7 @@ function onSettingsChanged(changes, area)
 	}
 
 	console.log("onSettingsChanged");
-	browser.storage.local.get().then(setup_SSS, getErrorHandler("Error getting settings after onSettingsChanged."));
+	browser.storage.local.get().then(onSettingsAcquired, getErrorHandler("Error getting settings after onSettingsChanged."));
 }
 
 function getErrorHandler(text)
@@ -186,14 +187,14 @@ function getErrorHandler(text)
 	return error => console.log(`${text} (${error})`);
 }
 
-function onContentScriptMessage(msg, sender, responseCallback)
+function onContentScriptMessage(msg, sender, sendResponse)
 {
 	if (msg.type !== "log") {
 		console.log("msg.type: " + msg.type);
 	}
 
-	if (msg.type === "activation") {
-		responseCallback({ settings: sss.settings, engineObjects: sss.engineObjects });
+	if (msg.type === "activationRequest") {
+		sendResponse({ popupLocation: sss.settings.popupLocation, popupPanelOpenBehaviour: sss.settings.popupPanelOpenBehaviour });
 	} else if (msg.type === "engineClick") {
 		onSearchEngineClick(msg.selection, msg.engine, msg.clickType);
 	} else if (msg.type === "log") {
@@ -259,9 +260,9 @@ function setup_PopupHotkeys()
 
 function onHotkey(command)
 {
-	if (command == "open-popup") {
-		// sss.activeWorker.port.emit("showPopup", sss.settings, sss.engineObjects);
-	} else if(command == "toggle-auto-popup") {
+	if (command === "open-popup") {
+		getCurrentTab(tab => browser.tabs.sendMessage(tab.id, { type: "showPopup" }));
+	} else if (command === "toggle-auto-popup") {
 		// toggles value between Auto and Keyboard
 		if (sss.settings.popupPanelOpenBehaviour === consts.PopupOpenBehaviour_Auto) {
 			sss.settings.popupPanelOpenBehaviour = consts.PopupOpenBehaviour_Keyboard;
@@ -288,47 +289,34 @@ function setup_Popup()
 
 function onTabActivated(activeInfo)
 {
-	// activeInfo.tabId
-	injectPageWorker();
+	// console.log("onTabActivated " + activeInfo.tabId);
+	// injectPageWorker(activeInfo.tabId);
 }
 
 function onTabUpdated(tabId, changeInfo, tab)
 {
+	// console.log("onTabUpdated " + changeInfo.status + " "+ tabId);
 	if (changeInfo.status === "complete") {
-		injectPageWorker();
+		injectPageWorker(tabId);
 	}
 }
 
-function injectPageWorker()
+function injectPageWorker(tabId)
 {
-	browser.tabs.executeScript({ file: "/content-scripts/selectionchange.js" }).then(
-		result => browser.tabs.executeScript({ file: "/content-scripts/selection-worker.js" }).then(
-			null, getErrorHandler("Error executing page worker script.")),
-		getErrorHandler("Error executing selectionchange.js script."));
-}
+	// try sending message to see if worker exists. if it errors then inject it
+	browser.tabs.sendMessage(tabId, { type: "isAlive" }).then(
+		_ => {},
+		_ => {
+			console.log("injectPageWorker "+ tabId);
 
-// creates engine objects to be passed to page workers (must be convertible to JSON)
-function generateEngineObjects()
-{
-	sss.engineObjects = sss.settings.searchEngines
-		.filter(engine => engine.isEnabled)
-		.map(engine => {
-			if (engine.type === "sss") {
-				let sssIcon = consts.sssIcons[engine.id];
-				return {
-					type: engine.type,
-					id: engine.id,
-					name: sssIcon.name,
-					iconUrl: browser.extension.getURL(sssIcon.iconUrl)
-				};
-			} else {
-				return {
-					type: engine.type,
-					name: engine.name,
-					iconUrl: engine.iconUrl
-				};
-			}
-		});
+			browser.tabs.executeScript(tabId, { file: "/content-scripts/selectionchange.js" }).then(
+			result => browser.tabs.executeScript(tabId, { file: "/content-scripts/selection-worker.js" }).then(
+				null,
+				getErrorHandler("Error executing page worker script.")
+			),
+			getErrorHandler("Error executing selectionchange.js script."));
+		}
+	);
 }
 
 function onSearchEngineClick(searchText, engineObject, clickType)
@@ -336,7 +324,7 @@ function onSearchEngineClick(searchText, engineObject, clickType)
 	if (engineObject.type === "sss") {
 		if (engineObject.id === "copyToClipboard") {
 			getCurrentTab(tab => browser.tabs.sendMessage(tab.id, { type: "copyToClipboard" }));
-		} else if (engineObject.id == "openAsLink") {
+		} else if (engineObject.id === "openAsLink") {
 			if (clickType === "leftClick") {
 				openUrl(searchText, sss.settings.mouseLeftButtonBehaviour);
 			} else if (clickType === "middleClick") {
@@ -360,7 +348,7 @@ function onSearchEngineClick(searchText, engineObject, clickType)
 
 function getSearchQuery(engine, searchText)
 {
-	return engine.searchUrl.replace("{searchText}", encodeURIComponent(searchText));
+	return engine.searchUrl.replace("{searchTerms}", encodeURIComponent(searchText));
 }
 
 function openUrl(urlToOpen, openingBehaviour)
@@ -377,10 +365,10 @@ function openUrl(urlToOpen, openingBehaviour)
 
 function getCurrentTab(callback)
 {
-	browser.tabs.query({currentWindow: true, active: true})
-		.then(function(tabs) {
-			callback(tabs[0]);
-		}, getErrorHandler("Error getting current tab."));
+	browser.tabs.query({currentWindow: true, active: true}).then(
+		tabs => callback(tabs[0]),
+		getErrorHandler("Error getting current tab.")
+	);
 }
 
 /* ------------------------------------ */
