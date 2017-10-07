@@ -2,6 +2,11 @@
 
 const DEBUG = true;
 
+let console = {};
+console.log = function(msg) {
+	if (DEBUG) { browser.runtime.sendMessage({ type: "log", log: msg }); }
+};
+
 // Subset of consts present in background script (avoids having to ask for them).
 let consts = {
 	PopupOpenBehaviour_Auto: "auto",
@@ -13,7 +18,7 @@ let consts = {
 
 	ItemHoverBehaviour_Nothing: "nothing",
 	ItemHoverBehaviour_Highlight: "highlight",
-	ItemHoverBehaviour_HighlightAndMove: "highlight-move",
+	ItemHoverBehaviour_HighlightAndMove: "highlight-and-move",
 };
 
 let popup = null;
@@ -26,7 +31,7 @@ let mousePositionY = 0;
 browser.runtime.onMessage.addListener(onMessageReceived);
 browser.storage.onChanged.addListener(onSettingsChanged);
 
-if (DEBUG) { browser.runtime.sendMessage({ type: "log", log: "content script has started!" }); }
+if (DEBUG) { console.log("content script has started!"); }
 
 requestActivation();
 
@@ -34,7 +39,7 @@ function requestActivation()
 {
 	// ask the main script to activate this worker
 	browser.runtime.sendMessage({ type: "activationRequest" }).then(
-		msg => activate(msg.popupLocation, msg.popupPanelOpenBehaviour),	// main script passes a few settings needed for setup
+		msg => activate(msg.popupLocation, msg.popupOpenBehaviour),	// main script passes a few settings needed for setup
 		getErrorHandler("Error sending activation message from worker.")
 	);
 }
@@ -56,7 +61,9 @@ function onSettingsChanged(changes, area)
 		return;
 	}
 
-	if (DEBUG) { browser.runtime.sendMessage({ type: "log", log: "onSettingsChanged" }); }
+	if (DEBUG) { console.log("onSettingsChanged"); }
+	if (DEBUG) { console.log(changes); }
+	if (DEBUG) { console.log(area); }
 
 	deactivate();
 	requestActivation();
@@ -64,10 +71,10 @@ function onSettingsChanged(changes, area)
 
 function getErrorHandler(text)
 {
-	return error => browser.runtime.sendMessage({ type: "log", log: `${text} (${error})` });
+	return error => console.log(`${text} (${error})`);
 }
 
-function activate(popupLocation, popupPanelOpenBehaviour)
+function activate(popupLocation, popupOpenBehaviour)
 {
 	// register with events based on user settings
 
@@ -76,12 +83,12 @@ function activate(popupLocation, popupPanelOpenBehaviour)
 		document.addEventListener("mouseenter", onMouseUpdate);
 	}
 
-	if (popupPanelOpenBehaviour === consts.PopupOpenBehaviour_Auto) {
+	if (popupOpenBehaviour === consts.PopupOpenBehaviour_Auto) {
 		selectionchange.start();
 		document.addEventListener("customselectionchange", onSelectionChange);
 	}
 
-	if (DEBUG) { browser.runtime.sendMessage({ type: "log", log: "worker activated" }); }
+	if (DEBUG) { console.log("worker activated"); }
 }
 
 function deactivate()
@@ -105,7 +112,7 @@ function deactivate()
 	document.removeEventListener("customselectionchange", onSelectionChange);
 	selectionchange.stop();
 
-	if (DEBUG) { browser.runtime.sendMessage({ type: "log", log: "worker deactivated" }); }
+	if (DEBUG) { console.log("worker deactivated"); }
 }
 
 function onSelectionChange()
@@ -120,13 +127,15 @@ function onSelectionChange()
 				document.execCommand("copy");
 			}
 
-			if (DEBUG) { browser.runtime.sendMessage({ type: "log", log: "showing popup: " + popup }); }
+			let searchEngines = settings.searchEngines.filter(e => e.isEnabled);
+
+			if (DEBUG) { console.log("showing popup: " + popup); }
 
 			// if panel already exists, show, otherwise create (and show)
 			if (popup !== null) {
-				showPopup(settings, settings.searchEngines);
+				showPopup(settings, searchEngines);
 			} else {
-				createPopup(settings, settings.searchEngines);
+				createPopup(settings, searchEngines);
 			}
 		},
 		getErrorHandler("Error getting settings after onSelectionChange."));
@@ -174,28 +183,21 @@ function hidePopup()
 function createPopup(settings, searchEngines)
 {
 	// create popup parent (will contain all icons)
-	popup = document.createElement("swift-selection-search-engines");
-	popup.style.paddingTop = popup.style.paddingBottom = settings.popupPaddingY + "px";
-	popup.style.paddingLeft = popup.style.paddingRight = settings.popupPaddingX + "px";
+	popup = document.createElement("swift-selection-search-popup");
+	popup.id = "swift-selection-search-popup";
+	popup.style.padding = settings.popupPaddingY + "px " + settings.popupPaddingX + "px";
 
 	setPopupPositionAndSize(popup, searchEngines.length, settings);
-
-	switch (settings.itemHoverBehaviour) {
-		case consts.ItemHoverBehaviour_Nothing:          popup.className = "hover-nothing"; break;
-		case consts.ItemHoverBehaviour_Highlight:        popup.className = "hover-highlight-only"; break;
-		case consts.ItemHoverBehaviour_HighlightAndMove: popup.className = "hover-highlight-and-move"; break;
-		default: break;
-	}
 
 	// create all engine icons
 
 	let sssIconPaths = {
-		copyToClipboard: "data/icons/sss-icon-copy.svg",
-		openAsLink: "data/icons/sss-icon-open-link.svg",
+		copyToClipboard: "res/sss-engine-icons/copy.svg",
+		openAsLink: "res/sss-engine-icons/open-link.svg",
 	};
 
-	let padding = settings.itemPadding + "px";
-	let size = settings.itemSize + "px";
+	let paddingText = settings.popupItemPadding + "px";
+	let sizeText = settings.popupItemSize + "px";
 
 	for (let i = 0; i < searchEngines.length; i++)
 	{
@@ -205,9 +207,9 @@ function createPopup(settings, searchEngines)
 		if (engine.type === "sss") {
 			// icon paths should not be hardcoded here, but getting them from bg script is cumbersome
 			if (engine.id === "copyToClipboard") {
-				iconSrc = browser.extension.getURL("data/icons/sss-icon-copy.svg");
+				iconSrc = browser.extension.getURL("res/sss-engine-icons/copy.svg");
 			} else if (engine.id === "openAsLink") {
-				iconSrc = browser.extension.getURL("data/icons/sss-icon-open-link.svg");
+				iconSrc = browser.extension.getURL("res/sss-engine-icons/open-link.svg");
 			}
 		} else {
 			iconSrc = engine.iconSrc;
@@ -216,10 +218,10 @@ function createPopup(settings, searchEngines)
 		let icon = document.createElement("img");
 		icon.setAttribute("src", iconSrc);
 		icon.title = engine.name;
-		icon.style.height = size;
-		icon.style.width = size;
-		icon.style.paddingLeft = padding;
-		icon.style.paddingRight = padding;
+		icon.style.height = sizeText;
+		icon.style.width = sizeText;
+		icon.style.paddingLeft = paddingText;
+		icon.style.paddingRight = paddingText;
 
 		icon.addEventListener("mouseup", onSearchEngineClick(engine, settings));
 		icon.addEventListener("mousedown", function(e) {
@@ -241,27 +243,22 @@ function createPopup(settings, searchEngines)
 	document.documentElement.addEventListener("mousedown", hidePopup);	// hide popup from a press down anywhere...
 	popup.addEventListener("mousedown", e => e.stopPropagation());	// ...except on the popup itself
 
-	if (settings.hidePopupPanelOnPageScroll) {
+	if (settings.hidePopupOnPageScroll) {
 		window.addEventListener("scroll", hidePopup);
 	}
 }
 
 function setPopupPositionAndSize(popup, nEngines, settings)
 {
-	let itemHeight = settings.itemSize + 8;
-	let itemWidth = settings.itemSize + settings.itemPadding * 2;
-	if (DEBUG) { browser.runtime.sendMessage({ type: "log", log: "itemHeight: " + itemHeight }); }
-	if (DEBUG) { browser.runtime.sendMessage({ type: "log", log: "itemWidth: " + itemWidth }); }
+	let itemWidth = settings.popupItemSize + settings.popupItemPadding * 2;
+	let itemHeight = settings.popupItemSize + 8;
 
-	let nItemsPerRow = nEngines;
-	if (!settings.useSingleRow && settings.nItemsPerRow < nItemsPerRow) {
-		nItemsPerRow = settings.nItemsPerRow > 0 ? settings.nItemsPerRow : 1;
+	let nPopupIconsPerRow = nEngines;
+	if (!settings.useSingleRow && settings.nPopupIconsPerRow < nPopupIconsPerRow) {
+		nPopupIconsPerRow = settings.nPopupIconsPerRow > 0 ? settings.nPopupIconsPerRow : 1;
 	}
-	let height = itemHeight * Math.ceil(nEngines / nItemsPerRow) + settings.popupPaddingY * 2;
-	let width = itemWidth * nItemsPerRow + settings.popupPaddingX * 2;
-
-	if (DEBUG) { browser.runtime.sendMessage({ type: "log", log: "height: " + height }); }
-	if (DEBUG) { browser.runtime.sendMessage({ type: "log", log: "width: " + width }); }
+	let width = itemWidth * nPopupIconsPerRow;
+	let height = itemHeight * Math.ceil(nEngines / nPopupIconsPerRow);
 
 	let positionLeft;
 	let positionTop;
@@ -323,7 +320,7 @@ function onMouseUpdate(e)
 function onSearchEngineClick(engineObject, settings)
 {
 	return function(ev) {
-		if (settings.hidePopupPanelOnSearch) {
+		if (settings.hidePopupOnSearch) {
 			hidePopup();
 		}
 
@@ -353,84 +350,53 @@ function getPopupStyle(settings)
 	let css = document.createElement("style");
 	css.type = "text/css";
 	css.textContent =
-`swift-selection-search-engines,
-swift-selection-search-engines *,
-swift-selection-search-engines a:hover,
-swift-selection-search-engines a:visited,
-swift-selection-search-engines a:active {
-	background:none;
-	border:none;
-	border-radius:0;
-	bottom:auto;
-	box-sizing: content-box;
-	clear:none;
-	cursor:default;
-	display:inline;
-	float:none;
-	font-family:Arial, Helvetica, sans-serif;
-	font-size:medium;
-	font-style:normal;
-	font-weight:normal;
-	height:auto;
-	left:auto;
-	letter-spacing:normal;
-	line-height:normal;
-	max-height:none;
-	max-width:none;
-	min-height:0;
-	min-width:0;
-	overflow:visible;
-	position:static;
-	right:auto;
-	text-align:left;
-	text-decoration:none;
-	text-indent:0;
-	text-transform:none;
-	top:auto;
-	visibility:visible;
-	white-space:normal;
-	width:auto;
-	z-index:auto;
+`#swift-selection-search-popup,
+#swift-selection-search-popup > img {
+	all: initial;
 }
 
-swift-selection-search-engines {
+#swift-selection-search-popup {
 	position: absolute;
 	z-index: 2147483647;
-	padding: 2px;
-	margin: 0px;
 	text-align: center;
-	pointer-events: none;
 	overflow: hidden;
+	-moz-user-select: none;
+	user-select: none;
 	display: inline-block;
-	background-color: ${settings.popupPanelBackgroundColor};
+	background-color: ${settings.popupBackgroundColor};
 	box-shadow: 0px 0px 3px rgba(0,0,0,.5);
 	border-radius: 2px;
 }
 
-swift-selection-search-engines img {
+#swift-selection-search-popup > img {
 	padding: 4px 2px;
 	cursor: pointer;
-	vertical-align: top;
 	pointer-events: auto;
 }
-
-swift-selection-search-engines.hover-nothing img:hover {
-}
-
-swift-selection-search-engines.hover-highlight-only img:hover {
-	border-bottom: 2px ${settings.popupPanelHighlightColor} solid;
-	border-radius: 2px;
-	padding-bottom: 2px;
-}
-
-swift-selection-search-engines.hover-highlight-and-move img:hover {
-	border-bottom: 2px ${settings.popupPanelHighlightColor} solid;
-	border-radius: 2px;
-	padding-top: 1px;
-}
-${getPopupCssAnimation(settings.popupPanelAnimationDuration)}`;
+${getPopupHoverStyling(settings)}
+${getPopupCssAnimation(settings.popupAnimationDuration)}`;
 
 	return css;
+}
+
+function getPopupHoverStyling(settings)
+{
+	if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight) {
+		return(
+`#swift-selection-search-popup img:hover {
+	border-bottom: 2px ${settings.popupHighlightColor} solid;
+	border-radius: 2px;
+	padding-bottom: 2px;
+}`);
+	} else if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_HighlightAndMove) {
+		return(
+`#swift-selection-search-popup img:hover {
+	border-bottom: 2px ${settings.popupHighlightColor} solid;
+	border-radius: 2px;
+	padding-top: 1px;
+}`);
+	}
+	return "";
 }
 
 function getPopupCssAnimation(duration)
@@ -438,7 +404,7 @@ function getPopupCssAnimation(duration)
 	if (duration > 0) {
 		duration = duration / 1000.0;
 		return(
-`swift-selection-search-engines {
+`#swift-selection-search-popup {
 	animation: fadein ${duration}s;
 	animation: pop ${duration}s;
 }

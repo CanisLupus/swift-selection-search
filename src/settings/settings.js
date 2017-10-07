@@ -1,5 +1,7 @@
 "use strict";
 
+const DEBUG = true;
+
 let page = {};
 let mainScript = browser.extension.getBackgroundPage();
 let hasPageLoaded = false;
@@ -191,18 +193,18 @@ function onPageLoaded()
 		if (item.type === "color") {
 			return;
 		}
-		console.log("onFormChanged target: " + item.name + ", value: " + item.value);
+		if (DEBUG) { console.log("onFormChanged target: " + item.name + ", value: " + item.value); }
 
 		if (item.name === "selectSearchEnginesFileButton") {
 			let item = ev.target;
 			let file = item.files[0];
 			readMozlz4File(file, json => {
-				console.log(json);
+				if (DEBUG) { console.log(json); }
 				let browserSearchEngines = JSON.parse(json);
-				console.log(browserSearchEngines);
+				if (DEBUG) { console.log(browserSearchEngines); }
 				updateBrowserEnginesFromSearchJson(browserSearchEngines);
 				browser.storage.local.set({ searchEngines: settings.searchEngines });
-				console.log("saved!", settings);
+				if (DEBUG) { console.log("saved!", settings); }
 				updateUIWithSettings();
 			});
 		} else {
@@ -217,7 +219,7 @@ function onPageLoaded()
 				}
 				settings[item.name] = value;
 				browser.storage.local.set({ [item.name]: value });
-				console.log("saved!", settings);
+				if (DEBUG) { console.log("saved!", settings); }
 			}
 		}
 	};
@@ -225,10 +227,10 @@ function onPageLoaded()
 	page.visibleSelectSearchEnginesFileButton.onclick = ev => page.selectSearchEnginesFileButton.click();
 
 	// register events for specific behaviour when certain fields change
-	page.popupPanelBackgroundColorPicker.oninput = function(ev) { updateColorText  (page.popupPanelBackgroundColor,       page.popupPanelBackgroundColorPicker.value); };
-	page.popupPanelBackgroundColor.oninput       = function(ev) { updatePickerColor(page.popupPanelBackgroundColorPicker, page.popupPanelBackgroundColor.value);       };
-	page.popupPanelHighlightColorPicker.oninput  = function(ev) { updateColorText  (page.popupPanelHighlightColor,        page.popupPanelHighlightColorPicker.value);  };
-	page.popupPanelHighlightColor.oninput        = function(ev) { updatePickerColor(page.popupPanelHighlightColorPicker,  page.popupPanelHighlightColor.value);        };
+	page.popupBackgroundColorPicker.oninput = function(ev) { updateColorText  (page.popupBackgroundColor,       page.popupBackgroundColorPicker.value); };
+	page.popupBackgroundColor.oninput       = function(ev) { updatePickerColor(page.popupBackgroundColorPicker, page.popupBackgroundColor.value);       };
+	page.popupHighlightColorPicker.oninput  = function(ev) { updateColorText  (page.popupHighlightColor,        page.popupHighlightColorPicker.value);  };
+	page.popupHighlightColor.oninput        = function(ev) { updatePickerColor(page.popupHighlightColorPicker,  page.popupHighlightColor.value);        };
 
 	// register events for button clicks
 	page.addEngineButton.onclick = function(ev) {
@@ -243,7 +245,7 @@ function onPageLoaded()
 		settings.searchEngines.push(searchEngine);
 
 		browser.storage.local.set({ searchEngines: settings.searchEngines });
-		console.log("saved!", settings);
+		if (DEBUG) { console.log("saved!", settings); }
 		updateUIWithSettings();
 	};
 
@@ -254,7 +256,7 @@ function onPageLoaded()
 		settings.searchEngines = searchEngines;	// restore engines
 		updateUIWithSettings();
 		browser.storage.local.set(settings);
-		console.log("saved!", settings);
+		if (DEBUG) { console.log("saved!", settings); }
 	};
 
 	page.resetSearchEnginesButton.onclick = function(ev) {
@@ -263,7 +265,7 @@ function onPageLoaded()
 		settings.searchEngines = defaultEngines;
 		updateUIWithSettings();
 		browser.storage.local.set({ searchEngines: settings.searchEngines });
-		console.log("saved!", settings);
+		if (DEBUG) { console.log("saved!", settings); }
 	};
 
 	// finish and set elements based on settings, if they are already loaded
@@ -285,7 +287,7 @@ function onSettingsAcquired(_settings)
 
 function updateUIWithSettings()
 {
-	console.log("updateUIWithSettings", settings);
+	if (DEBUG) { console.log("updateUIWithSettings", settings); }
 
 	for (let item of page.inputs)
 	{
@@ -304,8 +306,8 @@ function updateUIWithSettings()
 		}
 	}
 
-	updatePickerColor(page.popupPanelBackgroundColorPicker, page.popupPanelBackgroundColor.value);
-	updatePickerColor(page.popupPanelHighlightColorPicker, page.popupPanelHighlightColor.value);
+	updatePickerColor(page.popupBackgroundColorPicker, page.popupBackgroundColor.value);
+	updatePickerColor(page.popupHighlightColorPicker, page.popupHighlightColor.value);
 
 	if (settings.searchEngines !== undefined)
 	{
@@ -321,10 +323,18 @@ function updateUIWithSettings()
 
 		Sortable.create(page.engines, {
 			handle: ".engine-dragger",
+			onStart: function (/**Event*/evt) {
+				if (DEBUG) { console.log("start drag", evt.oldIndex); }
+			},
+			onUpdate: function (evt/**Event*/){
+				var item = evt.item; // the current dragged HTMLElement
+				if (DEBUG) { console.log("onUpdate", item); }
+			},
 			onEnd: function (ev) {
+				if (DEBUG) { console.log("onEnd", settings); }
 				settings.searchEngines.splice(ev.newIndex, 0, settings.searchEngines.splice(ev.oldIndex, 1)[0]);
 				browser.storage.local.set({ searchEngines: settings.searchEngines });
-				console.log("saved!", settings);
+				if (DEBUG) { console.log("saved!", settings); }
 				updateUIWithSettings();
 			},
 		});
@@ -356,7 +366,7 @@ function addSearchEngine(engine, i)
 	isEnabledInput.onchange = function(ev) {
 		engine.isEnabled = isEnabledInput.checked;
 		browser.storage.local.set({ searchEngines: settings.searchEngines });
-		console.log("saved!", settings);
+		if (DEBUG) { console.log("saved!", settings); }
 	};
 	cell.appendChild(isEnabledInput);
 	row.appendChild(cell);
@@ -364,7 +374,18 @@ function addSearchEngine(engine, i)
 	cell = document.createElement("td");
 	cell.className = "engine-icon-img";
 	let icon = document.createElement("img");
-	icon.src = sssIcon ? browser.extension.getURL(sssIcon.iconPath) : engine.iconSrc;
+	if (sssIcon) {
+		icon.src = browser.extension.getURL(sssIcon.iconPath);
+	} else if (!engine.iconSrc && engine.iconUrl) {
+		getDataUriFromImgUrl(engine.iconUrl, function(base64Img) {
+			icon.src = base64Img;
+			engine.iconSrc = base64Img;
+			browser.storage.local.set({ searchEngines: settings.searchEngines });
+			if (DEBUG) { console.log("saved!", settings); }
+		});
+	} else {
+		icon.src = engine.iconSrc;
+	}
 	cell.appendChild(icon);
 	row.appendChild(cell);
 
@@ -378,7 +399,7 @@ function addSearchEngine(engine, i)
 		nameInput.onchange = function(ev) {
 			engine.name = nameInput.value;
 			browser.storage.local.set({ searchEngines: settings.searchEngines });
-			console.log("saved!", settings);
+			if (DEBUG) { console.log("saved!", settings); }
 		};
 		cell.appendChild(nameInput);
 		row.appendChild(cell);
@@ -391,7 +412,7 @@ function addSearchEngine(engine, i)
 		searchLinkInput.onchange = function(ev) {
 			engine.searchUrl = searchLinkInput.value;
 			browser.storage.local.set({ searchEngines: settings.searchEngines });
-			console.log("saved!", settings);
+			if (DEBUG) { console.log("saved!", settings); }
 		};
 		cell.appendChild(searchLinkInput);
 		row.appendChild(cell);
@@ -409,12 +430,12 @@ function addSearchEngine(engine, i)
 				icon.src = base64Img;
 				engine.iconSrc = base64Img;
 				browser.storage.local.set({ searchEngines: settings.searchEngines });
-				console.log("saved!", settings);
+				if (DEBUG) { console.log("saved!", settings); }
 			});
 		};
 		iconLinkInput.onchange = function(ev) {
 			browser.storage.local.set({ searchEngines: settings.searchEngines });
-			console.log("saved!", settings);
+			if (DEBUG) { console.log("saved!", settings); }
 		};
 		cell.appendChild(iconLinkInput);
 		row.appendChild(cell);
@@ -427,7 +448,7 @@ function addSearchEngine(engine, i)
 		deleteButton.onclick = function(ev) {
 			settings.searchEngines.splice(i, 1);	// remove element at i
 			browser.storage.local.set({ searchEngines: settings.searchEngines });
-			console.log("saved!", settings);
+			if (DEBUG) { console.log("saved!", settings); }
 			updateUIWithSettings();
 		};
 		cell.appendChild(deleteButton);
@@ -470,7 +491,7 @@ function updateColorText(text, value)
 	if (text.value !== value) {
 		text.value = value;
 		browser.storage.local.set({ [text.name]: value });
-		console.log("saved!", settings);
+		if (DEBUG) { console.log("saved!", settings); }
 	}
 }
 

@@ -32,34 +32,34 @@ const consts = {
 		copyToClipboard: {
 			name: "Copy to clipboard",
 			description: '[SSS] Adds a "Copy selection to clipboard" icon to the panel.',
-			iconPath: "data/icons/sss-icon-copy.svg",
+			iconPath: "res/sss-engine-icons/copy.svg",
 		},
 		openAsLink: {
 			name: "Open as link",
 			description: '[SSS] Adds an "Open selection as link" icon to the panel.',
-			iconPath: "data/icons/sss-icon-open-link.svg",
+			iconPath: "res/sss-engine-icons/open-link.svg",
 		}
 	}
 };
 
 const defaultSettings = {
-	popupPanelOpenBehaviour: consts.PopupOpenBehaviour_Auto,
+	popupOpenBehaviour: consts.PopupOpenBehaviour_Auto,
 	popupLocation: consts.PopupLocation_Cursor,
-	hidePopupPanelOnPageScroll: true,
-	hidePopupPanelOnSearch: true,
-	popupPanelHotkey: "accel-shift-space",
-	popupPanelDisableHotkey: "accel-shift-x",
+	hidePopupOnPageScroll: true,
+	hidePopupOnSearch: true,
+	popupOpenHotkey: "accel-shift-space",
+	popupDisableHotkey: "accel-shift-x",
 	mouseLeftButtonBehaviour: consts.MouseButtonBehaviour_ThisTab,
 	mouseMiddleButtonBehaviour: consts.MouseButtonBehaviour_NewBgTab,
-	popupPanelAnimationDuration: 200,
+	popupAnimationDuration: 200,
 	autoCopyToClipboard: consts.AutoCopyToClipboard_Off,
 	useSingleRow: true,
-	nItemsPerRow: 4,
-	itemSize: 24,
-	itemPadding: 2,
-	itemHoverBehaviour: consts.ItemHoverBehaviour_HighlightAndMove,
-	popupPanelBackgroundColor: "#FFFFFF",
-	popupPanelHighlightColor: "#3366FF",
+	nPopupIconsPerRow: 4,
+	popupItemSize: 24,
+	popupItemPadding: 2,
+	popupItemHoverBehaviour: consts.ItemHoverBehaviour_HighlightAndMove,
+	popupBackgroundColor: "#FFFFFF",
+	popupHighlightColor: "#3366FF",
 	popupPaddingX: 3,
 	popupPaddingY: 1,
 	popupOffsetX: 0,
@@ -72,15 +72,15 @@ const defaultSettings = {
 		{
 			type: "custom",
 			name: "Google",
-			iconUrl: "http://iconshow.me/media/images/social/simple-icons/png/32/google.png",
+			iconUrl: "https://www.google.com/favicon.ico",
 			iconSrc: "",
-			searchUrl: "https://www.google.pt/search?q={searchTerms}",
+			searchUrl: "https://www.google.com/search?q={searchTerms}",
 			isEnabled: true,
 		},
 		{
 			type: "custom",
 			name: "YouTube",
-			iconUrl: "https://www.youtube.com/yts/img/favicon_32-vfl8NGn4k.png",
+			iconUrl: "https://www.youtube.com/yts/img/favicon_144-vfliLAfaB.png",
 			iconSrc: "",
 			searchUrl: "https://www.youtube.com/results?search_query={searchTerms}",
 			isEnabled: true,
@@ -88,15 +88,15 @@ const defaultSettings = {
 		{
 			type: "custom",
 			name: "IMDB",
-			iconUrl: "https://cdn4.iconfinder.com/data/icons/Classy_Social_Media_Icons/32/imdb.png",
+			iconUrl: "https://www.imdb.com/favicon.ico",
 			iconSrc: "",
 			searchUrl: "http://www.imdb.com/find?s=all&q={searchTerms}",
 			isEnabled: true,
 		},
 		{
 			type: "custom",
-			name: "Wikipedia",
-			iconUrl: "http://findicons.com/files/icons/111/popular_sites/128/wikipedia_icon.png",
+			name: "Wikipedia (en)",
+			iconUrl: "https://www.wikipedia.org/favicon.ico",
 			iconSrc: "",
 			searchUrl: "https://en.wikipedia.org/wiki/Special:Search?search={searchTerms}",
 			isEnabled: true,
@@ -109,10 +109,20 @@ const defaultSettings = {
 		{
 			type: "sss",
 			id: "openAsLink",
-			isEnabled: false,
+			isEnabled: true,
 		}
 	]
 };
+
+// show message related to update to WebExtensions
+browser.runtime.onInstalled.addListener(function(details)
+{
+	if (details.reason == "install"
+	|| (details.reason == "update" && !details.previousVersion.startsWith("3.")))
+	{
+		browser.tabs.create({ url : "/res/msg-pages/update-to-webextensions.html" });
+	}
+});
 
 let isFirstLoad = true;
 let sss = {};
@@ -147,8 +157,6 @@ function onSettingsAcquired(settings)
 		console.log("loading ", settings);
 	}
 
-	// generateEngineObjects();
-
 	setup_ContextMenu();
 	setup_PopupHotkeys();
 	setup_Popup();
@@ -179,6 +187,8 @@ function onSettingsChanged(changes, area)
 	}
 
 	console.log("onSettingsChanged");
+	console.log(changes);
+	console.log(area);
 	browser.storage.local.get().then(onSettingsAcquired, getErrorHandler("Error getting settings after onSettingsChanged."));
 }
 
@@ -194,7 +204,7 @@ function onContentScriptMessage(msg, sender, sendResponse)
 	}
 
 	if (msg.type === "activationRequest") {
-		sendResponse({ popupLocation: sss.settings.popupLocation, popupPanelOpenBehaviour: sss.settings.popupPanelOpenBehaviour });
+		sendResponse({ popupLocation: sss.settings.popupLocation, popupOpenBehaviour: sss.settings.popupOpenBehaviour });
 	} else if (msg.type === "engineClick") {
 		onSearchEngineClick(msg.selection, msg.engine, msg.clickType);
 	} else if (msg.type === "log") {
@@ -253,7 +263,7 @@ function setup_PopupHotkeys()
 		browser.commands.onCommand.removeListener(onHotkey);
 	}
 
-	if (sss.settings.popupPanelOpenBehaviour !== consts.PopupOpenBehaviour_Off) {
+	if (sss.settings.popupOpenBehaviour !== consts.PopupOpenBehaviour_Off) {
 		browser.commands.onCommand.addListener(onHotkey);
 	}
 }
@@ -264,10 +274,10 @@ function onHotkey(command)
 		getCurrentTab(tab => browser.tabs.sendMessage(tab.id, { type: "showPopup" }));
 	} else if (command === "toggle-auto-popup") {
 		// toggles value between Auto and Keyboard
-		if (sss.settings.popupPanelOpenBehaviour === consts.PopupOpenBehaviour_Auto) {
-			sss.settings.popupPanelOpenBehaviour = consts.PopupOpenBehaviour_Keyboard;
-		} else if (sss.settings.popupPanelOpenBehaviour === consts.PopupOpenBehaviour_Keyboard) {
-			sss.settings.popupPanelOpenBehaviour = consts.PopupOpenBehaviour_Auto;
+		if (sss.settings.popupOpenBehaviour === consts.PopupOpenBehaviour_Auto) {
+			sss.settings.popupOpenBehaviour = consts.PopupOpenBehaviour_Keyboard;
+		} else if (sss.settings.popupOpenBehaviour === consts.PopupOpenBehaviour_Keyboard) {
+			sss.settings.popupOpenBehaviour = consts.PopupOpenBehaviour_Auto;
 		}
 	}
 }
@@ -281,7 +291,7 @@ function setup_Popup()
 	browser.tabs.onActivated.removeListener(onTabActivated);
 	browser.tabs.onUpdated.removeListener(onTabUpdated);
 
-	if (sss.settings.popupPanelOpenBehaviour !== consts.PopupOpenBehaviour_Off) {
+	if (sss.settings.popupOpenBehaviour !== consts.PopupOpenBehaviour_Off) {
 		browser.tabs.onActivated.addListener(onTabActivated);
 		browser.tabs.onUpdated.addListener(onTabUpdated);
 	}
@@ -330,7 +340,7 @@ function onSearchEngineClick(searchText, engineObject, clickType)
 			} else if (clickType === "middleClick") {
 				openUrl(searchText, sss.settings.mouseMiddleButtonBehaviour);
 			} else if (clickType === "ctrlClick") {
-				openUrl(searchText, "2");
+				openUrl(searchText, consts.MouseButtonBehaviour_NewBgTab);
 			}
 		}
 	} else {
@@ -355,11 +365,11 @@ function openUrl(urlToOpen, openingBehaviour)
 {
 	switch (openingBehaviour)
 	{
-		case "0": browser.tabs.update({ url: urlToOpen }); break;
-		case "1": browser.tabs.create({ url: urlToOpen }); break;
-		case "2": browser.tabs.create({ url: urlToOpen, active: false }); break;
-		case "3": getCurrentTab(tab => browser.tabs.create({ url: urlToOpen, index: tab.index+1 })); break;
-		case "4": getCurrentTab(tab => browser.tabs.create({ url: urlToOpen, index: tab.index+1, active: false })); break;
+		case consts.MouseButtonBehaviour_ThisTab:            browser.tabs.update({ url: urlToOpen }); break;
+		case consts.MouseButtonBehaviour_NewTab:             browser.tabs.create({ url: urlToOpen }); break;
+		case consts.MouseButtonBehaviour_NewBgTab:           browser.tabs.create({ url: urlToOpen, active: false }); break;
+		case consts.MouseButtonBehaviour_NewTabNextToThis:   getCurrentTab(tab => browser.tabs.create({ url: urlToOpen, index: tab.index+1 })); break;
+		case consts.MouseButtonBehaviour_NewBgTabNextToThis: getCurrentTab(tab => browser.tabs.create({ url: urlToOpen, index: tab.index+1, active: false })); break;
 	}
 }
 
