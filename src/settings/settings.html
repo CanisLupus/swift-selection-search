@@ -28,11 +28,16 @@
 	}
 	input:hover,
 	select:hover {
-		border: 1px solid #3366FF;
+		border: 1px solid #3399FF;
 	}
 	.section-name {
-		padding: 20px 0px 10px 6px;
-		font-weight: 600;
+		padding: 50px 0px 10px 6px;
+		font-size: 130%;
+		color: #222222;
+		border-bottom: 1px #bbb solid;
+	}
+	.section-name:first-child {
+		padding: 0 0 10px 6px;
 	}
 	#engines-table * {
 		font-size: 0.8rem;
@@ -69,7 +74,7 @@
 	}
 	.setting {
 		display: flex;
-		border-top: 1px #bbb solid;
+		border-bottom: 1px #bbb solid;
 		padding: 2px 0px 5px 6px;
 	}
 	.setting:hover {
@@ -215,8 +220,8 @@
 	<div class="setting disabled">
 		<div class="setting-name">Shortcut to open popup</div>
 		<div class="setting-value">
-			Ctrl+Shift+Space (Windows)<br>
-			Cmd+Shift+Space (Mac OS)
+			Ctrl+Shift+Space (Windows, Linux)<br>
+			Cmd+Shift+Space (macOS)
 			<!-- <input type="text" name="popupOpenHotkey" value="accel-shift-space"> -->
 		</div>
 		<div class="setting-description">
@@ -233,12 +238,12 @@
 		<div class="setting-name">Shortcut to toggle auto popup opening</div>
 		<div class="setting-value">
 			<!-- <input type="text" name="popupDisableHotkey" value="accel-shift-x"> -->
-			Ctrl+Shift+X (Windows)<br>
-			Cmd+Shift+X (Mac OS)
+			Ctrl+Shift+X (Windows, Linux)<br>
+			Cmd+Shift+X (macOS)
 		</div>
 		<div class="setting-description">
 			[NOTE: Currently not configurable in WebExtensions.]
-			<br>Toggles "Popup opening behaviour" between Auto and Keyboard-only modes (if not already Off).
+			<br>Toggles "Opening behaviour" setting between Auto and Keyboard-only modes (if not Off).
 			<!-- <details>
 				<summary>[Press for details]</summary>
 				Use this when the popup is getting in the way of your browsing or text writing.<br>(default: accel-shift-x)
@@ -320,7 +325,7 @@
 	</div>
 
 	<div class="setting">
-		<div class="setting-name">Icon padding</div>
+		<div class="setting-name">Icon horizontal padding</div>
 		<div class="setting-value">
 			<input type="number" name="popupItemPadding" value="2">
 		</div>
@@ -351,10 +356,10 @@
 	<div class="setting">
 		<div class="setting-name">Popup highlight color</div>
 		<div class="setting-value">
-			<input type="color" name="popupHighlightColorPicker" value="#3366FF">
-			<input type="text" name="popupHighlightColor" value="#3366FF">
+			<input type="color" name="popupHighlightColorPicker" value="#3399FF">
+			<input type="text" name="popupHighlightColor" value="#3399FF">
 		</div>
-		<div class="setting-description">Color for the popup panel highlight. Supports transparency using #rrggbbaa.<br>(default: blue, #3366FF)</div>
+		<div class="setting-description">Color for the popup panel highlight. Supports transparency using #rrggbbaa.<br>(default: blue, #3399FF)</div>
 	</div>
 
 	<div class="setting">

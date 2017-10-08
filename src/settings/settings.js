@@ -162,14 +162,40 @@ function getDataUriFromImgUrl(url, callback)
 	var img = new Image();
 	img.crossOrigin = 'Anonymous';
 	img.onload = function() {
-		let canvas = document.createElement('canvas');
-		canvas.height = this.height;
-		canvas.width = this.width;
+		const maxSize = 48;
+		let width;
+		let height;
+		let xPos = 0;
+		let yPos = 0;
 
+		// scale image to smaller icon if needed
+		// (we don't want stored SSS icons to take a lot of space)
+		if (this.width > this.height) {
+			width = Math.min(maxSize, this.width);
+			height = width * this.height / this.width;
+			yPos = (width - height) / 2;
+		} else if (this.height > this.width) {
+			height = Math.min(maxSize, this.height);
+			width = height * this.width / this.height;
+			xPos = (height - width) / 2;
+		} else {
+			width = Math.min(maxSize, this.width);
+			height = width;
+		}
+
+		if (DEBUG) { console.log(this.width + "x" + this.height); }
+		if (DEBUG) { console.log(width + "x" + height); }
+
+		// canvas is always a square (using larger dimension)
+		let canvas = document.createElement('canvas');
+		canvas.width = canvas.height = Math.max(width, height);
+
+		// draw image with size and position defined above
 		let ctx = canvas.getContext('2d');
-		ctx.drawImage(this, 0, 0);
+		ctx.drawImage(this, xPos, yPos, width, height);
 
 		let dataURL = canvas.toDataURL();
+		if (DEBUG) { console.log(dataURL.length); }
 		callback(dataURL);
 		canvas = null;
 	};

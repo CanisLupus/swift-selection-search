@@ -59,7 +59,7 @@ const defaultSettings = {
 	popupItemPadding: 2,
 	popupItemHoverBehaviour: consts.ItemHoverBehaviour_HighlightAndMove,
 	popupBackgroundColor: "#FFFFFF",
-	popupHighlightColor: "#3366FF",
+	popupHighlightColor: "#3399FF",
 	popupPaddingX: 3,
 	popupPaddingY: 1,
 	popupOffsetX: 0,
@@ -320,7 +320,7 @@ function injectPageWorker(tabId)
 			console.log("injectPageWorker "+ tabId);
 
 			browser.tabs.executeScript(tabId, { file: "/content-scripts/selectionchange.js" }).then(
-			result => browser.tabs.executeScript(tabId, { file: "/content-scripts/selection-worker.js" }).then(
+			result => browser.tabs.executeScript(tabId, { file: "/content-scripts/page-script.js" }).then(
 				null,
 				getErrorHandler("Error executing page worker script.")
 			),
