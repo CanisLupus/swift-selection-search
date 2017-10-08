@@ -80,14 +80,16 @@ function readMozlz4File(file, onRead, onError)
 
 	reader.onload = function() {
 		let input = new Uint8Array(reader.result);
-		let output = new Uint8Array(input.length*3);	// size estimate for uncompressed data!
+		let output;
+		let uncompressedSize = input.length*3;	// size estimate for uncompressed data!
 
-		let uncompressedSize = decodeLz4Block(input, output, 8+4);	// skip 8 byte magic number + 4 byte data size field
-		// if we there's more data than our estimate, create a bigger output array and retry
-		if (uncompressedSize > output.length) {
+		// Decode whole file.
+		do {
 			output = new Uint8Array(uncompressedSize);
-			decodeLz4Block(input, output, 8+4);
-		}
+			uncompressedSize = decodeLz4Block(input, output, 8+4);	// skip 8 byte magic number + 4 byte data size field
+			// if there's more data than our output estimate, create a bigger output array and retry (at most one retry)
+		} while (uncompressedSize > output.length);
+
 		output = output.slice(0, uncompressedSize);	// remove excess bytes
 
 		let decodedText = new TextDecoder().decode(output);
@@ -98,7 +100,7 @@ function readMozlz4File(file, onRead, onError)
 		reader.onerror = onError;
 	}
 
-	reader.readAsArrayBuffer(file);
+	reader.readAsArrayBuffer(file);	// read as bytes
 };
 
 function updateBrowserEnginesFromSearchJson(browserSearchEngines)
@@ -196,6 +198,8 @@ function getDataUriFromImgUrl(url, callback)
 
 		let dataURL = canvas.toDataURL();
 		if (DEBUG) { console.log(dataURL.length); }
+		if (DEBUG) { console.log(url); }
+		if (DEBUG) { console.log(dataURL); }
 		callback(dataURL);
 		canvas = null;
 	};
@@ -258,16 +262,11 @@ function onPageLoaded()
 	page.popupHighlightColorPicker.oninput  = function(ev) { updateColorText  (page.popupHighlightColor,        page.popupHighlightColorPicker.value);  };
 	page.popupHighlightColor.oninput        = function(ev) { updatePickerColor(page.popupHighlightColorPicker,  page.popupHighlightColor.value);        };
 
+	let defaultSettings = mainScript.getDefaultSettings();
+
 	// register events for button clicks
 	page.addEngineButton.onclick = function(ev) {
-		let searchEngine = {
-			type: "custom",
-			name: "Google",
-			iconUrl: "http://iconshow.me/media/images/social/simple-icons/png/32/google.png",
-			iconSrc: "",
-			searchUrl: "https://www.google.pt/search?q={searchTerms}",
-			isEnabled: true,
-		};
+		let searchEngine = JSON.parse(JSON.stringify(defaultSettings.searchEngines[0]));
 		settings.searchEngines.push(searchEngine);
 
 		browser.storage.local.set({ searchEngines: settings.searchEngines });
@@ -278,7 +277,7 @@ function onPageLoaded()
 	page.resetSettingsButton.onclick = function(ev) {
 		ev.preventDefault();
 		let searchEngines = settings.searchEngines;	// save engines
-		settings = JSON.parse(JSON.stringify(mainScript.getDefaultSettings()));	// copy default settings
+		settings = JSON.parse(JSON.stringify(defaultSettings));	// copy default settings
 		settings.searchEngines = searchEngines;	// restore engines
 		updateUIWithSettings();
 		browser.storage.local.set(settings);
@@ -287,7 +286,7 @@ function onPageLoaded()
 
 	page.resetSearchEnginesButton.onclick = function(ev) {
 		ev.preventDefault();
-		let defaultEngines = JSON.parse(JSON.stringify(mainScript.getDefaultSettings().searchEngines));
+		let defaultEngines = JSON.parse(JSON.stringify(defaultSettings.searchEngines));
 		settings.searchEngines = defaultEngines;
 		updateUIWithSettings();
 		browser.storage.local.set({ searchEngines: settings.searchEngines });

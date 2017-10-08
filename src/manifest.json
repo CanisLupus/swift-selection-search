@@ -23,6 +23,7 @@
 
 	"options_ui": {
 		"browser_style": true,
+		// "open_in_tab": true,
 		"page": "settings/settings.html"
 	},
 
@@ -43,5 +44,5 @@
 		}
 	},
 
-	"web_accessible_resources": ["res/sss-engine-icons/*"]
+	"web_accessible_resources": ["res/sss-engine-icons/*", "search-plugins/*"]
 }
