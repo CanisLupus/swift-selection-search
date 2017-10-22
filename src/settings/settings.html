@@ -173,7 +173,7 @@
 		<div class="setting-value">
 			<input type="button" name="openEngineManager" value="Manage">
 		</div>
-		<div class="setting-description">Opens Firefox's search engines manager. To select which engines are shown in the popup panel, use the "Select from available search engines" button below.</div>
+		<div class="setting-description">Opens Firefox's search engines manager. To select which engines are shown in the popup, use the "Select from available search engines" button below.</div>
 	</div> -->
 
 	<div class="section-name">Behaviour</div>
@@ -187,7 +187,7 @@
 				<option value="keyboard">Keyboard-only (press the keyboard shortcut when text is selected)</option>
 			</select>
 		</div>
-		<div class="setting-description">When to open the popup panel.<br>(default: Auto)</div>
+		<div class="setting-description">When to open the popup.<br>(default: Auto)</div>
 	</div>
 
 	<div class="setting">
@@ -206,7 +206,7 @@
 		<div class="setting-value">
 			<input type="checkbox" name="hidePopupOnPageScroll" autocomplete="off">
 		</div>
-		<div class="setting-description">Hides the popup panel when the page moves.<br>(default: On)</div>
+		<div class="setting-description">Hides the popup when the page moves.<br>(default: On)</div>
 	</div>
 
 	<div class="setting">
@@ -214,7 +214,7 @@
 		<div class="setting-value">
 			<input type="checkbox" name="hidePopupOnSearch" autocomplete="off" checked>
 		</div>
-		<div class="setting-description">Hides the popup panel when a search engine is clicked.<br>(default: On)</div>
+		<div class="setting-description">Hides the popup when a search engine is clicked.<br>(default: On)</div>
 	</div>
 
 	<div class="setting disabled">
@@ -226,7 +226,7 @@
 		</div>
 		<div class="setting-description">
 			[NOTE: Currently not configurable in WebExtensions.]
-			<br>Opens the popup panel if you have text selected.
+			<br>Opens the popup if you have text selected.
 			<!-- <details>
 				<summary>[Press for details]</summary>
 				Use at least one: shift, control, alt, meta (Mac Command), accel (Control on Windows/Linux, Command on Mac). Clear the box to disable the hotkey.<br>(default: accel-shift-space, which is Ctrl/Cmd+Shift+Spacebar)
@@ -237,16 +237,16 @@
 	<div class="setting disabled">
 		<div class="setting-name">Shortcut to toggle auto popup opening</div>
 		<div class="setting-value">
-			<!-- <input type="text" name="popupDisableHotkey" value="accel-shift-x"> -->
-			Ctrl+Shift+X (Windows, Linux)<br>
-			Cmd+Shift+X (macOS)
+			<!-- <input type="text" name="popupDisableHotkey" value="accel-shift-u"> -->
+			Ctrl+Shift+U (Windows, Linux)<br>
+			Cmd+Shift+U (macOS)
 		</div>
 		<div class="setting-description">
 			[NOTE: Currently not configurable in WebExtensions.]
-			<br>Toggles "Opening behaviour" setting between Auto and Keyboard-only modes (if not Off).
+			<br>Toggles "Opening behaviour" setting between Auto and Keyboard-only modes (if not Off). Use this when the popup is getting in the way of your browsing or text writing.
 			<!-- <details>
 				<summary>[Press for details]</summary>
-				Use this when the popup is getting in the way of your browsing or text writing.<br>(default: accel-shift-x)
+				<br>(default: accel-shift-u)
 			</details> -->
 		</div>
 	</div>
@@ -284,7 +284,7 @@
 		<div class="setting-value">
 			<input type="number" name="popupAnimationDuration" min="0" value="200">
 		</div>
-		<div class="setting-description">Duration of panel animation, in milliseconds. 0 ms makes panel show instantly.<br>(default: 200)</div>
+		<div class="setting-description">Duration of popup animation, in milliseconds. 0 ms makes popup show instantly.<br>(default: 200)</div>
 	</div>
 
 	<div class="setting">
@@ -295,7 +295,7 @@
 				<option value="always">Always</option>
 			</select>
 		</div>
-		<div class="setting-description">Automatically copy selected text to clipboard when popup panel opens.<br>(default: Off)</div>
+		<div class="setting-description">Automatically copy selected text to clipboard when popup opens.<br>(default: Off)</div>
 	</div>
 
 	<div class="section-name">Appearance</div>
@@ -350,7 +350,7 @@
 			<input type="color" name="popupBackgroundColorPicker" value="#FFFFFF">
 			<input type="text" name="popupBackgroundColor" value="#FFFFFF">
 		</div>
-		<div class="setting-description">Color for the popup panel background. Supports transparency using #rrggbbaa.<br>(default: white, #FFFFFF)</div>
+		<div class="setting-description">Color for the popup background. Supports transparency using #rrggbbaa.<br>(default: white, #FFFFFF)</div>
 	</div>
 
 	<div class="setting">
@@ -359,7 +359,7 @@
 			<input type="color" name="popupHighlightColorPicker" value="#3399FF">
 			<input type="text" name="popupHighlightColor" value="#3399FF">
 		</div>
-		<div class="setting-description">Color for the popup panel highlight. Supports transparency using #rrggbbaa.<br>(default: blue, #3399FF)</div>
+		<div class="setting-description">Color for the popup highlight. Supports transparency using #rrggbbaa.<br>(default: blue, #3399FF)</div>
 	</div>
 
 	<div class="setting">
@@ -367,7 +367,7 @@
 		<div class="setting-value">
 			<input type="number" name="popupPaddingX" min="0" value="3">
 		</div>
-		<div class="setting-description">Popup panel left/right padding, in pixels.<br>(default: 3)</div>
+		<div class="setting-description">Popup left/right padding, in pixels.<br>(default: 3)</div>
 	</div>
 
 	<div class="setting">
@@ -375,7 +375,7 @@
 		<div class="setting-value">
 			<input type="number" name="popupPaddingY" min="0" value="1">
 		</div>
-		<div class="setting-description">Popup panel top/bottom padding, in pixels.<br>(default: 1)</div>
+		<div class="setting-description">Popup top/bottom padding, in pixels.<br>(default: 1)</div>
 	</div>
 
 	<div class="setting">
@@ -383,7 +383,7 @@
 		<div class="setting-value">
 			<input type="number" name="popupOffsetX" value="0">
 		</div>
-		<div class="setting-description">Popup panel horizontal offset in pixels (positive values move right).<br>(default: 0)</div>
+		<div class="setting-description">Popup horizontal offset in pixels (positive values move right).<br>(default: 0)</div>
 	</div>
 
 	<div class="setting">
@@ -391,7 +391,7 @@
 		<div class="setting-value">
 			<input type="number" name="popupOffsetY" value="0">
 		</div>
-		<div class="setting-description">Popup panel vertical offset in pixels (positive values move up).<br>(default: 0)</div>
+		<div class="setting-description">Popup vertical offset in pixels (positive values move up).<br>(default: 0)</div>
 	</div>
 
 	<div class="section-name">Context menu</div>
@@ -423,7 +423,7 @@
 		<div class="setting-value">
 			<select name="contextMenuEnginesFilter">
 				<option value="all">All</option>
-				<option value="same-as-popup">Same as popup panel</option>
+				<option value="same-as-popup">Same as popup</option>
 			</select>
 		</div>
 		<div class="setting-description">What engines to show on the context menu.<br>(default: All)</div>

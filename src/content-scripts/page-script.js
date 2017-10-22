@@ -128,7 +128,7 @@ function onSelectionChange()
 
 			if (DEBUG) { log("showing popup: " + popup); }
 
-			// if panel already exists, show, otherwise create (and show)
+			// if popup already exists, show, otherwise create (and show)
 			if (popup !== null) {
 				showPopup(settings, searchEngines);
 			} else {

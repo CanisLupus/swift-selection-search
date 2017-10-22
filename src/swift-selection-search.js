@@ -31,17 +31,17 @@ const consts = {
 	ItemHoverBehaviour_HighlightAndMove: "highlight-and-move",
 
 	ContextMenuEnginesFilter_All: "all",
-	ContextMenuEnginesFilter_SameAsPopupPanel: "same-as-popup",
+	ContextMenuEnginesFilter_SameAsPopup: "same-as-popup",
 
 	sssIcons: {
 		copyToClipboard: {
 			name: "Copy to clipboard",
-			description: '[SSS] Adds a "Copy selection to clipboard" icon to the panel.',
+			description: '[SSS] Adds a "Copy selection to clipboard" icon to the popup.',
 			iconPath: "res/sss-engine-icons/copy.svg",
 		},
 		openAsLink: {
 			name: "Open as link",
-			description: '[SSS] Adds an "Open selection as link" icon to the panel.',
+			description: '[SSS] Adds an "Open selection as link" icon to the popup.',
 			iconPath: "res/sss-engine-icons/open-link.svg",
 		}
 	}
@@ -238,7 +238,7 @@ function setup_ContextMenu()
 
 	let engines = sss.settings.searchEngines.filter(engine => engine.type !== "sss");
 
-	if (sss.settings.contextMenuEnginesFilter === consts.ContextMenuEnginesFilter_SameAsPopupPanel) {
+	if (sss.settings.contextMenuEnginesFilter === consts.ContextMenuEnginesFilter_SameAsPopup) {
 		engines = engines.filter(engine => engine.isEnabled);
 	}
 
@@ -285,14 +285,13 @@ function onHotkey(command)
 		if (DEBUG) { log("open-popup"); }
 		getCurrentTab(tab => browser.tabs.sendMessage(tab.id, { type: "showPopup" }));
 	} else if (command === "toggle-auto-popup") {
-		if (DEBUG) { log("toggle-auto-popup"); }
-		// if (DEBUG) { log("sss.settings.popupOpenBehaviour: " + sss.settings.popupOpenBehaviour); }
-		// // toggles value between Auto and Keyboard
-		// if (sss.settings.popupOpenBehaviour === consts.PopupOpenBehaviour_Auto) {
-		// 	browser.storage.local.set({ popupOpenBehaviour: consts.PopupOpenBehaviour_Keyboard });
-		// } else if (sss.settings.popupOpenBehaviour === consts.PopupOpenBehaviour_Keyboard) {
-		// 	browser.storage.local.set({ popupOpenBehaviour: consts.PopupOpenBehaviour_Auto });
-		// }
+		if (DEBUG) { log("toggle-auto-popup, sss.settings.popupOpenBehaviour: " + sss.settings.popupOpenBehaviour); }
+		// toggles value between Auto and Keyboard
+		if (sss.settings.popupOpenBehaviour === consts.PopupOpenBehaviour_Auto) {
+			browser.storage.local.set({ popupOpenBehaviour: consts.PopupOpenBehaviour_Keyboard });
+		} else if (sss.settings.popupOpenBehaviour === consts.PopupOpenBehaviour_Keyboard) {
+			browser.storage.local.set({ popupOpenBehaviour: consts.PopupOpenBehaviour_Auto });
+		}
 	}
 }
 

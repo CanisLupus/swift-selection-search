@@ -31,15 +31,11 @@
 
 	"commands": {
 		"open-popup": {
-			"suggested_key": {
-				"default": "Ctrl+Shift+Space"
-			},
+			"suggested_key": { "default": "Ctrl+Shift+Space" },
 			"description": "Key combination to open popup"
 		},
 		"toggle-auto-popup": {
-			"suggested_key": {
-				"default": "Ctrl+Shift+X"
-			},
+			"suggested_key": { "default": "Ctrl+Shift+U" },
 			"description": "Key combination to toggle auto popup opening"
 		}
 	},
