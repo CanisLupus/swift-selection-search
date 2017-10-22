@@ -16,11 +16,9 @@ https://addons.mozilla.org/firefox/addon/swift-selection-search/
 
 #### How to build
 
-1. Install Node.js from https://nodejs.org/.
-2. Node comes with a package manager, npm. Run this on the command line:
+Please follow the instructions here:
+https://developer.mozilla.org/Add-ons/WebExtensions/Getting_started_with_web-ext
 
-	npm install jpm --global
+They explain how to build and run any WebExtension on Firefox.
 
-	(For more details, see https://developer.mozilla.org/Add-ons/SDK/Tools/jpm#Installation)
-
-3. Now you have jpm, the tool for developing Firefox Add-ons. Open the "src" folder in a command line and either use "jpm run" to test the add-on in a sandbox or "jpm xpi" to generate a file that you can drag to Firefox to install.
+You can also try the about:debugging#addons page in Firefox if you just want to test it out. Press the "Load Temporary Add-on" button, select a file in the Swift Selection Search "src" directory (for example manifest.json), and it will load the add-on.
