@@ -200,20 +200,20 @@ function createPopup(settings, searchEngines)
 	{
 		let engine = searchEngines[i];
 
-		let iconSrc;
+		let iconImgSource;
 		if (engine.type === "sss") {
 			// icon paths should not be hardcoded here, but getting them from bg script is cumbersome
 			if (engine.id === "copyToClipboard") {
-				iconSrc = browser.extension.getURL("res/sss-engine-icons/copy.svg");
+				iconImgSource = browser.extension.getURL("res/sss-engine-icons/copy.svg");
 			} else if (engine.id === "openAsLink") {
-				iconSrc = browser.extension.getURL("res/sss-engine-icons/open-link.svg");
+				iconImgSource = browser.extension.getURL("res/sss-engine-icons/open-link.svg");
 			}
 		} else {
-			iconSrc = engine.iconSrc;
+			iconImgSource = engine.iconSrc;
 		}
 
 		let icon = document.createElement("img");
-		icon.setAttribute("src", iconSrc);
+		icon.setAttribute("src", iconImgSource);
 		icon.title = engine.name;
 		icon.style.height = sizeText;
 		icon.style.width = sizeText;

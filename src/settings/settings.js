@@ -376,6 +376,8 @@ function addSearchEngine(engine, i)
 
 	let cell;
 
+	// dragger element
+
 	// uncomment this when drag works again in add-on pages (also remove up/down buttons)
 	// cell = document.createElement("td");
 	// cell.className = "engine-dragger";
@@ -383,6 +385,8 @@ function addSearchEngine(engine, i)
 	// div.textContent = "☰";
 	// cell.appendChild(div);
 	// row.appendChild(cell);
+
+	// move up button
 
 	cell = document.createElement("td");
 	cell.className = "engine-move-up";
@@ -408,6 +412,8 @@ function addSearchEngine(engine, i)
 	cell.appendChild(moveUpButton);
 	row.appendChild(cell);
 
+	// move down button
+
 	cell = document.createElement("td");
 	cell.className = "engine-move-down";
 	let moveDownButton = document.createElement("input");
@@ -432,6 +438,8 @@ function addSearchEngine(engine, i)
 	cell.appendChild(moveDownButton);
 	row.appendChild(cell);
 
+	// "is enabled" checkbox
+
 	cell = document.createElement("td");
 	cell.className = "engine-is-enabled";
 	let isEnabledInput = document.createElement("input");
@@ -446,6 +454,8 @@ function addSearchEngine(engine, i)
 	cell.style.paddingLeft = "6px";	// remove this when drag works again in add-on pages
 	cell.appendChild(isEnabledInput);
 	row.appendChild(cell);
+
+	// icon
 
 	cell = document.createElement("td");
 	cell.className = "engine-icon-img";
@@ -476,6 +486,8 @@ function addSearchEngine(engine, i)
 
 	if (engine.type === "custom")
 	{
+		// name
+
 		cell = document.createElement("td");
 		cell.className = "engine-name";
 		let nameInput = document.createElement("input");
@@ -489,6 +501,8 @@ function addSearchEngine(engine, i)
 		cell.appendChild(nameInput);
 		row.appendChild(cell);
 
+		// search link
+
 		cell = document.createElement("td");
 		cell.className = "engine-search-link";
 		let searchLinkInput = document.createElement("input");
@@ -501,6 +515,8 @@ function addSearchEngine(engine, i)
 		};
 		cell.appendChild(searchLinkInput);
 		row.appendChild(cell);
+
+		// icon link
 
 		cell = document.createElement("td");
 		cell.className = "engine-icon-link";
@@ -525,6 +541,8 @@ function addSearchEngine(engine, i)
 		cell.appendChild(iconLinkInput);
 		row.appendChild(cell);
 
+		// delete button
+
 		cell = document.createElement("td");
 		cell.className = "engine-delete";
 		let deleteButton = document.createElement("input");
@@ -541,10 +559,14 @@ function addSearchEngine(engine, i)
 	}
 	else if (engine.type === "browser")
 	{
+		// name
+
 		cell = document.createElement("td");
 		cell.className = "engine-native";
 		cell.textContent = engine.name;
 		row.appendChild(cell);
+
+		// search url
 
 		cell = document.createElement("td");
 		cell.className = "engine-native";
@@ -556,10 +578,14 @@ function addSearchEngine(engine, i)
 	{
 		let sssIcon = mainScript.getSssIcon(engine.id);
 
+		// name
+
 		cell = document.createElement("td");
 		cell.className = "engine-native";
 		cell.textContent = sssIcon.name;
 		row.appendChild(cell);
+
+		// description
 
 		cell = document.createElement("td");
 		cell.className = "engine-native";
