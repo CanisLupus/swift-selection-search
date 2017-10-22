@@ -148,7 +148,7 @@ function updateBrowserEnginesFromSearchJson(browserSearchEngines)
 
 		let isEnabled = wasPreviouslyEnabled[engine._loadPath];
 		isEnabled = isEnabled !== undefined ? isEnabled : true;	// if engine didn't exist, assume we want it enabled
-
+		log(engine._iconURL.length());
 		let sssBrowserEngine = {
 			type: "browser",
 			name: engine._name,
@@ -188,8 +188,7 @@ function getDataUriFromImgUrl(url, callback)
 			height = width;
 		}
 
-		if (DEBUG) { log(this.width + "x" + this.height); }
-		if (DEBUG) { log(width + "x" + height); }
+		if (DEBUG) { log(this.width + "x" + this.height + " became " + width + "x" + height); }
 
 		// canvas is always a square (using larger dimension)
 		let canvas = document.createElement('canvas');
@@ -462,24 +461,27 @@ function addSearchEngine(engine, i)
 	let icon = document.createElement("img");
 	if (engine.type === "sss") {
 		icon.src = browser.extension.getURL(mainScript.getSssIcon(engine.id).iconPath);
-	// NOTE: doesn't work! can't access resource:// links
-	// } else if (engine.type === "browser" && engine.iconSrc.startsWith("resource://")) {
-	// 	if (DEBUG) { log(engine.iconSrc); }
-	// 	getDataUriFromImgUrl(engine.iconSrc, function(base64Img) {
-	// 		icon.src = base64Img;
-	// 		engine.iconSrc = base64Img;
-	// 		browser.storage.local.set({ searchEngines: settings.searchEngines });
-	// 		if (DEBUG) { log("saved!", settings); }
-	// 	});
-	} else if (!engine.iconSrc && engine.iconUrl) {
+	} else if (engine.type === "browser") {
+		icon.src = engine.iconSrc;
+		// NOTE: doesn't work! can't access resource:// links
+		// if (engine.iconSrc.startsWith("resource://")) {
+		// 	if (DEBUG) { log(engine.iconSrc); }
+		// 	getDataUriFromImgUrl(engine.iconSrc, function(base64Img) {
+		// 		icon.src = base64Img;
+		// 		engine.iconSrc = base64Img;
+		// 		browser.storage.local.set({ searchEngines: settings.searchEngines });
+		// 		if (DEBUG) { log("saved!", settings); }
+		// 	});
+		// }
+	} else if (settings.searchEnginesCache[engine.iconUrl] === undefined && engine.iconUrl) {
 		getDataUriFromImgUrl(engine.iconUrl, function(base64Img) {
 			icon.src = base64Img;
-			engine.iconSrc = base64Img;
-			browser.storage.local.set({ searchEngines: settings.searchEngines });
+			settings.searchEnginesCache[engine.iconUrl] = base64Img;
+			browser.storage.local.set({ searchEnginesCache: settings.searchEnginesCache });
 			if (DEBUG) { log("saved!", settings); }
 		});
 	} else {
-		icon.src = engine.iconSrc;
+		icon.src = settings.searchEnginesCache[engine.iconUrl];
 	}
 	cell.appendChild(icon);
 	row.appendChild(cell);
@@ -526,11 +528,11 @@ function addSearchEngine(engine, i)
 		iconLinkInput.oninput = function(ev) {
 			engine.iconUrl = iconLinkInput.value;
 			icon.src = "";
-			engine.iconSrc = "";
+			delete settings.searchEnginesCache[engine.iconUrl];
 			getDataUriFromImgUrl(engine.iconUrl, function(base64Img) {
 				icon.src = base64Img;
-				engine.iconSrc = base64Img;
-				browser.storage.local.set({ searchEngines: settings.searchEngines });
+				settings.searchEnginesCache[engine.iconUrl] = base64Img;
+				browser.storage.local.set({ searchEnginesCache: settings.searchEnginesCache });
 				if (DEBUG) { log("saved!", settings); }
 			});
 		};

@@ -208,6 +208,8 @@ function createPopup(settings, searchEngines)
 			} else if (engine.id === "openAsLink") {
 				iconImgSource = browser.extension.getURL("res/sss-engine-icons/open-link.svg");
 			}
+		} else if (engine.type === "browser") {
+			iconImgSource = settings.searchEnginesCache[engine.iconUrl];
 		} else {
 			iconImgSource = engine.iconSrc;
 		}
