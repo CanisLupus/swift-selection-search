@@ -23,7 +23,6 @@
 
 	"options_ui": {
 		"browser_style": true,
-		// "open_in_tab": true,
 		"page": "settings/settings.html"
 	},
 

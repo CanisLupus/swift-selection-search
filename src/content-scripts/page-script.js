@@ -209,9 +209,9 @@ function createPopup(settings, searchEngines)
 				iconImgSource = browser.extension.getURL("res/sss-engine-icons/open-link.svg");
 			}
 		} else if (engine.type === "browser") {
-			iconImgSource = settings.searchEnginesCache[engine.iconUrl];
-		} else {
 			iconImgSource = engine.iconSrc;
+		} else {
+			iconImgSource = settings.searchEnginesCache[engine.iconUrl];
 		}
 
 		let icon = document.createElement("img");

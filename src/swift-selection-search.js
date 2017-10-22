@@ -352,6 +352,7 @@ function onSearchEngineClick(searchText, engineObject, clickType)
 		if (engineObject.id === "copyToClipboard") {
 			getCurrentTab(tab => browser.tabs.sendMessage(tab.id, { type: "copyToClipboard" }));
 		} else if (engineObject.id === "openAsLink") {
+			searchText = searchText.trim();
 			if (clickType === "leftClick") {
 				openUrl(searchText, sss.settings.mouseLeftButtonBehaviour);
 			} else if (clickType === "middleClick") {
