@@ -268,7 +268,7 @@ function onPageLoaded()
 
 	// register events for button clicks
 	page.addEngineButton.onclick = function(ev) {
-		let searchEngine = JSON.parse(JSON.stringify(defaultSettings.searchEngines[0]));
+		let searchEngine = JSON.parse(JSON.stringify(defaultSettings.searchEngines[2]));	// first two are special sss icons
 		settings.searchEngines.push(searchEngine);
 
 		browser.storage.local.set({ searchEngines: settings.searchEngines });
