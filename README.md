@@ -21,4 +21,4 @@ https://developer.mozilla.org/Add-ons/WebExtensions/Getting_started_with_web-ext
 
 They explain how to build and run any WebExtension on Firefox.
 
-You can also try the about:debugging#addons page in Firefox if you just want to test it out. Press the "Load Temporary Add-on" button, select a file in the Swift Selection Search "src" directory (for example manifest.json), and it will load the add-on.
+You can also try the [about:debugging#addon] page in Firefox if you just want to test it out. Press the "Load Temporary Add-on" button, select a file in the Swift Selection Search "src" directory (for example manifest.json), and it will load the add-on.
