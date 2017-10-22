@@ -376,11 +376,60 @@ function addSearchEngine(engine, i)
 
 	let cell;
 
+	// uncomment this when drag works again in add-on pages (also remove up/down buttons)
+	// cell = document.createElement("td");
+	// cell.className = "engine-dragger";
+	// let div = document.createElement("div");
+	// div.textContent = "☰";
+	// cell.appendChild(div);
+	// row.appendChild(cell);
+
 	cell = document.createElement("td");
-	cell.className = "engine-dragger";
-	let div = document.createElement("div");
-	div.textContent = "☰";
-	cell.appendChild(div);
+	cell.className = "engine-move-up";
+	let moveUpButton = document.createElement("input");
+	moveUpButton.type = "button";
+	moveUpButton.value = "↑";
+	if (i > 0) {
+		moveUpButton.onclick = function(ev) {
+			if (i <= 0) {
+				return;
+			}
+			console.log("↑", i);
+			let tmp = settings.searchEngines[i];
+			settings.searchEngines[i] = settings.searchEngines[i-1];
+			settings.searchEngines[i-1] = tmp;
+			browser.storage.local.set({ searchEngines: settings.searchEngines });
+			if (DEBUG) { log("saved!", settings); }
+			updateUIWithSettings();
+		};
+	} else {
+		moveUpButton.style.opacity = 0.5;
+	}
+	cell.appendChild(moveUpButton);
+	row.appendChild(cell);
+
+	cell = document.createElement("td");
+	cell.className = "engine-move-down";
+	let moveDownButton = document.createElement("input");
+	moveDownButton.type = "button";
+	moveDownButton.value = "↓";
+	if (i < settings.searchEngines.length-1) {
+		moveDownButton.onclick = function(ev) {
+			if (i >= settings.searchEngines.length-1) {
+				return;
+			}
+			console.log("↓", i);
+			let tmp = settings.searchEngines[i];
+			settings.searchEngines[i] = settings.searchEngines[i+1];
+			settings.searchEngines[i+1] = tmp;
+			browser.storage.local.set({ searchEngines: settings.searchEngines });
+			if (DEBUG) { log("saved!", settings); }
+			updateUIWithSettings();
+		};
+	} else {
+		moveDownButton.style.opacity = 0.5;
+	}
+	cell.appendChild(moveDownButton);
 	row.appendChild(cell);
 
 	cell = document.createElement("td");
@@ -394,6 +443,7 @@ function addSearchEngine(engine, i)
 		browser.storage.local.set({ searchEngines: settings.searchEngines });
 		if (DEBUG) { log("saved!", settings); }
 	};
+	cell.style.paddingLeft = "6px";	// remove this when drag works again in add-on pages
 	cell.appendChild(isEnabledInput);
 	row.appendChild(cell);
 

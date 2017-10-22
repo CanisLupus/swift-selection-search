@@ -56,15 +56,12 @@
 	}
 	.engine-name {
 		width: 15%;
-		max-width: 150px;
 	}
 	.engine-search-link {
-		width: 40%;
-		max-width: 500px;
+		width: 50%;
 	}
 	.engine-icon-link {
 		width: 35%;
-		max-width: 500px;
 	}
 	.engine-native {
 		padding: 4px 4px;
@@ -125,7 +122,7 @@
 		<table id="engines-table">
 			<thead>
 				<tr id="engines-header">
-					<td colspan=3></td>
+					<td colspan=4></td>
 					<td class="engine-name">Name</td>
 					<td class="engine-search-link">Search link</td>
 					<td class="engine-icon-link">Icon link</td>
@@ -133,7 +130,7 @@
 			</thead>
 			<tfoot>
 				<tr id="engines-footer">
-					<td colspan=3></td>
+					<td colspan=4></td>
 					<td class="engine-name"><input type="button" name="addEngineButton" value="Add"></td>
 				</tr>
 			</tfoot>
@@ -157,6 +154,7 @@
 				<br>(Linux) /home/[user]/.mozilla/firefox/[profile-id]
 				<br>NOTE: Some of these folders may be hidden. Please refer to <a href="http://kb.mozillazine.org/Profile_folder_-_Firefox">this page.</a>
 			</details>
+			NOTE: Some icons may be missing because SSS can't access icons in resource:// links.
 		</div>
 	</div>
 
@@ -176,7 +174,7 @@
 		<div class="setting-description">Opens Firefox's search engines manager. To select which engines are shown in the popup, use the "Select from available search engines" button below.</div>
 	</div> -->
 
-	<div class="section-name">Behaviour</div>
+	<div class="section-name">Popup Behaviour</div>
 
 	<div class="setting">
 		<div class="setting-name">Opening behaviour</div>
@@ -225,8 +223,8 @@
 			<!-- <input type="text" name="popupOpenHotkey" value="accel-shift-space"> -->
 		</div>
 		<div class="setting-description">
-			[NOTE: Currently not configurable in WebExtensions.]
-			<br>Opens the popup if you have text selected.
+			[NOTE: Not configurable in WebExtensions.]
+			<br>Opens the popup if you have text selected. Useful if "Opening behaviour" is set to Keyboard-only.
 			<!-- <details>
 				<summary>[Press for details]</summary>
 				Use at least one: shift, control, alt, meta (Mac Command), accel (Control on Windows/Linux, Command on Mac). Clear the box to disable the hotkey.<br>(default: accel-shift-space, which is Ctrl/Cmd+Shift+Spacebar)
@@ -242,7 +240,7 @@
 			Cmd+Shift+U (macOS)
 		</div>
 		<div class="setting-description">
-			[NOTE: Currently not configurable in WebExtensions.]
+			[NOTE: Not configurable in WebExtensions.]
 			<br>Toggles "Opening behaviour" setting between Auto and Keyboard-only modes (if not Off). Use this when the popup is getting in the way of your browsing or text writing.
 			<!-- <details>
 				<summary>[Press for details]</summary>
@@ -298,7 +296,7 @@
 		<div class="setting-description">Automatically copy selected text to clipboard when popup opens.<br>(default: Off)</div>
 	</div>
 
-	<div class="section-name">Appearance</div>
+	<div class="section-name">Popup Appearance</div>
 
 	<div class="setting">
 		<div class="setting-name">Use single row</div>
