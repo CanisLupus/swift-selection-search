@@ -4,6 +4,11 @@
 
 "use strict";
 
+const DEBUG = true;
+if (DEBUG) {
+	var log = console.log;
+}
+
 const consts = {
 	PopupOpenBehaviour_Off: "off",
 	PopupOpenBehaviour_Auto: "auto",
@@ -125,7 +130,7 @@ browser.runtime.onInstalled.addListener(function(details)
 });
 
 let isFirstLoad = true;
-let sss = {};
+const sss = {};
 
 // clear all settings (for test purposes)
 // browser.storage.local.clear();
@@ -137,41 +142,6 @@ browser.storage.onChanged.addListener(onSettingsChanged);
 // Get settings. Setup happens when they are ready.
 browser.storage.local.get().then(onSettingsAcquired, getErrorHandler("Error getting settings for setup."));
 
-// browser.storage.local.get(null)
-// .then(store => {
-// 		var objectList = [];
-// 		var stack = [ store ];
-// 		var bytes = 0;
-
-// 		while ( stack.length ) {
-// 			var value = stack.pop();
-
-// 			if ( typeof value === 'boolean' ) {
-// 				bytes += 4;
-// 			}
-// 			else if ( typeof value === 'string' ) {
-// 				bytes += value.length * 2;
-// 			}
-// 			else if ( typeof value === 'number' ) {
-// 				bytes += 8;
-// 			}
-// 			else if
-// 			(
-// 				typeof value === 'object'
-// 				&& objectList.indexOf( value ) === -1
-// 			)
-// 			{
-// 				objectList.push( value );
-
-// 				for( var i in value ) {
-// 					stack.push( value[ i ] );
-// 				}
-// 			}
-// 		}
-// 		console.log(bytes);
-// 	}
-// );
-
 /* ------------------------------------ */
 /* -------------- SETUP --------------- */
 /* ------------------------------------ */
@@ -181,7 +151,7 @@ function onSettingsAcquired(settings)
 {
 	// if settings object is empty, use defaults
 	if (settings === undefined || Object.keys(settings).length === 0) {
-		console.log("Empty settings! Using defaults.");
+		if (DEBUG) { log("Empty settings! Using defaults."); }
 		settings = Object.assign({}, defaultSettings);
 		browser.storage.local.set(settings);
 	}
@@ -189,7 +159,7 @@ function onSettingsAcquired(settings)
 	sss.settings = settings;
 
 	if (isFirstLoad) {
-		console.log("loading ", settings);
+		if (DEBUG) { log("loading ", settings); }
 	}
 
 	setup_ContextMenu();
@@ -197,7 +167,7 @@ function onSettingsAcquired(settings)
 	setup_Popup();
 
 	if (isFirstLoad) {
-		console.log("Swift Selection Search has started!");
+		if (DEBUG) { log("Swift Selection Search has started!"); }
 	}
 
 	isFirstLoad = false;
@@ -215,27 +185,33 @@ function getSssIcon(id)
 	return consts.sssIcons[id];
 }
 
+// Called from settings.
+function isDebugModeActive()
+{
+	return DEBUG;
+}
+
 function onSettingsChanged(changes, area)
 {
 	if (area !== "local" || Object.keys(changes).length === 0) {
 		return;
 	}
 
-	console.log("onSettingsChanged");
-	console.log(changes);
-	console.log(area);
+	if (DEBUG) { log("onSettingsChanged"); }
+	if (DEBUG) { log(changes); }
+	if (DEBUG) { log(area); }
 	browser.storage.local.get().then(onSettingsAcquired, getErrorHandler("Error getting settings after onSettingsChanged."));
 }
 
 function getErrorHandler(text)
 {
-	return error => console.log(`${text} (${error})`);
+	return error => log(`${text} (${error})`);
 }
 
 function onContentScriptMessage(msg, sender, sendResponse)
 {
 	if (msg.type !== "log") {
-		console.log("msg.type: " + msg.type);
+		if (DEBUG) { log("msg.type: " + msg.type); }
 	}
 
 	if (msg.type === "activationRequest") {
@@ -243,7 +219,7 @@ function onContentScriptMessage(msg, sender, sendResponse)
 	} else if (msg.type === "engineClick") {
 		onSearchEngineClick(msg.selection, msg.engine, msg.clickType);
 	} else if (msg.type === "log") {
-		console.log("[content script console.log]", msg.log);
+		if (DEBUG) { log("[content script log]", msg.log); }
 	}
 }
 
@@ -306,14 +282,17 @@ function setup_PopupHotkeys()
 function onHotkey(command)
 {
 	if (command === "open-popup") {
+		if (DEBUG) { log("open-popup"); }
 		getCurrentTab(tab => browser.tabs.sendMessage(tab.id, { type: "showPopup" }));
 	} else if (command === "toggle-auto-popup") {
-		// toggles value between Auto and Keyboard
-		if (sss.settings.popupOpenBehaviour === consts.PopupOpenBehaviour_Auto) {
-			sss.settings.popupOpenBehaviour = consts.PopupOpenBehaviour_Keyboard;
-		} else if (sss.settings.popupOpenBehaviour === consts.PopupOpenBehaviour_Keyboard) {
-			sss.settings.popupOpenBehaviour = consts.PopupOpenBehaviour_Auto;
-		}
+		if (DEBUG) { log("toggle-auto-popup"); }
+		// if (DEBUG) { log("sss.settings.popupOpenBehaviour: " + sss.settings.popupOpenBehaviour); }
+		// // toggles value between Auto and Keyboard
+		// if (sss.settings.popupOpenBehaviour === consts.PopupOpenBehaviour_Auto) {
+		// 	browser.storage.local.set({ popupOpenBehaviour: consts.PopupOpenBehaviour_Keyboard });
+		// } else if (sss.settings.popupOpenBehaviour === consts.PopupOpenBehaviour_Keyboard) {
+		// 	browser.storage.local.set({ popupOpenBehaviour: consts.PopupOpenBehaviour_Auto });
+		// }
 	}
 }
 
@@ -334,13 +313,13 @@ function setup_Popup()
 
 function onTabActivated(activeInfo)
 {
-	// console.log("onTabActivated " + activeInfo.tabId);
+	// if (DEBUG) { log("onTabActivated " + activeInfo.tabId); }
 	// injectPageWorker(activeInfo.tabId);
 }
 
 function onTabUpdated(tabId, changeInfo, tab)
 {
-	// console.log("onTabUpdated " + changeInfo.status + " "+ tabId);
+	// if (DEBUG) { log("onTabUpdated " + changeInfo.status + " "+ tabId); }
 	if (changeInfo.status === "complete") {
 		injectPageWorker(tabId);
 	}
@@ -352,14 +331,15 @@ function injectPageWorker(tabId)
 	browser.tabs.sendMessage(tabId, { type: "isAlive" }).then(
 		_ => {},
 		_ => {
-			console.log("injectPageWorker "+ tabId);
+			if (DEBUG) { log("injectPageWorker "+ tabId); }
 
-			browser.tabs.executeScript(tabId, { file: "/content-scripts/selectionchange.js" }).then(
-			result => browser.tabs.executeScript(tabId, { file: "/content-scripts/page-script.js" }).then(
-				null,
-				getErrorHandler("Error executing page worker script.")
-			),
-			getErrorHandler("Error executing selectionchange.js script."));
+			let errorHandler = getErrorHandler("Error injecting page worker.");
+			browser.tabs.executeScript(tabId, { code: "const DEBUG = " + DEBUG + ";"        }).then(result =>
+			browser.tabs.executeScript(tabId, { file: "/content-scripts/selectionchange.js" }).then(result =>
+			browser.tabs.executeScript(tabId, { file: "/content-scripts/page-script.js"     }).then(null
+			, errorHandler)
+			, errorHandler)
+			, errorHandler);
 		}
 	);
 }

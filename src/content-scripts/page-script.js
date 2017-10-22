@@ -1,14 +1,11 @@
 "use strict";
 
-const DEBUG = true;
-
-let console = {};
-console.log = function(msg) {
-	if (DEBUG) { browser.runtime.sendMessage({ type: "log", log: msg }); }
-};
+if (DEBUG) {
+	var log = (msg) => browser.runtime.sendMessage({ type: "log", log: msg });
+}
 
 // Subset of consts present in background script (avoids having to ask for them).
-let consts = {
+const consts = {
 	PopupOpenBehaviour_Auto: "auto",
 
 	PopupLocation_Selection: "selection",
@@ -31,7 +28,7 @@ let mousePositionY = 0;
 browser.runtime.onMessage.addListener(onMessageReceived);
 browser.storage.onChanged.addListener(onSettingsChanged);
 
-if (DEBUG) { console.log("content script has started!"); }
+if (DEBUG) { log("content script has started!"); }
 
 requestActivation();
 
@@ -61,9 +58,9 @@ function onSettingsChanged(changes, area)
 		return;
 	}
 
-	if (DEBUG) { console.log("onSettingsChanged"); }
-	if (DEBUG) { console.log(changes); }
-	if (DEBUG) { console.log(area); }
+	if (DEBUG) { log("onSettingsChanged"); }
+	if (DEBUG) { log(changes); }
+	if (DEBUG) { log(area); }
 
 	deactivate();
 	requestActivation();
@@ -71,7 +68,7 @@ function onSettingsChanged(changes, area)
 
 function getErrorHandler(text)
 {
-	return error => console.log(`${text} (${error})`);
+	return error => log(`${text} (${error})`);
 }
 
 function activate(popupLocation, popupOpenBehaviour)
@@ -88,7 +85,7 @@ function activate(popupLocation, popupOpenBehaviour)
 		document.addEventListener("customselectionchange", onSelectionChange);
 	}
 
-	if (DEBUG) { console.log("worker activated"); }
+	if (DEBUG) { log("worker activated"); }
 }
 
 function deactivate()
@@ -112,7 +109,7 @@ function deactivate()
 	document.removeEventListener("customselectionchange", onSelectionChange);
 	selectionchange.stop();
 
-	if (DEBUG) { console.log("worker deactivated"); }
+	if (DEBUG) { log("worker deactivated"); }
 }
 
 function onSelectionChange()
@@ -129,7 +126,7 @@ function onSelectionChange()
 
 			let searchEngines = settings.searchEngines.filter(e => e.isEnabled);
 
-			if (DEBUG) { console.log("showing popup: " + popup); }
+			if (DEBUG) { log("showing popup: " + popup); }
 
 			// if panel already exists, show, otherwise create (and show)
 			if (popup !== null) {
@@ -383,14 +380,14 @@ function getPopupHoverStyling(settings)
 {
 	if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight) {
 		return(
-`#swift-selection-search-popup img:hover {
+`#swift-selection-search-popup > img:hover {
 	border-bottom: 2px ${settings.popupHighlightColor} solid;
 	border-radius: 2px;
 	padding-bottom: 2px;
 }`);
 	} else if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_HighlightAndMove) {
 		return(
-`#swift-selection-search-popup img:hover {
+`#swift-selection-search-popup > img:hover {
 	border-bottom: 2px ${settings.popupHighlightColor} solid;
 	border-radius: 2px;
 	padding-top: 1px;

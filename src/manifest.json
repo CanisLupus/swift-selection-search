@@ -44,5 +44,5 @@
 		}
 	},
 
-	"web_accessible_resources": ["res/sss-engine-icons/*", "search-plugins/*"]
+	"web_accessible_resources": ["res/*"]
 }
