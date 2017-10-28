@@ -304,25 +304,25 @@ function onHotkey(command)
 
 function setup_Popup()
 {
-	browser.tabs.onActivated.removeListener(onTabActivated);
 	browser.tabs.onUpdated.removeListener(onTabUpdated);
 
 	if (sss.settings.popupOpenBehaviour !== consts.PopupOpenBehaviour_Off) {
-		browser.tabs.onActivated.addListener(onTabActivated);
 		browser.tabs.onUpdated.addListener(onTabUpdated);
+		browser.tabs.query({}).then(installOnOpenTabs, getErrorHandler("Error querying tabs."));
 	}
 }
 
-function onTabActivated(activeInfo)
+function installOnOpenTabs(tabs)
 {
-	// if (DEBUG) { log("onTabActivated " + activeInfo.tabId); }
-	// injectPageWorker(activeInfo.tabId);
+	for (let tab of tabs) {
+		injectPageWorker(tab.id);
+	}
 }
 
 function onTabUpdated(tabId, changeInfo, tab)
 {
 	// if (DEBUG) { log("onTabUpdated " + changeInfo.status + " "+ tabId); }
-	if (changeInfo.status === "complete") {
+	if (changeInfo.status === "loading") {
 		injectPageWorker(tabId);
 	}
 }
@@ -336,9 +336,9 @@ function injectPageWorker(tabId)
 			if (DEBUG) { log("injectPageWorker "+ tabId); }
 
 			let errorHandler = getErrorHandler("Error injecting page worker.");
-			browser.tabs.executeScript(tabId, { code: "const DEBUG = " + DEBUG + ";"        }).then(result =>
-			browser.tabs.executeScript(tabId, { file: "/content-scripts/selectionchange.js" }).then(result =>
-			browser.tabs.executeScript(tabId, { file: "/content-scripts/page-script.js"     }).then(null
+			browser.tabs.executeScript(tabId, { runAt: "document_start", code: "const DEBUG = " + DEBUG + ";"        }).then(result =>
+			browser.tabs.executeScript(tabId, { runAt: "document_start", file: "/content-scripts/selectionchange.js" }).then(result =>
+			browser.tabs.executeScript(tabId, { runAt: "document_start", file: "/content-scripts/page-script.js"     }).then(null
 			, errorHandler)
 			, errorHandler)
 			, errorHandler);
