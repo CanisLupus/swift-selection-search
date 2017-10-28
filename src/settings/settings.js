@@ -148,7 +148,7 @@ function updateBrowserEnginesFromSearchJson(browserSearchEngines)
 
 		let isEnabled = wasPreviouslyEnabled[engine._loadPath];
 		isEnabled = isEnabled !== undefined ? isEnabled : true;	// if engine didn't exist, assume we want it enabled
-		log(engine._iconURL.length());
+
 		let sssBrowserEngine = {
 			type: "browser",
 			name: engine._name,
