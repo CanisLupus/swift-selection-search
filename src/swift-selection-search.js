@@ -4,7 +4,7 @@
 
 "use strict";
 
-const DEBUG = true;
+const DEBUG = false;
 if (DEBUG) {
 	var log = console.log;
 }
@@ -208,7 +208,7 @@ function onSettingsChanged(changes, area)
 
 function getErrorHandler(text)
 {
-	return error => log(`${text} (${error})`);
+	return error => { if (DEBUG) { log(`${text} (${error})`) } };
 }
 
 function onContentScriptMessage(msg, sender, sendResponse)
