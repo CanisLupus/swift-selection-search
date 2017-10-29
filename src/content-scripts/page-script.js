@@ -188,7 +188,8 @@ function createPopup(settings, searchEngines)
 
 	// create all engine icons
 
-	let paddingText = settings.popupItemPadding + "px";
+	let horizontalPaddingStr = settings.popupItemPadding + "px";
+	let verticalPaddingStr = (3 + settings.popupItemVerticalPadding) + "px";
 	let sizeText = settings.popupItemSize + "px";
 
 	for (let i = 0; i < searchEngines.length; i++)
@@ -220,8 +221,31 @@ function createPopup(settings, searchEngines)
 		icon.title = iconTitle;
 		icon.style.height = sizeText;
 		icon.style.width = sizeText;
-		icon.style.paddingLeft = paddingText;
-		icon.style.paddingRight = paddingText;
+		icon.style.paddingLeft = horizontalPaddingStr;
+		icon.style.paddingRight = horizontalPaddingStr;
+		icon.style.paddingTop = verticalPaddingStr;
+		icon.style.paddingBottom = verticalPaddingStr;
+
+		if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight || settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_HighlightAndMove)
+		{
+			icon.onmouseover = () => {
+				icon.style.borderBottom = `2px ${settings.popupHighlightColor} solid`;
+				icon.style.borderRadius = "2px";
+				if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight) {
+					// remove 2 pixels to counter the added border of 2px
+					icon.style.paddingBottom = (3 + settings.popupItemVerticalPadding - 2) + "px";
+				} else {
+					// remove 2 pixels of top padding to cause icon to move up
+					icon.style.paddingTop = (3 + settings.popupItemVerticalPadding - 2) + "px";
+				}
+			};
+			icon.onmouseout = () => {
+				icon.style.borderBottom = "";
+				icon.style.borderRadius = "";
+				icon.style.paddingTop = verticalPaddingStr;
+				icon.style.paddingBottom = verticalPaddingStr;
+			};
+		}
 
 		icon.addEventListener("mouseup", onSearchEngineClick(engine, settings));
 		icon.addEventListener("mousedown", function(e) {
@@ -251,7 +275,7 @@ function createPopup(settings, searchEngines)
 function setPopupPositionAndSize(popup, nEngines, settings)
 {
 	let itemWidth = settings.popupItemSize + settings.popupItemPadding * 2;
-	let itemHeight = settings.popupItemSize + 8;
+	let itemHeight = settings.popupItemSize + (3 + settings.popupItemVerticalPadding) * 2;
 
 	let nPopupIconsPerRow = nEngines;
 	if (!settings.useSingleRow && settings.nPopupIconsPerRow < nPopupIconsPerRow) {
@@ -353,6 +377,7 @@ function getPopupStyle(settings)
 `#swift-selection-search-popup,
 #swift-selection-search-popup > img {
 	all: initial;
+	font-size: 0;
 }
 
 #swift-selection-search-popup {
@@ -369,34 +394,12 @@ function getPopupStyle(settings)
 }
 
 #swift-selection-search-popup > img {
-	padding: 4px 2px;
 	cursor: pointer;
 	pointer-events: auto;
 }
-${getPopupHoverStyling(settings)}
 ${getPopupCssAnimation(settings.popupAnimationDuration)}`;
 
 	return css;
-}
-
-function getPopupHoverStyling(settings)
-{
-	if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight) {
-		return(
-`#swift-selection-search-popup > img:hover {
-	border-bottom: 2px ${settings.popupHighlightColor} solid;
-	border-radius: 2px;
-	padding-bottom: 2px;
-}`);
-	} else if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_HighlightAndMove) {
-		return(
-`#swift-selection-search-popup > img:hover {
-	border-bottom: 2px ${settings.popupHighlightColor} solid;
-	border-radius: 2px;
-	padding-top: 1px;
-}`);
-	}
-	return "";
 }
 
 function getPopupCssAnimation(duration)

@@ -542,22 +542,6 @@ function addSearchEngine(engine, i)
 		};
 		cell.appendChild(iconLinkInput);
 		row.appendChild(cell);
-
-		// delete button
-
-		cell = document.createElement("td");
-		cell.className = "engine-delete";
-		let deleteButton = document.createElement("input");
-		deleteButton.type = "button";
-		deleteButton.value = "✖";
-		deleteButton.onclick = function(ev) {
-			settings.searchEngines.splice(i, 1);	// remove element at i
-			browser.storage.local.set({ searchEngines: settings.searchEngines });
-			if (DEBUG) { log("saved!", settings); }
-			updateUIWithSettings();
-		};
-		cell.appendChild(deleteButton);
-		row.appendChild(cell);
 	}
 	else if (engine.type === "browser")
 	{
@@ -593,6 +577,24 @@ function addSearchEngine(engine, i)
 		cell.className = "engine-native";
 		cell.colSpan = 2;
 		cell.textContent = sssIcon.description;
+		row.appendChild(cell);
+	}
+
+	if (engine.type !== "sss") {
+		// delete button
+
+		cell = document.createElement("td");
+		cell.className = "engine-delete";
+		let deleteButton = document.createElement("input");
+		deleteButton.type = "button";
+		deleteButton.value = "✖";
+		deleteButton.onclick = function(ev) {
+			settings.searchEngines.splice(i, 1);	// remove element at i
+			browser.storage.local.set({ searchEngines: settings.searchEngines });
+			if (DEBUG) { log("saved!", settings); }
+			updateUIWithSettings();
+		};
+		cell.appendChild(deleteButton);
 		row.appendChild(cell);
 	}
 

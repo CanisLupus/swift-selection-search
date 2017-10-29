@@ -62,6 +62,7 @@ const defaultSettings = {
 	nPopupIconsPerRow: 4,
 	popupItemSize: 24,
 	popupItemPadding: 2,
+	popupItemVerticalPadding: 1,
 	popupItemHoverBehaviour: consts.ItemHoverBehaviour_HighlightAndMove,
 	popupBackgroundColor: "#FFFFFF",
 	popupHighlightColor: "#3399FF",
@@ -157,6 +158,18 @@ function onSettingsAcquired(settings)
 		if (DEBUG) { log("Empty settings! Using defaults."); }
 		settings = Object.assign({}, defaultSettings);
 		browser.storage.local.set(settings);
+	} else {
+		// add settings that were not available in older versions
+		let shouldSave = false;
+
+		if (settings.popupItemVerticalPadding === undefined) {
+			settings.popupItemVerticalPadding = defaultSettings.popupItemVerticalPadding;
+			shouldSave = true;
+		}
+
+		if (shouldSave) {
+			browser.storage.local.set(settings);
+		}
 	}
 
 	sss.settings = settings;
