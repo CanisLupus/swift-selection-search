@@ -281,7 +281,50 @@ function onPageLoaded()
 		updateUIWithSettings();
 	};
 
+	// reset engines button
+
+	let originalResetSearchEnginesButtonValue = page.resetSearchEnginesButton.value;
+
+	page.resetSearchEnginesButton.onclick = function(ev) {
+		if (page.resetSearchEnginesButton.value === "Cancel") {
+			page.resetSearchEnginesButton.value = originalResetSearchEnginesButtonValue;
+			page.resetSearchEnginesButton_real.style.display = "none";
+		} else {
+			page.resetSearchEnginesButton.value = "Cancel";
+			page.resetSearchEnginesButton_real.style.display = "";
+		}
+	};
+
+	page.resetSearchEnginesButton_real.onclick = function(ev) {
+		page.resetSearchEnginesButton.value = originalResetSearchEnginesButtonValue;
+		page.resetSearchEnginesButton_real.style.display = "none";
+
+		ev.preventDefault();
+		let defaultEngines = JSON.parse(JSON.stringify(defaultSettings.searchEngines));
+		settings.searchEngines = defaultEngines;
+		updateUIWithSettings();
+		browser.storage.local.set({ searchEngines: settings.searchEngines });
+		if (DEBUG) { log("saved!", settings); }
+	};
+
+	// reset settings button
+
+	let originalResetSettingsButtonValue = page.resetSettingsButton.value;
+
 	page.resetSettingsButton.onclick = function(ev) {
+		if (page.resetSettingsButton.value === "Cancel") {
+			page.resetSettingsButton.value = originalResetSettingsButtonValue;
+			page.resetSettingsButton_real.style.display = "none";
+		} else {
+			page.resetSettingsButton.value = "Cancel";
+			page.resetSettingsButton_real.style.display = "";
+		}
+	};
+
+	page.resetSettingsButton_real.onclick = function(ev) {
+		page.resetSettingsButton.value = originalResetSettingsButtonValue;
+		page.resetSettingsButton_real.style.display = "none";
+
 		ev.preventDefault();
 		let searchEngines = settings.searchEngines;	// save engines
 		settings = JSON.parse(JSON.stringify(defaultSettings));	// copy default settings
@@ -291,16 +334,8 @@ function onPageLoaded()
 		if (DEBUG) { log("saved!", settings); }
 	};
 
-	page.resetSearchEnginesButton.onclick = function(ev) {
-		ev.preventDefault();
-		let defaultEngines = JSON.parse(JSON.stringify(defaultSettings.searchEngines));
-		settings.searchEngines = defaultEngines;
-		updateUIWithSettings();
-		browser.storage.local.set({ searchEngines: settings.searchEngines });
-		if (DEBUG) { log("saved!", settings); }
-	};
-
 	// finish and set elements based on settings, if they are already loaded
+
 	hasPageLoaded = true;
 
 	if (settings !== undefined) {
