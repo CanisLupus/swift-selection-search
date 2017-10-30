@@ -375,7 +375,7 @@ function onSearchEngineClick(searchText, engineObject, clickType)
 			}
 		}
 	} else {
-		let engine = sss.settings.searchEngines.find(engine => engine.name === engineObject.name);
+		let engine = sss.settings.searchEngines.find(engine => engine.searchUrl === engineObject.searchUrl);
 
 		if (clickType === "leftClick") {
 			openUrl(getSearchQuery(engine, searchText), sss.settings.mouseLeftButtonBehaviour);
