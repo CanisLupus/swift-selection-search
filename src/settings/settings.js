@@ -130,35 +130,41 @@ function updateBrowserEnginesFromSearchJson(browserSearchEngines)
 			continue;
 		}
 
-		let urlObj = engine._urls[0];
-		let url = urlObj.template;
+		for (let urlObj of engine._urls)
+		{
+			if (urlObj.type === "application/x-suggestions+json") {
+				continue;
+			}
 
-		if (urlObj.params.length > 0) {
-			// template has params, so join them to get the full query URL
-			url += "?" + urlObj.params
-				.filter(p => p.value === "{searchTerms}")
-				.map(p => p.name + "=" + p.value)
-				.join("&");
-		} else {
-			// template has no params, so template is the full query URL
-			url = url.replace("{searchTerms}", "[sss-searchTerms]");	// easy way to "save" {searchTerms} from regex replace...
-			url = url.replace(/{(.*)}/g, "");
-			url = url.replace("[sss-searchTerms]", "{searchTerms}");	// ...and add it back afterwards
+			let url = urlObj.template;
+
+			if (urlObj.params.length > 0) {
+				// template has params, so join them to get the full query URL
+				url += "?" + urlObj.params
+					.filter(p => p.value === "{searchTerms}")
+					.map(p => p.name + "=" + p.value)
+					.join("&");
+			} else {
+				// template has no params, so template is the full query URL
+				url = url.replace("{searchTerms}", "[sss-searchTerms]");	// easy way to "save" {searchTerms} from regex replace...
+				url = url.replace(/{(.*)}/g, "");
+				url = url.replace("[sss-searchTerms]", "{searchTerms}");	// ...and add it back afterwards
+			}
+
+			let isEnabled = wasPreviouslyEnabled[engine._loadPath];
+			isEnabled = isEnabled !== undefined ? isEnabled : true;	// if engine didn't exist, assume we want it enabled
+
+			let sssBrowserEngine = {
+				type: "browser",
+				name: engine._name,
+				iconSrc: engine._iconURL,
+				searchUrl: url,
+				isEnabled: isEnabled,
+				id: engine._loadPath,	// used to identify engine in unique way
+			};
+
+			settings.searchEngines.push(sssBrowserEngine);
 		}
-
-		let isEnabled = wasPreviouslyEnabled[engine._loadPath];
-		isEnabled = isEnabled !== undefined ? isEnabled : true;	// if engine didn't exist, assume we want it enabled
-
-		let sssBrowserEngine = {
-			type: "browser",
-			name: engine._name,
-			iconSrc: engine._iconURL,
-			searchUrl: url,
-			isEnabled: isEnabled,
-			id: engine._loadPath,	// used to identify engine in unique way
-		};
-
-		settings.searchEngines.push(sssBrowserEngine);
 	}
 }
 
@@ -231,7 +237,6 @@ function onPageLoaded()
 			let item = ev.target;
 			let file = item.files[0];
 			readMozlz4File(file, json => {
-				if (DEBUG) { log(json); }
 				let browserSearchEngines = JSON.parse(json);
 				if (DEBUG) { log(browserSearchEngines); }
 				updateBrowserEnginesFromSearchJson(browserSearchEngines);
@@ -580,7 +585,8 @@ function addSearchEngine(engine, i)
 		row.appendChild(cell);
 	}
 
-	if (engine.type !== "sss") {
+	if (engine.type !== "sss")
+	{
 		// delete button
 
 		cell = document.createElement("td");
