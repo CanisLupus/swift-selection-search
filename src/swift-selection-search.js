@@ -72,7 +72,7 @@ const defaultSettings = {
 	popupOffsetY: 0,
 	enableEnginesInContextMenu: true,
 	contextMenuItemBehaviour: consts.MouseButtonBehaviour_NewBgTab,
-	contextMenuEnginesFilter: consts.ContextMenuEnginesFilter_All,
+	contextMenuEnginesFilter: consts.ContextMenuEnginesFilter_SameAsPopup,
 
 	searchEngines: [
 		{
