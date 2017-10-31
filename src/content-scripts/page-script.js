@@ -43,7 +43,9 @@ function requestActivation()
 
 function onMessageReceived(msg, sender, sendResponse)
 {
-	if (msg.type === "deactivate") {
+	if (msg.type === "isAlive") {
+		sendResponse(true);
+	} else if (msg.type === "deactivate") {
 		deactivate();
 	} else if (msg.type === "showPopup") {
 		onSelectionChange();

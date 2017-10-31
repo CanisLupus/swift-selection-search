@@ -328,7 +328,7 @@ function setup_Popup()
 function installOnOpenTabs(tabs)
 {
 	for (let tab of tabs) {
-		injectPageWorker(tab.id);
+		injectPageWorkerIfNeeded(tab.id);
 	}
 }
 
@@ -336,27 +336,36 @@ function onTabUpdated(tabId, changeInfo, tab)
 {
 	// if (DEBUG) { log("onTabUpdated " + changeInfo.status + " "+ tabId); }
 	if (changeInfo.status === "loading") {
-		injectPageWorker(tabId);
+		injectPageWorkerIfNeeded(tabId);
 	}
+}
+
+function injectPageWorkerIfNeeded(tabId)
+{
+	// if (DEBUG) { log("injecting on "+ tabId); }
+
+	// try sending message to see if worker exists. if it errors then inject it
+	browser.tabs.sendMessage(tabId, { type: "isAlive" }).then(
+		msg => {
+			if (msg === undefined) {
+				injectPageWorker(tabId);
+			}
+		},
+		_ => injectPageWorker(tabId)
+	);
 }
 
 function injectPageWorker(tabId)
 {
-	// try sending message to see if worker exists. if it errors then inject it
-	browser.tabs.sendMessage(tabId, { type: "isAlive" }).then(
-		_ => {},
-		_ => {
-			if (DEBUG) { log("injectPageWorker "+ tabId); }
+	if (DEBUG) { log("injectPageWorker "+ tabId); }
 
-			let errorHandler = getErrorHandler("Error injecting page worker.");
-			browser.tabs.executeScript(tabId, { runAt: "document_start", code: "const DEBUG = " + DEBUG + ";"        }).then(result =>
-			browser.tabs.executeScript(tabId, { runAt: "document_start", file: "/content-scripts/selectionchange.js" }).then(result =>
-			browser.tabs.executeScript(tabId, { runAt: "document_start", file: "/content-scripts/page-script.js"     }).then(null
-			, errorHandler)
-			, errorHandler)
-			, errorHandler);
-		}
-	);
+	let errorHandler = getErrorHandler(`Error injecting page worker in tab ${tabId}.`);
+	browser.tabs.executeScript(tabId, { runAt: "document_start", code: "const DEBUG = " + DEBUG + ";"        }).then(result =>
+	browser.tabs.executeScript(tabId, { runAt: "document_start", file: "/content-scripts/selectionchange.js" }).then(result =>
+	browser.tabs.executeScript(tabId, { runAt: "document_start", file: "/content-scripts/page-script.js"     }).then(null
+	, errorHandler)
+	, errorHandler)
+	, errorHandler);
 }
 
 function onSearchEngineClick(searchText, engineObject, clickType)
