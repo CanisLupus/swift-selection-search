@@ -374,7 +374,12 @@ function onSearchEngineClick(searchText, engineObject, clickType)
 		if (engineObject.id === "copyToClipboard") {
 			getCurrentTab(tab => browser.tabs.sendMessage(tab.id, { type: "copyToClipboard" }));
 		} else if (engineObject.id === "openAsLink") {
+			// trim text and add http protocol as default if text doesn't have it
 			searchText = searchText.trim();
+			if (!searchText.includes("://")) {
+				searchText = "http://" + searchText;
+			}
+
 			if (clickType === "leftClick") {
 				openUrl(searchText, sss.settings.mouseLeftButtonBehaviour);
 			} else if (clickType === "middleClick") {
