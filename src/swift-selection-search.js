@@ -260,10 +260,18 @@ function setup_ContextMenu()
 
 	for (let engine of engines)
 	{
+		let icon = engine.type === "browser"
+			? engine.iconSrc
+			: sss.settings.searchEnginesCache[engine.iconUrl];
+
 		browser.contextMenus.create({
-			id: engine.name,
+			id: engine.searchUrl,
 			title: engine.name,
-			contexts: ["selection"]
+			contexts: ["selection"],
+			icons: {
+				"16": icon,
+				"32": icon,
+			}
 		});
 	}
 
@@ -272,7 +280,7 @@ function setup_ContextMenu()
 
 function onContextMenuItemClicked(info, tab)
 {
-	let engine = sss.settings.searchEngines.find(engine => engine.name === info.menuItemId);
+	let engine = sss.settings.searchEngines.find(engine => engine.searchUrl === info.menuItemId);
 	if (engine !== undefined) {
 		let searchUrl = getSearchQuery(engine, info.selectionText);
 		openUrl(searchUrl, sss.settings.contextMenuItemBehaviour);
