@@ -260,9 +260,15 @@ function setup_ContextMenu()
 
 	for (let engine of engines)
 	{
-		let icon = engine.type === "browser"
-			? engine.iconSrc
-			: sss.settings.searchEnginesCache[engine.iconUrl];
+		let icon;
+		if (engine.type === "browser") {
+			icon = engine.iconSrc;
+		} else {
+			icon = sss.settings.searchEnginesCache[engine.iconUrl];
+			if (icon === undefined) {
+				icon = engine.iconUrl;
+			}
+		}
 
 		browser.contextMenus.create({
 			id: engine.searchUrl,
