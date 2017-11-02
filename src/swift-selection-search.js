@@ -134,17 +134,23 @@ browser.runtime.onInstalled.addListener(function(details)
 });
 
 let isFirstLoad = true;
+let ffVersion = 0;
 const sss = {};
 
-// clear all settings (for test purposes)
-// browser.storage.local.clear();
+browser.runtime.getBrowserInfo().then((browserInfo) => {
+	ffVersion = parseInt(browserInfo.version.split(".")[0]);
+	if (DEBUG) { log("Firefox is version " + ffVersion); }
 
-// register with worker messages and changes to settings
-browser.runtime.onMessage.addListener(onContentScriptMessage);
-browser.storage.onChanged.addListener(onSettingsChanged);
+	// clear all settings (for test purposes)
+	// browser.storage.local.clear();
 
-// Get settings. Setup happens when they are ready.
-browser.storage.local.get().then(onSettingsAcquired, getErrorHandler("Error getting settings for setup."));
+	// register with worker messages and changes to settings
+	browser.runtime.onMessage.addListener(onContentScriptMessage);
+	browser.storage.onChanged.addListener(onSettingsChanged);
+
+	// Get settings. Setup happens when they are ready.
+	browser.storage.local.get().then(onSettingsAcquired, getErrorHandler("Error getting settings for setup."));
+});
 
 /* ------------------------------------ */
 /* -------------- SETUP --------------- */
@@ -260,25 +266,30 @@ function setup_ContextMenu()
 
 	for (let engine of engines)
 	{
-		let icon;
-		if (engine.type === "browser") {
-			icon = engine.iconSrc;
-		} else {
-			icon = sss.settings.searchEnginesCache[engine.iconUrl];
-			if (icon === undefined) {
-				icon = engine.iconUrl;
-			}
-		}
-
-		browser.contextMenus.create({
+		let contextMenuOption = {
 			id: engine.searchUrl,
 			title: engine.name,
 			contexts: ["selection"],
-			icons: {
-				"16": icon,
-				"32": icon,
+		};
+
+		// icons unsupported on 55 and below
+		if (ffVersion >= 56) {
+			let icon;
+			if (engine.type === "browser") {
+				icon = engine.iconSrc;
+			} else {
+				icon = sss.settings.searchEnginesCache[engine.iconUrl];
+				if (icon === undefined) {
+					icon = engine.iconUrl;
+				}
 			}
-		});
+
+			contextMenuOption.icons = {
+				"32": icon,
+			};
+		}
+
+		browser.contextMenus.create(contextMenuOption);
 	}
 
 	browser.contextMenus.onClicked.addListener(onContextMenuItemClicked);
