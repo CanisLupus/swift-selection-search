@@ -396,6 +396,7 @@ function getPopupStyle(settings)
 	background-color: ${settings.popupBackgroundColor};
 	box-shadow: 0px 0px 3px rgba(0,0,0,.5);
 	border-radius: 2px;
+	direction: ltr;
 }
 
 #swift-selection-search-popup > img {
