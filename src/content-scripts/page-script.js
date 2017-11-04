@@ -327,7 +327,10 @@ function setPopupPositionAndSize(popup, nEngines, settings)
 	if (positionTop < 5) {
 		positionTop = 5;
 	} else if (positionTop + height + 10 > pageHeight) {
-		positionTop = pageHeight - height - 10;
+		let newPositionTop = pageHeight - height - 10;
+		if (newPositionTop >= 0) {	// just to be sure, since some websites can have pageHeight = 0
+			positionTop = pageHeight - height - 10;
+		}
 	}
 
 	// set values
