@@ -264,9 +264,18 @@ function setup_ContextMenu()
 		engines = engines.filter(engine => engine.isEnabled);
 	}
 
+	// define parent menu
+	browser.contextMenus.create({
+		id: "sss",
+		title: "Search for “%s”",
+		contexts: ["selection"],
+	});
+
+	// define submenu (one per engine)
 	for (let engine of engines)
 	{
 		let contextMenuOption = {
+			parentId: "sss",
 			id: engine.searchUrl,
 			title: engine.name,
 			contexts: ["selection"],
