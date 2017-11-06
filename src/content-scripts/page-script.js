@@ -19,7 +19,6 @@ const consts = {
 };
 
 let popup = null;
-let popupCss = null;
 let selection = null;
 let mousePositionX = 0;
 let mousePositionY = 0;
@@ -95,7 +94,6 @@ function deactivate()
 	if (popup !== null) {
 		// clean page
 		document.documentElement.removeChild(popup);
-		document.documentElement.removeChild(popupCss);
 		popup = null;
 	}
 
@@ -130,12 +128,11 @@ function onSelectionChange()
 
 			if (DEBUG) { log("showing popup: " + popup); }
 
-			// if popup already exists, show, otherwise create (and show)
-			if (popup !== null) {
-				showPopup(settings, searchEngines);
-			} else {
+			if (popup === null) {
 				createPopup(settings, searchEngines);
 			}
+
+			showPopup(settings, searchEngines);
 		},
 		getErrorHandler("Error getting settings after onSelectionChange."));
 }
@@ -166,9 +163,22 @@ function saveCurrentSelection()
 
 function showPopup(settings, searchEngines)
 {
-	if (popup !== null) {
+	if (popup !== null)
+	{
+		// WARNING/HACK: these lines have to be in this order for animation to work (I don't like this either!)
+
+		if (settings.popupAnimationDuration > 0) {
+			popup.style.opacity = 0;
+			popup.style.transform = "scale(0.8)";
+		}
+
 		popup.style.display = "inline-block";
 		setPopupPositionAndSize(popup, searchEngines.length, settings);
+
+		if (settings.popupAnimationDuration > 0) {
+			popup.style.opacity = 1;
+			popup.style.transform = "scale(1)";
+		}
 	}
 }
 
@@ -183,16 +193,50 @@ function createPopup(settings, searchEngines)
 {
 	// create popup parent (will contain all icons)
 	popup = document.createElement("swift-selection-search-popup");
-	popup.id = "swift-selection-search-popup";
-	popup.style.padding = settings.popupPaddingY + "px " + settings.popupPaddingX + "px";
 
-	setPopupPositionAndSize(popup, searchEngines.length, settings);
+	// format popup, resetting all to initial and including values that will be changed later (set those to "initial" explicitly)
+	let popupCssText = `
+all: initial;
+font-size: 0;
+position: absolute;
+z-index: 2147483647;
+text-align: center;
+overflow: hidden;
+-moz-user-select: none;
+user-select: none;
+background-color: ${settings.popupBackgroundColor};
+box-shadow: 0px 0px 3px rgba(0,0,0,.5);
+border-radius: 2px;
+direction: ltr;
+padding: ${settings.popupPaddingY}px ${settings.popupPaddingX}px;
+width: initial;
+height: initial;
+left: initial;
+top: initial;
+opacity: initial;
+transform: initial;
+transition: initial;`;
+
+	popup.style.cssText = popupCssText;
+
+	if (settings.popupAnimationDuration > 0) {
+		let duration = settings.popupAnimationDuration / 1000.0;
+		popup.style["transition"] = `transform ${duration}s, opacity ${duration*0.5}s`;
+		// what should actually work:
+		// popup.animate({ opacity: [0, 1], transform: ["scale(0.8)", "scale(1)"], }, duration);
+	}
 
 	// create all engine icons
 
-	let horizontalPaddingStr = settings.popupItemPadding + "px";
-	let verticalPaddingStr = (3 + settings.popupItemVerticalPadding) + "px";
 	let sizeText = settings.popupItemSize + "px";
+	let iconCssText = `
+all: initial;
+fontSize: 0;
+cursor: pointer;
+pointer-events: auto;
+height: ${settings.popupItemSize}px;
+width: ${settings.popupItemSize}px;
+padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}px`;
 
 	for (let i = 0; i < searchEngines.length; i++)
 	{
@@ -221,12 +265,7 @@ function createPopup(settings, searchEngines)
 		let icon = document.createElement("img");
 		icon.setAttribute("src", iconImgSource);
 		icon.title = iconTitle;
-		icon.style.height = sizeText;
-		icon.style.width = sizeText;
-		icon.style.paddingLeft = horizontalPaddingStr;
-		icon.style.paddingRight = horizontalPaddingStr;
-		icon.style.paddingTop = verticalPaddingStr;
-		icon.style.paddingBottom = verticalPaddingStr;
+		icon.style.cssText = iconCssText;
 
 		if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight || settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_HighlightAndMove)
 		{
@@ -242,6 +281,7 @@ function createPopup(settings, searchEngines)
 				}
 			};
 			icon.onmouseout = () => {
+				let verticalPaddingStr = (3 + settings.popupItemVerticalPadding) + "px";
 				icon.style.borderBottom = "";
 				icon.style.borderRadius = "";
 				icon.style.paddingTop = verticalPaddingStr;
@@ -260,10 +300,8 @@ function createPopup(settings, searchEngines)
 		popup.appendChild(icon);
 	}
 
-	// add popup element and respective css formatting to page
+	// add popup to page
 	document.documentElement.appendChild(popup);
-	popupCss = getPopupStyle(settings);
-	document.documentElement.appendChild(popupCss);
 
 	document.documentElement.addEventListener("keypress", hidePopup);
 	document.documentElement.addEventListener("mousedown", hidePopup);	// hide popup from a press down anywhere...
@@ -372,62 +410,4 @@ function onSearchEngineClick(engineObject, settings)
 			browser.runtime.sendMessage(message);
 		}
 	};
-}
-
-function getPopupStyle(settings)
-{
-	let css = document.createElement("style");
-	css.type = "text/css";
-	css.textContent =
-`#swift-selection-search-popup,
-#swift-selection-search-popup > img {
-	all: initial;
-	font-size: 0;
-}
-
-#swift-selection-search-popup {
-	position: absolute;
-	z-index: 2147483647;
-	text-align: center;
-	overflow: hidden;
-	-moz-user-select: none;
-	user-select: none;
-	display: inline-block;
-	background-color: ${settings.popupBackgroundColor};
-	box-shadow: 0px 0px 3px rgba(0,0,0,.5);
-	border-radius: 2px;
-	direction: ltr;
-}
-
-#swift-selection-search-popup > img {
-	cursor: pointer;
-	pointer-events: auto;
-}
-${getPopupCssAnimation(settings.popupAnimationDuration)}`;
-
-	return css;
-}
-
-function getPopupCssAnimation(duration)
-{
-	if (duration > 0) {
-		duration = duration / 1000.0;
-		return(
-`#swift-selection-search-popup {
-	animation: fadein ${duration}s;
-	animation: pop ${duration}s;
-}
-
-@keyframes fadein {
-	from { opacity: 0; }
-	to   { opacity: 1; }
-}
-
-@keyframes pop {
-	0%   { transform: scale(0.8); }
-	100% { transform: scale(1); }
-}`);
-	} else {
-		return "";
-	}
 }
