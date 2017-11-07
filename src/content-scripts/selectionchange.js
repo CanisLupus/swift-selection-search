@@ -7,6 +7,7 @@ var selectionchange = (function (undefined) {
 	var MAC = /^Mac/.test(navigator.platform);
 	var MAC_MOVE_KEYS = [65, 66, 69, 70, 78, 80]; // A, B, E, F, P, N from support.apple.com/en-ie/HT201236
 	var SELECT_ALL_MODIFIER = MAC ? 'metaKey' : 'ctrlKey';
+	var RANGE_PROPS = ['startContainer', 'startOffset', 'endContainer', 'endOffset'];
 	var HAS_OWN_SELECTION = {INPUT: 1, TEXTAREA: 1};
 
 	var ranges;
@@ -54,24 +55,32 @@ var selectionchange = (function (undefined) {
 			e.ctrlKey && MAC && MAC_MOVE_KEYS.indexOf(code) >= 0)
 		{
 			// if (!HAS_OWN_SELECTION[e.target.tagName]) {	// uncomment to disable selections with keyboard
-				setTimeout(dispatchIfChanged.bind(null, this), 0);
+				setTimeout(dispatchIfChanged.bind(null, this, true), 0);
 			// }
 		}
 	}
 
 	function onMouseUp(e) {
 		if (e.button === 0) {
-			setTimeout(dispatchIfChanged.bind(null, this), 0);
+			setTimeout(dispatchIfChanged.bind(null, this, true), 0);
 		}
 	}
 
-	function onFocus() {
+	function onFocus(e) {
 		setTimeout(dispatchIfChanged.bind(null, this.document), 0);
 	}
 
-	function dispatchIfChanged(doc) {
+	function dispatchIfChanged(doc, force) {
 		var r = getSelectionRange(doc);
-		ranges.set(doc, r);
-		setTimeout(doc.dispatchEvent.bind(doc, new Event('customselectionchange')), 0);
+		if (force || !sameRange(r, ranges.get(doc))) {
+			ranges.set(doc, r);
+			setTimeout(doc.dispatchEvent.bind(doc, new Event('customselectionchange')), 0);
+		}
+	}
+
+	function sameRange(r1, r2) {
+		return r1 === r2 || r1 && r2 && RANGE_PROPS.every(function (prop) {
+			return r1[prop] === r2[prop];
+		});
 	}
 })();
