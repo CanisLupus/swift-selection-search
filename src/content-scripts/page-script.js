@@ -184,19 +184,12 @@ function showPopup(settings, searchEngines)
 {
 	if (popup !== null)
 	{
-		// WARNING/HACK: these lines have to be in this order for animation to work (I don't like this either!)
-
-		if (settings.popupAnimationDuration > 0) {
-			popup.style.opacity = 0;
-			popup.style.transform = "scale(0.8)";
-		}
-
 		popup.style.display = "inline-block";
 		setPopupPositionAndSize(popup, searchEngines.length, settings);
 
 		if (settings.popupAnimationDuration > 0) {
-			popup.style.opacity = 1;
-			popup.style.transform = "scale(1)";
+			popup.animate(cloneInto({ transform: ["scale(0.8)", "scale(1)"] }, window), settings.popupAnimationDuration);
+			popup.animate(cloneInto({ opacity: [0, 1] }, window), settings.popupAnimationDuration * 0.5);
 		}
 	}
 }
@@ -231,19 +224,9 @@ padding: ${settings.popupPaddingY}px ${settings.popupPaddingX}px;
 width: initial;
 height: initial;
 left: initial;
-top: initial;
-opacity: initial;
-transform: initial;
-transition: initial;`;
+top: initial;`;
 
 	popup.style.cssText = popupCssText;
-
-	if (settings.popupAnimationDuration > 0) {
-		let duration = settings.popupAnimationDuration / 1000.0;
-		popup.style["transition"] = `transform ${duration}s, opacity ${duration*0.5}s`;
-		// what should actually work:
-		// popup.animate({ opacity: [0, 1], transform: ["scale(0.8)", "scale(1)"], }, duration);
-	}
 
 	// create all engine icons
 
