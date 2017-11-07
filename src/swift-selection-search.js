@@ -50,6 +50,7 @@ const consts = {
 const defaultSettings = {
 	popupOpenBehaviour: consts.PopupOpenBehaviour_Auto,
 	popupLocation: consts.PopupLocation_Cursor,
+	allowPopupOnEditableFields: false,
 	hidePopupOnPageScroll: true,
 	hidePopupOnSearch: true,
 	popupOpenHotkey: "accel-shift-space",
@@ -173,8 +174,14 @@ function onSettingsAcquired(settings)
 			shouldSave = true;
 		}
 
+		if (settings.allowPopupOnEditableFields === undefined) {
+			settings.allowPopupOnEditableFields = defaultSettings.allowPopupOnEditableFields;
+			shouldSave = true;
+		}
+
 		if (shouldSave) {
 			browser.storage.local.set(settings);
+			return;	// calling "set" will trigger this whole function again, so quit before wasting time
 		}
 	}
 

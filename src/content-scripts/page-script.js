@@ -19,7 +19,7 @@ const consts = {
 };
 
 let popup = null;
-let selection = null;
+let selection = {};
 let mousePositionX = 0;
 let mousePositionY = 0;
 
@@ -47,7 +47,7 @@ function onMessageReceived(msg, sender, sendResponse)
 	} else if (msg.type === "deactivate") {
 		deactivate();
 	} else if (msg.type === "showPopup") {
-		onSelectionChange();
+		onSelectionChange(true);
 	} else if (msg.type === "copyToClipboard") {
 		document.execCommand("copy");
 	}
@@ -112,14 +112,35 @@ function deactivate()
 	if (DEBUG) { log("worker deactivated"); }
 }
 
-function onSelectionChange()
+function onSelectionChange(force)
 {
-	if (saveCurrentSelection() === null) {
+	if (!saveCurrentSelection()) {
 		return;
 	}
 
 	browser.storage.local.get().then(
 		settings => {
+			if (force !== true)
+			{
+				if (selection.isInEditableField) {
+					if (!settings.allowPopupOnEditableFields) {
+						return;
+					}
+				} else if (!settings.allowPopupOnEditableFields) {
+					// even if this is not an input field, don't show popup in contentEditable elements, such as Gmail's compose window
+					for (let elem = selection.selection.anchorNode; elem !== document; elem = elem.parentNode)
+					{
+						if (elem.isContentEditable === undefined) {
+							continue;	// check parent for value
+						} else if (elem.isContentEditable) {
+							return;		// quit
+						} else {
+							break;		// show popup
+						}
+					}
+				}
+			}
+
 			if (settings.autoCopyToClipboard === consts.AutoCopyToClipboard_Always) {
 				document.execCommand("copy");
 			}
@@ -139,26 +160,24 @@ function onSelectionChange()
 
 function saveCurrentSelection()
 {
-	selection = window.getSelection();
+	let elem = document.activeElement;
 
-	// exit if there's no text selected after all
-	if (selection === null || selection.toString().length === 0) {
-		return null;
-	}
+	selection.isInEditableField = (elem.tagName === "TEXTAREA" || (elem.tagName === "INPUT" && elem.type !== "password"));
 
-	// don't show popup in contentEditable elements, such as Gmail's compose window
-	for (let elem = selection.anchorNode; elem !== document; elem = elem.parentNode)
-	{
-		if (elem.isContentEditable === undefined) {
-			continue;	// check parent for value
-		} else if (elem.isContentEditable) {
-			return null;		// quit
-		} else /*if (!elem.isContentEditable)*/ {
-			break;		// create popup
+	if (selection.isInEditableField) {
+		selection.text = elem.value.substring(elem.selectionStart, elem.selectionEnd);
+		selection.element = elem;
+	} else {
+		// get selection, but exit if there's no text selected after all
+		let selectionObject = window.getSelection();
+		if (selectionObject === null) {
+			return false;
 		}
+		selection.text = selectionObject.toString();
+		selection.selection = selectionObject;
 	}
 
-	return selection;
+	return selection.text.length > 0;
 }
 
 function showPopup(settings, searchEngines)
@@ -328,8 +347,13 @@ function setPopupPositionAndSize(popup, nEngines, settings)
 	let positionTop;
 
 	if (settings.popupLocation === consts.PopupLocation_Selection) {
-		let range = selection.getRangeAt(0); // get the text range
-		let rect = range.getBoundingClientRect();
+		let rect;
+		if (selection.isInEditableField) {
+			rect = selection.element.getBoundingClientRect();
+		} else {
+			let range = selection.selection.getRangeAt(0); // get the text range
+			rect = range.getBoundingClientRect();
+		}
 		positionLeft = rect.right + window.pageXOffset;
 		positionTop = rect.bottom + window.pageYOffset;
 	} else if (settings.popupLocation === consts.PopupLocation_Cursor) {
@@ -395,7 +419,7 @@ function onSearchEngineClick(engineObject, settings)
 		{
 			let message = {
 				type: "engineClick",
-				selection: selection.toString(),
+				selection: selection.text,
 				engine: engineObject,
 			};
 

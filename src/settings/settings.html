@@ -206,6 +206,14 @@
 	</div>
 
 	<div class="setting">
+		<div class="setting-name">Allow popup on editable fields</div>
+		<div class="setting-value">
+			<input type="checkbox" name="allowPopupOnEditableFields" autocomplete="off">
+		</div>
+		<div class="setting-description">Show the popup when text is selected on an editable text field, such as a login form, a search bar, or an email composing window. Try using "Shortcut to toggle auto popup opening" if it gets in your way. NOTE: "Shortcut to open popup" ignores this setting and always works on editable fields.<br>(default: Off)</div>
+	</div>
+
+	<div class="setting">
 		<div class="setting-name">Hide popup on page scroll</div>
 		<div class="setting-value">
 			<input type="checkbox" name="hidePopupOnPageScroll" autocomplete="off">
@@ -230,7 +238,7 @@
 		</div>
 		<div class="setting-description">
 			[NOTE: Not configurable in WebExtensions.]
-			<br>Opens the popup if you have text selected. Useful if "Opening behaviour" is set to Keyboard-only.
+			<br>Opens the popup if you have text selected. Works for editable fields even if "Allow popup on editable fields" is Off. Useful if "Opening behaviour" is set to Keyboard-only.
 			<!-- <details>
 				<summary>[Press for details]</summary>
 				Use at least one: shift, control, alt, meta (Mac Command), accel (Control on Windows/Linux, Command on Mac). Clear the box to disable the hotkey.<br>(default: accel-shift-space, which is Ctrl/Cmd+Shift+Spacebar)
