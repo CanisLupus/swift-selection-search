@@ -281,6 +281,16 @@ function onPageLoaded()
 		updateUIWithSettings();
 	};
 
+	// engines footnote
+
+	let enginesFootnoteElem = document.getElementById("engines-footnote");
+	let browserVersion = mainScript.getBrowserVersion();
+	let footnoteText = `* Apologies for forcing you to use ↑/↓ buttons to reorder items. I know it's less than ideal. Dragging is implemented but does not work in this page due to a <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1408756">Firefox bug</a>.`
+	if (browserVersion > 55 && browserVersion < 58) {
+		footnoteText += ` If you click a dropdown and it appears far from where it should, that is also a <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1390445">Firefox bug</a> (fixed in Firefox 58).`;
+	}
+	enginesFootnoteElem.innerHTML = footnoteText;
+
 	// reset engines button
 
 	let originalResetSearchEnginesButtonValue = page.resetSearchEnginesButton.value;

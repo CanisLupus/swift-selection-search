@@ -135,12 +135,12 @@ browser.runtime.onInstalled.addListener(function(details)
 });
 
 let isFirstLoad = true;
-let ffVersion = 0;
+let browserVersion = 0;
 const sss = {};
 
 browser.runtime.getBrowserInfo().then((browserInfo) => {
-	ffVersion = parseInt(browserInfo.version.split(".")[0]);
-	if (DEBUG) { log("Firefox is version " + ffVersion); }
+	browserVersion = parseInt(browserInfo.version.split(".")[0]);
+	if (DEBUG) { log("Firefox is version " + browserVersion); }
 
 	// clear all settings (for test purposes)
 	// browser.storage.local.clear();
@@ -220,6 +220,12 @@ function isDebugModeActive()
 	return DEBUG;
 }
 
+// Called from settings.
+function getBrowserVersion()
+{
+	return browserVersion;
+}
+
 function onSettingsChanged(changes, area)
 {
 	if (area !== "local" || Object.keys(changes).length === 0) {
@@ -289,7 +295,7 @@ function setup_ContextMenu()
 		};
 
 		// icons unsupported on 55 and below
-		if (ffVersion >= 56) {
+		if (browserVersion >= 56) {
 			let icon;
 			if (engine.type === "browser") {
 				icon = engine.iconSrc;
