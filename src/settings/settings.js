@@ -132,7 +132,7 @@ function updateBrowserEnginesFromSearchJson(browserSearchEngines)
 
 		for (let urlObj of engine._urls)
 		{
-			if (urlObj.type === "application/x-suggestions+json") {
+			if (urlObj.type !== undefined && urlObj.type !== "text/html") {
 				continue;
 			}
 
