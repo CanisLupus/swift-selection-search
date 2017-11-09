@@ -62,7 +62,7 @@ var selectionchange = (function (undefined) {
 
 	function onMouseUp(e) {
 		if (e.button === 0) {
-			setTimeout(dispatchIfChanged.bind(null, this, true), 0);
+			setTimeout(dispatchIfChanged.bind(null, this, HAS_OWN_SELECTION[e.target.tagName]), 0);
 		}
 	}
 
