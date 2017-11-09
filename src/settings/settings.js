@@ -284,12 +284,26 @@ function onPageLoaded()
 	// engines footnote
 
 	let enginesFootnoteElem = document.getElementById("engines-footnote");
-	let browserVersion = mainScript.getBrowserVersion();
-	let footnoteText = `* Apologies for forcing you to use ↑/↓ buttons to reorder items. I know it's less than ideal. Dragging is implemented but does not work in this page due to a <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1408756">Firefox bug</a>.`
-	if (browserVersion > 55 && browserVersion < 58) {
-		footnoteText += ` If you click a dropdown and it appears far from where it should, that is also a <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1390445">Firefox bug</a> (fixed in Firefox 58).`;
+
+	function addToFootnote(text, link, linkText, postText) {
+		enginesFootnoteElem.appendChild(document.createTextNode(text));
+		let anchor = document.createElement("a");
+		anchor.href = link;
+		anchor.textContent = linkText;
+		anchor.target = "_blank";
+		enginesFootnoteElem.appendChild(anchor);
+		enginesFootnoteElem.appendChild(document.createTextNode(postText));
 	}
-	enginesFootnoteElem.innerHTML = footnoteText;
+
+	if (!isDragSupported()) {
+		addToFootnote("* Apologies for forcing you to use ↑/↓ buttons to reorder items. I know it's less than ideal. Dragging is implemented but does not work in this page due to a ",
+			"https://bugzilla.mozilla.org/show_bug.cgi?id=1408756", "Firefox bug", ".");
+
+		if (mainScript.getBrowserVersion() < 58) {
+			addToFootnote(" If you click a dropdown and it appears far from where it should, that is also a ",
+				"https://bugzilla.mozilla.org/show_bug.cgi?id=1390445", "Firefox bug", " (fixed in Firefox 58).");
+		}
+	}
 
 	// reset engines button
 
@@ -398,24 +412,38 @@ function updateUIWithSettings()
 			addSearchEngine(engine, i);
 		}
 
-		Sortable.create(page.engines, {
-			handle: ".engine-dragger",
-			onStart: function (/**Event*/evt) {
-				if (DEBUG) { log("start drag", evt.oldIndex); }
-			},
-			onUpdate: function (evt/**Event*/){
-				var item = evt.item; // the current dragged HTMLElement
-				if (DEBUG) { log("onUpdate", item); }
-			},
-			onEnd: function (ev) {
-				if (DEBUG) { log("onEnd", settings); }
-				settings.searchEngines.splice(ev.newIndex, 0, settings.searchEngines.splice(ev.oldIndex, 1)[0]);
-				browser.storage.local.set({ searchEngines: settings.searchEngines });
-				if (DEBUG) { log("saved!", settings); }
-				updateUIWithSettings();
-			},
-		});
+		let useDrag = isDragSupported();
+
+		for (let column of document.getElementsByClassName("variable-colspan")) {
+			column.colSpan = useDrag ? 3 : 4;
+		}
+
+		if (useDrag)
+		{
+			Sortable.create(page.engines, {
+				handle: ".engine-dragger",
+				onStart: function (/**Event*/evt) {
+					if (DEBUG) { log("start drag", evt.oldIndex); }
+				},
+				onUpdate: function (evt/**Event*/){
+					var item = evt.item; // the current dragged HTMLElement
+					if (DEBUG) { log("onUpdate", item); }
+				},
+				onEnd: function (ev) {
+					if (DEBUG) { log("onEnd", settings); }
+					settings.searchEngines.splice(ev.newIndex, 0, settings.searchEngines.splice(ev.oldIndex, 1)[0]);
+					browser.storage.local.set({ searchEngines: settings.searchEngines });
+					if (DEBUG) { log("saved!", settings); }
+					updateUIWithSettings();
+				},
+			});
+		}
 	}
+}
+
+function isDragSupported()
+{
+	return mainScript.getBrowserVersion() <= 55;
 }
 
 function addSearchEngine(engine, i)
@@ -427,65 +455,70 @@ function addSearchEngine(engine, i)
 
 	// dragger element
 
-	// uncomment this when drag works again in add-on pages (also remove up/down buttons)
-	// cell = document.createElement("td");
-	// cell.className = "engine-dragger";
-	// let div = document.createElement("div");
-	// div.textContent = "☰";
-	// cell.appendChild(div);
-	// row.appendChild(cell);
-
-	// move up button
-
-	cell = document.createElement("td");
-	cell.className = "engine-move-up";
-	let moveUpButton = document.createElement("input");
-	moveUpButton.type = "button";
-	moveUpButton.value = "↑";
-	if (i > 0) {
-		moveUpButton.onclick = function(ev) {
-			if (i <= 0) {
-				return;
-			}
-			console.log("↑", i);
-			let tmp = settings.searchEngines[i];
-			settings.searchEngines[i] = settings.searchEngines[i-1];
-			settings.searchEngines[i-1] = tmp;
-			browser.storage.local.set({ searchEngines: settings.searchEngines });
-			if (DEBUG) { log("saved!", settings); }
-			updateUIWithSettings();
-		};
-	} else {
-		moveUpButton.style.opacity = 0.5;
+	if (isDragSupported())
+	{
+		cell = document.createElement("td");
+		cell.className = "engine-dragger";
+		let div = document.createElement("div");
+		div.textContent = "☰";
+		div.style.cursor = "move";
+		cell.appendChild(div);
+		row.appendChild(cell);
 	}
-	cell.appendChild(moveUpButton);
-	row.appendChild(cell);
+	else
+	{
+		// move up button
 
-	// move down button
+		cell = document.createElement("td");
+		cell.className = "engine-move-up";
+		let moveUpButton = document.createElement("input");
+		moveUpButton.type = "button";
+		moveUpButton.value = "↑";
+		if (i > 0) {
+			moveUpButton.onclick = function(ev) {
+				if (i <= 0) {
+					return;
+				}
+				console.log("↑", i);
+				let tmp = settings.searchEngines[i];
+				settings.searchEngines[i] = settings.searchEngines[i-1];
+				settings.searchEngines[i-1] = tmp;
+				browser.storage.local.set({ searchEngines: settings.searchEngines });
+				if (DEBUG) { log("saved!", settings); }
+				updateUIWithSettings();
+			};
+		} else {
+			moveUpButton.style.opacity = 0.5;
+		}
+		cell.appendChild(moveUpButton);
+		row.appendChild(cell);
 
-	cell = document.createElement("td");
-	cell.className = "engine-move-down";
-	let moveDownButton = document.createElement("input");
-	moveDownButton.type = "button";
-	moveDownButton.value = "↓";
-	if (i < settings.searchEngines.length-1) {
-		moveDownButton.onclick = function(ev) {
-			if (i >= settings.searchEngines.length-1) {
-				return;
-			}
-			console.log("↓", i);
-			let tmp = settings.searchEngines[i];
-			settings.searchEngines[i] = settings.searchEngines[i+1];
-			settings.searchEngines[i+1] = tmp;
-			browser.storage.local.set({ searchEngines: settings.searchEngines });
-			if (DEBUG) { log("saved!", settings); }
-			updateUIWithSettings();
-		};
-	} else {
-		moveDownButton.style.opacity = 0.5;
+		// move down button
+
+		cell = document.createElement("td");
+		cell.className = "engine-move-down";
+		let moveDownButton = document.createElement("input");
+		moveDownButton.type = "button";
+		moveDownButton.value = "↓";
+		if (i < settings.searchEngines.length-1) {
+			moveDownButton.onclick = function(ev) {
+				if (i >= settings.searchEngines.length-1) {
+					return;
+				}
+				console.log("↓", i);
+				let tmp = settings.searchEngines[i];
+				settings.searchEngines[i] = settings.searchEngines[i+1];
+				settings.searchEngines[i+1] = tmp;
+				browser.storage.local.set({ searchEngines: settings.searchEngines });
+				if (DEBUG) { log("saved!", settings); }
+				updateUIWithSettings();
+			};
+		} else {
+			moveDownButton.style.opacity = 0.5;
+		}
+		cell.appendChild(moveDownButton);
+		row.appendChild(cell);
 	}
-	cell.appendChild(moveDownButton);
-	row.appendChild(cell);
 
 	// "is enabled" checkbox
 
