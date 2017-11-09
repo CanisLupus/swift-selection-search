@@ -21,7 +21,7 @@ var selectionchange = (function (undefined) {
 					d.addEventListener('input', onInput, true);
 					d.addEventListener('keydown', onKeyDown, true);
 					d.addEventListener('mouseup', onMouseUp, true);
-					d.defaultView.addEventListener('focus', onFocus, true);
+					// d.defaultView.addEventListener('focus', onFocus, true);
 				}
 			}
 		},
@@ -32,7 +32,7 @@ var selectionchange = (function (undefined) {
 				d.removeEventListener('input', onInput, true);
 				d.removeEventListener('keydown', onKeyDown, true);
 				d.removeEventListener('mouseup', onMouseUp, true);
-				d.defaultView.removeEventListener('focus', onFocus, true);
+				// d.defaultView.removeEventListener('focus', onFocus, true);
 			}
 		}
 	};
@@ -54,9 +54,9 @@ var selectionchange = (function (undefined) {
 			code >= 35 && code <= 40 || // home, end and arrow key
 			e.ctrlKey && MAC && MAC_MOVE_KEYS.indexOf(code) >= 0)
 		{
-			// if (!HAS_OWN_SELECTION[e.target.tagName]) {	// uncomment to disable selections with keyboard
+			if (!HAS_OWN_SELECTION[e.target.tagName]) {	// comment to enable selections with keyboard
 				setTimeout(dispatchIfChanged.bind(null, this, true), 0);
-			// }
+			}
 		}
 	}
 
@@ -66,9 +66,9 @@ var selectionchange = (function (undefined) {
 		}
 	}
 
-	function onFocus(e) {
-		setTimeout(dispatchIfChanged.bind(null, this.document), 0);
-	}
+	// function onFocus(e) {
+	// 	setTimeout(dispatchIfChanged.bind(null, this.document), 0);
+	// }
 
 	function dispatchIfChanged(doc, force) {
 		var r = getSelectionRange(doc);
