@@ -438,9 +438,13 @@ function onSearchEngineClick(searchText, engineObject, clickType)
 		} else if (engineObject.id === "openAsLink") {
 			// trim text and add http protocol as default if text doesn't have it
 			searchText = searchText.trim();
-			if (!searchText.includes("://")) {
+			if (!searchText.includes("://") && !searchText.startsWith("about:")) {
 				searchText = "http://" + searchText;
 			}
+
+			searchText = encodeURI(searchText);
+
+			if (DEBUG) { log("open as link: " + searchText); }
 
 			if (clickType === "leftClick") {
 				openUrl(searchText, sss.settings.mouseLeftButtonBehaviour);
