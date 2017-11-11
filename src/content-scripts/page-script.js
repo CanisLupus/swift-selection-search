@@ -60,8 +60,6 @@ function onSettingsChanged(changes, area)
 	}
 
 	if (DEBUG) { log("onSettingsChanged"); }
-	if (DEBUG) { log(changes); }
-	if (DEBUG) { log(area); }
 
 	deactivate();
 	requestActivation();
@@ -256,12 +254,18 @@ padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}
 				iconTitle = "Open as link";
 				iconImgSource = browser.extension.getURL("res/sss-engine-icons/open-link.svg");
 			}
-		} else if (engine.type === "browser") {
-			iconTitle = engine.name;
-			iconImgSource = engine.iconSrc;
 		} else {
 			iconTitle = engine.name;
-			iconImgSource = settings.searchEnginesCache[engine.iconUrl];
+			if (engine.iconUrl.startsWith("data:")) {
+				iconImgSource = engine.iconUrl;
+			} else {
+				let cachedIcon = settings.searchEnginesCache[engine.iconUrl];
+				if (cachedIcon) {
+					iconImgSource = cachedIcon;
+				} else {
+					iconImgSource = engine.iconUrl;
+				}
+			}
 		}
 
 		let icon = document.createElement("img");

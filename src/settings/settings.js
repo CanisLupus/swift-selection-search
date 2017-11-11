@@ -108,20 +108,12 @@ function readMozlz4File(file, onRead, onError)
 
 function updateBrowserEnginesFromSearchJson(browserSearchEngines)
 {
-	// separate all previous browser engines from the rest
-	let wasPreviouslyEnabled = {};
-	let nonBrowserEngines = [];
-
-	for (let engine of settings.searchEngines)
-	{
+	let searchUrls = {};
+	for (let engine of settings.searchEngines) {
 		if (engine.type === "browser") {
-			wasPreviouslyEnabled[engine.id] = engine.isEnabled;
-		} else {
-			nonBrowserEngines.push(engine);
+			searchUrls[engine.searchUrl] = true;
 		}
 	}
-
-	settings.searchEngines = nonBrowserEngines;
 
 	// add all current browser engines
 	for (let engine of browserSearchEngines.engines)
@@ -151,16 +143,16 @@ function updateBrowserEnginesFromSearchJson(browserSearchEngines)
 				url = url.replace("[sss-searchTerms]", "{searchTerms}");	// ...and add it back afterwards
 			}
 
-			let isEnabled = wasPreviouslyEnabled[engine._loadPath];
-			isEnabled = isEnabled !== undefined ? isEnabled : true;	// if engine didn't exist, assume we want it enabled
+			if (searchUrls.hasOwnProperty(url)) {
+				continue;
+			}
 
 			let sssBrowserEngine = {
 				type: "browser",
 				name: engine._name,
-				iconSrc: engine._iconURL,
+				iconUrl: engine._iconURL,
 				searchUrl: url,
-				isEnabled: isEnabled,
-				id: engine._loadPath,	// used to identify engine in unique way
+				isEnabled: true,
 			};
 
 			settings.searchEngines.push(sssBrowserEngine);
@@ -479,7 +471,6 @@ function addSearchEngine(engine, i)
 				if (i <= 0) {
 					return;
 				}
-				console.log("↑", i);
 				let tmp = settings.searchEngines[i];
 				settings.searchEngines[i] = settings.searchEngines[i-1];
 				settings.searchEngines[i-1] = tmp;
@@ -505,7 +496,6 @@ function addSearchEngine(engine, i)
 				if (i >= settings.searchEngines.length-1) {
 					return;
 				}
-				console.log("↓", i);
 				let tmp = settings.searchEngines[i];
 				settings.searchEngines[i] = settings.searchEngines[i+1];
 				settings.searchEngines[i+1] = tmp;
@@ -542,21 +532,13 @@ function addSearchEngine(engine, i)
 	cell = document.createElement("td");
 	cell.className = "engine-icon-img";
 	let icon = document.createElement("img");
+
 	if (engine.type === "sss") {
 		icon.src = browser.extension.getURL(mainScript.getSssIcon(engine.id).iconPath);
-	} else if (engine.type === "browser") {
-		icon.src = engine.iconSrc;
-		// NOTE: doesn't work! can't access resource:// links
-		// if (engine.iconSrc.startsWith("resource://")) {
-		// 	if (DEBUG) { log(engine.iconSrc); }
-		// 	getDataUriFromImgUrl(engine.iconSrc, function(base64Img) {
-		// 		icon.src = base64Img;
-		// 		engine.iconSrc = base64Img;
-		// 		browser.storage.local.set({ searchEngines: settings.searchEngines });
-		// 		if (DEBUG) { log("saved!", settings); }
-		// 	});
-		// }
+	} else if (engine.iconUrl.startsWith("data:")) {
+		icon.src = engine.iconUrl;
 	} else if (settings.searchEnginesCache[engine.iconUrl] === undefined && engine.iconUrl) {
+		icon.src = engine.iconUrl;
 		getDataUriFromImgUrl(engine.iconUrl, function(base64Img) {
 			icon.src = base64Img;
 			settings.searchEnginesCache[engine.iconUrl] = base64Img;
@@ -569,7 +551,26 @@ function addSearchEngine(engine, i)
 	cell.appendChild(icon);
 	row.appendChild(cell);
 
-	if (engine.type === "custom")
+	if (engine.type === "sss")
+	{
+		let sssIcon = mainScript.getSssIcon(engine.id);
+
+		// name
+
+		cell = document.createElement("td");
+		cell.className = "engine-native";
+		cell.textContent = sssIcon.name;
+		row.appendChild(cell);
+
+		// description
+
+		cell = document.createElement("td");
+		cell.className = "engine-native";
+		cell.colSpan = 2;
+		cell.textContent = sssIcon.description;
+		row.appendChild(cell);
+	}
+	else
 	{
 		// name
 
@@ -608,63 +609,28 @@ function addSearchEngine(engine, i)
 		let iconLinkInput = document.createElement("input");
 		iconLinkInput.type = "text";
 		iconLinkInput.value = engine.iconUrl;
+
 		iconLinkInput.oninput = function(ev) {
-			engine.iconUrl = iconLinkInput.value;
-			icon.src = "";
 			delete settings.searchEnginesCache[engine.iconUrl];
-			getDataUriFromImgUrl(engine.iconUrl, function(base64Img) {
-				icon.src = base64Img;
-				settings.searchEnginesCache[engine.iconUrl] = base64Img;
-				browser.storage.local.set({ searchEnginesCache: settings.searchEnginesCache });
-				if (DEBUG) { log("saved!", settings); }
-			});
+
+			engine.iconUrl = iconLinkInput.value.trim();
+			icon.src = engine.iconUrl;
+
+			if (!engine.iconUrl.startsWith("data:")) {
+				getDataUriFromImgUrl(iconLinkInput.value, function(base64Img) {
+					icon.src = base64Img;
+					settings.searchEnginesCache[iconLinkInput.value] = base64Img;
+				});
+			}
 		};
+
 		iconLinkInput.onchange = function(ev) {
-			browser.storage.local.set({ searchEngines: settings.searchEngines });
+			browser.storage.local.set({ searchEngines: settings.searchEngines, searchEnginesCache: settings.searchEnginesCache });
 			if (DEBUG) { log("saved!", settings); }
 		};
 		cell.appendChild(iconLinkInput);
 		row.appendChild(cell);
-	}
-	else if (engine.type === "browser")
-	{
-		// name
 
-		cell = document.createElement("td");
-		cell.className = "engine-native";
-		cell.textContent = engine.name;
-		row.appendChild(cell);
-
-		// search url
-
-		cell = document.createElement("td");
-		cell.className = "engine-native";
-		cell.colSpan = 2;
-		cell.textContent = engine.searchUrl;
-		row.appendChild(cell);
-	}
-	else if (engine.type === "sss")
-	{
-		let sssIcon = mainScript.getSssIcon(engine.id);
-
-		// name
-
-		cell = document.createElement("td");
-		cell.className = "engine-native";
-		cell.textContent = sssIcon.name;
-		row.appendChild(cell);
-
-		// description
-
-		cell = document.createElement("td");
-		cell.className = "engine-native";
-		cell.colSpan = 2;
-		cell.textContent = sssIcon.description;
-		row.appendChild(cell);
-	}
-
-	if (engine.type !== "sss")
-	{
 		// delete button
 
 		cell = document.createElement("td");
@@ -674,7 +640,8 @@ function addSearchEngine(engine, i)
 		deleteButton.value = "✖";
 		deleteButton.onclick = function(ev) {
 			settings.searchEngines.splice(i, 1);	// remove element at i
-			browser.storage.local.set({ searchEngines: settings.searchEngines });
+			trimSearchEnginesCache(settings);
+			browser.storage.local.set({ searchEngines: settings.searchEngines, searchEnginesCache: settings.searchEnginesCache });
 			if (DEBUG) { log("saved!", settings); }
 			updateUIWithSettings();
 		};
@@ -683,6 +650,25 @@ function addSearchEngine(engine, i)
 	}
 
 	page.engines.appendChild(row);
+}
+
+function trimSearchEnginesCache(settings)
+{
+	let newCache = {};
+
+	for (let engine of settings.searchEngines)
+	{
+		if (!engine.iconUrl || engine.iconUrl.startsWith("data:")) {
+			continue;
+		}
+
+		let cachedIcon = settings.searchEnginesCache[engine.iconUrl];
+		if (cachedIcon) {
+			newCache[engine.iconUrl] = cachedIcon;
+		}
+	}
+
+	settings.searchEnginesCache = newCache;
 }
 
 function updateColorText(text, value)

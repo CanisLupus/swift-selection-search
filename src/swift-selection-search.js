@@ -166,20 +166,7 @@ function onSettingsAcquired(settings)
 		settings = Object.assign({}, defaultSettings);
 		browser.storage.local.set(settings);
 	} else {
-		// add settings that were not available in older versions
-		let shouldSave = false;
-
-		if (settings.popupItemVerticalPadding === undefined) {
-			settings.popupItemVerticalPadding = defaultSettings.popupItemVerticalPadding;
-			shouldSave = true;
-		}
-
-		if (settings.allowPopupOnEditableFields === undefined) {
-			settings.allowPopupOnEditableFields = defaultSettings.allowPopupOnEditableFields;
-			shouldSave = true;
-		}
-
-		if (shouldSave) {
+		if (isFirstLoad && runBackwardsCompatibilityUpdates(settings)) {
 			browser.storage.local.set(settings);
 			return;	// calling "set" will trigger this whole function again, so quit before wasting time
 		}
@@ -200,6 +187,34 @@ function onSettingsAcquired(settings)
 	}
 
 	isFirstLoad = false;
+}
+
+function runBackwardsCompatibilityUpdates(settings)
+{
+	// add settings that were not available in older versions
+	let shouldSave = false;
+
+	if (settings.popupItemVerticalPadding === undefined) {
+		settings.popupItemVerticalPadding = defaultSettings.popupItemVerticalPadding;
+		shouldSave = true;
+	}
+
+	if (settings.allowPopupOnEditableFields === undefined) {
+		settings.allowPopupOnEditableFields = defaultSettings.allowPopupOnEditableFields;
+		shouldSave = true;
+	}
+
+	for (let engine of settings.searchEngines)
+	{
+		if (engine.iconUrl === undefined && engine.type === "browser") {
+			engine.iconUrl = engine.iconSrc;
+			delete engine.iconSrc;
+			delete engine.id;
+			shouldSave = true;
+		}
+	}
+
+	return shouldSave;
 }
 
 // Called from settings.
@@ -297,8 +312,8 @@ function setup_ContextMenu()
 		// icons unsupported on 55 and below
 		if (browserVersion >= 56) {
 			let icon;
-			if (engine.type === "browser") {
-				icon = engine.iconSrc;
+			if (engine.iconUrl.startsWith("data:")) {
+				icon = engine.iconUrl;
 			} else {
 				icon = sss.settings.searchEnginesCache[engine.iconUrl];
 				if (icon === undefined) {
