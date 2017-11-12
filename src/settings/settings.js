@@ -649,20 +649,19 @@ function addSearchEngine(engine, i)
 		iconLinkInput.value = engine.iconUrl;
 
 		iconLinkInput.oninput = (ev) => {
-			delete settings.searchEnginesCache[engine.iconUrl];
-
 			engine.iconUrl = iconLinkInput.value.trim();
 			icon.src = engine.iconUrl;
 
 			if (!engine.iconUrl.startsWith("data:")) {
-				getDataUriFromImgUrl(iconLinkInput.value, function(base64Img) {
+				getDataUriFromImgUrl(engine.iconUrl, function(base64Img) {
 					icon.src = base64Img;
-					settings.searchEnginesCache[iconLinkInput.value] = base64Img;
+					settings.searchEnginesCache[engine.iconUrl] = base64Img;
 				});
 			}
 		};
 
 		iconLinkInput.onchange = (ev) => {
+			trimSearchEnginesCache(settings);
 			browser.storage.local.set({ searchEngines: settings.searchEngines, searchEnginesCache: settings.searchEnginesCache });
 			if (DEBUG) { log("saved!", settings); }
 		};
