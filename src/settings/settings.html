@@ -93,6 +93,9 @@
 		padding-left: 20px;
 		color: #666;
 	}
+	.setting-description * {
+		font-size: 0.8rem;
+	}
 	.setting-description a {
 		font-size: 0.8rem;
 		color: #666;
@@ -148,8 +151,8 @@
 	<div class="setting">
 		<div class="setting-name">Load browser search engines</div>
 		<div class="setting-value">
-			<input name="selectSearchEnginesFileButton" type="file" accept=".json.mozlz4" style="display: none" />
-			<input name="visibleSelectSearchEnginesFileButton" type="button" value='Select "search.json.mozlz4"' />
+			<input name="importBrowserEnginesFileButton" type="button" value='Select "search.json.mozlz4"'/>
+			<input name="importBrowserEnginesFileButton_real" type="file" accept=".json.mozlz4" style="display: none"/>
 		</div>
 		<div class="setting-description">
 			Import browser engines. SSS can't do this automatically in WebExtensions! Please select the "search.json.mozlz4" file usually located here:
@@ -161,7 +164,7 @@
 				<br>(Linux) /home/[user]/.mozilla/firefox/[profile-id]
 				<br>NOTE: Some of these folders may be hidden. Please refer to <a href="http://kb.mozillazine.org/Profile_folder_-_Firefox">this page.</a>
 			</details>
-			NOTE: Some icons may be missing because SSS can't access icons in resource:// links.
+			NOTE: Some icons may not appear if they are "resource://" links.
 		</div>
 	</div>
 
@@ -449,6 +452,61 @@
 			</select>
 		</div>
 		<div class="setting-description">What engines to show on the context menu.<br>(default: Same as popup)</div>
+	</div>
+
+	<div class="section-name">Storage & Backup</div>
+
+	<div class="setting" style="display: none">
+		<div class="setting-name">Storage size</div>
+		<div class="setting-value">
+			<span id="storage-size" class="warn-when-over-storage-limit"></span>
+		</div>
+		<div class="setting-description">
+			This is an estimate size of your SSS engines and settings. <span class="warn-when-over-storage-limit">Engines with "data:image" icons tend to occupy a lot of space</span> (these are generally imported from the browser). WARNING: Actual size may be over (or below) the displayed value.
+		</div>
+	</div>
+
+	<div class="setting" style="display: none">
+		<div class="setting-name">Sync settings (upload)</div>
+		<div class="setting-value">
+			<input type="button" name="saveSettingsToSyncButton" value="Save to Sync" class="warn-when-over-storage-limit">
+		</div>
+		<div class="setting-description">
+			Saves all SSS settings and engines in Firefox Sync. This does not force upload, so you may have to wait for Firefox or force sync yourself. <span class="warn-when-over-storage-limit">Beware that storage size must be below 100KB for this to work.</span> Estimate size is not exact, so it may still work if above the limit, or fail if below it.
+		</div>
+	</div>
+
+	<div class="setting" style="display: none">
+		<div class="setting-name">Sync settings (download)</div>
+		<div class="setting-value">
+			<input type="button" name="loadSettingsFromSyncButton" value="Load from Sync">
+			<input type="button" name="loadSettingsFromSyncButton_real" value="Really load from Sync" style="display: none">
+		</div>
+		<div class="setting-description">
+			Downloads previously saved SSS settings and engines from Firefox Sync. This will override all existing settings and engines!
+		</div>
+	</div>
+
+	<div class="setting">
+		<div class="setting-name">Export settings to file</div>
+		<div class="setting-value">
+			<input type="button" name="exportSettingsToFileButton" value="Export to file">
+			<input name="exportSettingsToFileButton_real" type="file" accept=".json" style="display: none"/>
+		</div>
+		<div class="setting-description">
+			Exports all SSS settings and engines to a file.
+		</div>
+	</div>
+
+	<div class="setting">
+		<div class="setting-name">Import settings from file</div>
+		<div class="setting-value">
+			<input type="button" name="importSettingsFromFileButton" value="Import from file">
+			<input name="importSettingsFromFileButton_real" type="file" accept=".json" style="display: none"/>
+		</div>
+		<div class="setting-description">
+			Imports SSS settings and engines from a file (previously exported). This will override all existing settings and engines!
+		</div>
 	</div>
 
 	<div class="section-name">Reset</div>

@@ -27,7 +27,7 @@
 		"page": "settings/settings.html"
 	},
 
-	"permissions": ["<all_urls>", "activeTab", "clipboardWrite", "contextMenus", "storage", "tabs"],
+	"permissions": ["<all_urls>", "activeTab", "clipboardWrite", "contextMenus", "storage", "tabs", "downloads"],
 
 	"commands": {
 		"open-popup": {

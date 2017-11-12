@@ -218,17 +218,15 @@ function onPageLoaded()
 	}
 
 	// register change event for anything in the form
-	page.container.onchange = function(ev) {
+	page.container.onchange = (ev) => {
 		let item = ev.target;
 		if (item.type === "color") {
 			return;
 		}
 		if (DEBUG) { log("onFormChanged target: " + item.name + ", value: " + item.value); }
 
-		if (item.name === "selectSearchEnginesFileButton") {
-			let item = ev.target;
-			let file = item.files[0];
-			readMozlz4File(file, json => {
+		if (item.name === "importBrowserEnginesFileButton_real") {
+			readMozlz4File(ev.target.files[0], json => {
 				let browserSearchEngines = JSON.parse(json);
 				if (DEBUG) { log(browserSearchEngines); }
 				updateBrowserEnginesFromSearchJson(browserSearchEngines);
@@ -236,6 +234,13 @@ function onPageLoaded()
 				if (DEBUG) { log("saved!", settings); }
 				updateUIWithSettings();
 			});
+		} else if (item.name === "importSettingsFromFileButton_real") {
+			let reader = new FileReader();
+			reader.onload = function() {
+				let importedSettings = JSON.parse(reader.result);
+				importSettings(importedSettings);
+			};
+			reader.readAsText(ev.target.files[0]);
 		} else {
 			if (item.name in settings) {
 				let value;
@@ -253,25 +258,25 @@ function onPageLoaded()
 		}
 	};
 
-	page.visibleSelectSearchEnginesFileButton.onclick = ev => page.selectSearchEnginesFileButton.click();
+	page.importBrowserEnginesFileButton.onclick = ev => page.importBrowserEnginesFileButton_real.click();
+	page.exportSettingsToFileButton.onclick = ev => {
+		var blob = runActionOnDietSettings(settings, (settings) => new Blob([JSON.stringify(settings)]));
+		let filename = "SSS settings backup (" + new Date(Date.now()).toJSON().replace(/:/g, ".") + ").json";
+		browser.downloads.download({
+			"saveAs": true,
+			"url": URL.createObjectURL(blob),
+			"filename": filename,
+		});
+	};
+	page.importSettingsFromFileButton.onclick = ev => page.importSettingsFromFileButton_real.click();
 
 	// register events for specific behaviour when certain fields change
-	page.popupBackgroundColorPicker.oninput = function(ev) { updateColorText  (page.popupBackgroundColor,       page.popupBackgroundColorPicker.value); };
-	page.popupBackgroundColor.oninput       = function(ev) { updatePickerColor(page.popupBackgroundColorPicker, page.popupBackgroundColor.value);       };
-	page.popupHighlightColorPicker.oninput  = function(ev) { updateColorText  (page.popupHighlightColor,        page.popupHighlightColorPicker.value);  };
-	page.popupHighlightColor.oninput        = function(ev) { updatePickerColor(page.popupHighlightColorPicker,  page.popupHighlightColor.value);        };
+	page.popupBackgroundColorPicker.oninput = (ev) => updateColorText  (page.popupBackgroundColor,       page.popupBackgroundColorPicker.value);
+	page.popupBackgroundColor.oninput       = (ev) => updatePickerColor(page.popupBackgroundColorPicker, page.popupBackgroundColor.value);
+	page.popupHighlightColorPicker.oninput  = (ev) => updateColorText  (page.popupHighlightColor,        page.popupHighlightColorPicker.value);
+	page.popupHighlightColor.oninput        = (ev) => updatePickerColor(page.popupHighlightColorPicker,  page.popupHighlightColor.value);
 
 	let defaultSettings = mainScript.getDefaultSettings();
-
-	// register events for button clicks
-	page.addEngineButton.onclick = function(ev) {
-		let searchEngine = JSON.parse(JSON.stringify(defaultSettings.searchEngines[2]));	// first two are special sss icons
-		settings.searchEngines.push(searchEngine);
-
-		browser.storage.local.set({ searchEngines: settings.searchEngines });
-		if (DEBUG) { log("saved!", settings); }
-		updateUIWithSettings();
-	};
 
 	// engines footnote
 
@@ -297,58 +302,73 @@ function onPageLoaded()
 		}
 	}
 
-	// reset engines button
+	// register events for button clicks
 
-	let originalResetSearchEnginesButtonValue = page.resetSearchEnginesButton.value;
+	page.addEngineButton.onclick = (ev) => {
+		let searchEngine = JSON.parse(JSON.stringify(defaultSettings.searchEngines[2]));	// first two are special sss icons
+		settings.searchEngines.push(searchEngine);
 
-	page.resetSearchEnginesButton.onclick = function(ev) {
-		if (page.resetSearchEnginesButton.value === "Cancel") {
-			page.resetSearchEnginesButton.value = originalResetSearchEnginesButtonValue;
-			page.resetSearchEnginesButton_real.style.display = "none";
-		} else {
-			page.resetSearchEnginesButton.value = "Cancel";
-			page.resetSearchEnginesButton_real.style.display = "";
-		}
-	};
-
-	page.resetSearchEnginesButton_real.onclick = function(ev) {
-		page.resetSearchEnginesButton.value = originalResetSearchEnginesButtonValue;
-		page.resetSearchEnginesButton_real.style.display = "none";
-
-		ev.preventDefault();
-		let defaultEngines = JSON.parse(JSON.stringify(defaultSettings.searchEngines));
-		settings.searchEngines = defaultEngines;
-		updateUIWithSettings();
 		browser.storage.local.set({ searchEngines: settings.searchEngines });
 		if (DEBUG) { log("saved!", settings); }
-	};
-
-	// reset settings button
-
-	let originalResetSettingsButtonValue = page.resetSettingsButton.value;
-
-	page.resetSettingsButton.onclick = function(ev) {
-		if (page.resetSettingsButton.value === "Cancel") {
-			page.resetSettingsButton.value = originalResetSettingsButtonValue;
-			page.resetSettingsButton_real.style.display = "none";
-		} else {
-			page.resetSettingsButton.value = "Cancel";
-			page.resetSettingsButton_real.style.display = "";
-		}
-	};
-
-	page.resetSettingsButton_real.onclick = function(ev) {
-		page.resetSettingsButton.value = originalResetSettingsButtonValue;
-		page.resetSettingsButton_real.style.display = "none";
-
-		ev.preventDefault();
-		let searchEngines = settings.searchEngines;	// save engines
-		settings = JSON.parse(JSON.stringify(defaultSettings));	// copy default settings
-		settings.searchEngines = searchEngines;	// restore engines
 		updateUIWithSettings();
-		browser.storage.local.set(settings);
-		if (DEBUG) { log("saved!", settings); }
 	};
+
+	page.saveSettingsToSyncButton.onclick = (ev) => {
+		if (DEBUG) { log("saving!"); }
+		let syncedSettings = runActionOnDietSettings(settings, (settings) => JSON.parse(JSON.stringify(settings)));
+		browser.storage.sync.set(syncedSettings).then(
+			() => log("All settings and engines were saved in Sync!"),
+			() => log("Uploading to Sync failed! Is your network working? Are you under the 100KB size limit?")
+		);
+		if (DEBUG) { log("saved in sync!", syncedSettings); }
+	};
+
+	// confirmation buttons
+
+	function setupConfirmationProcessForButton(mainButton, confirmationButton, originalMainButtonValue, onConfirm)
+	{
+		mainButton.onclick = (ev) => {
+			if (mainButton.value === "Cancel") {
+				mainButton.value = originalMainButtonValue;
+				confirmationButton.style.display = "none";
+			} else {
+				mainButton.value = "Cancel";
+				confirmationButton.style.display = "";
+			}
+		};
+
+		confirmationButton.onclick = (ev) => {
+			mainButton.value = originalMainButtonValue;
+			confirmationButton.style.display = "none";
+
+			ev.preventDefault();
+			onConfirm();
+		};
+	}
+
+	setupConfirmationProcessForButton(page.resetSearchEnginesButton, page.resetSearchEnginesButton_real, page.resetSearchEnginesButton.value,
+		() => {
+			let defaultEngines = JSON.parse(JSON.stringify(defaultSettings.searchEngines));
+			settings.searchEngines = defaultEngines;
+			updateUIWithSettings();
+			browser.storage.local.set({ searchEngines: settings.searchEngines });
+			if (DEBUG) { log("saved!", settings); }
+		}
+	);
+
+	setupConfirmationProcessForButton(page.resetSettingsButton, page.resetSettingsButton_real, page.resetSettingsButton.value,
+		() => {
+			let searchEngines = settings.searchEngines;	// save engines
+			settings = JSON.parse(JSON.stringify(defaultSettings));	// copy default settings
+			settings.searchEngines = searchEngines;	// restore engines
+			updateUIWithSettings();
+			browser.storage.local.set(settings);
+			if (DEBUG) { log("saved!", settings); }
+		}
+	);
+
+	setupConfirmationProcessForButton(page.loadSettingsFromSyncButton, page.loadSettingsFromSyncButton_real, page.loadSettingsFromSyncButton.value,
+		() => browser.storage.sync.get().then(importSettings, mainScript.getErrorHandler("Error getting settings from sync.")));
 
 	// finish and set elements based on settings, if they are already loaded
 
@@ -372,6 +392,8 @@ function updateUIWithSettings()
 {
 	if (DEBUG) { log("updateUIWithSettings", settings); }
 
+	// load UI values from settings
+
 	for (let item of page.inputs)
 	{
 		if (!(item.name in settings)) {
@@ -391,6 +413,22 @@ function updateUIWithSettings()
 
 	updatePickerColor(page.popupBackgroundColorPicker, page.popupBackgroundColor.value);
 	updatePickerColor(page.popupHighlightColorPicker, page.popupHighlightColor.value);
+
+	// calculate storage size
+
+	let storageSize = runActionOnDietSettings(settings, (settings) => roughSizeOfObject(settings));
+	// let storageSize = runActionOnDietSettings(settings, (settings) => JSON.stringify(settings).length);
+
+	if (storageSize > 100 * 1024) {
+		for (let elem of document.getElementsByClassName("warn-when-over-storage-limit")) {
+			elem.style.color = "red";
+		}
+	}
+
+	let storageSizeElement = document.getElementById("storage-size");
+	storageSizeElement.textContent = getSizeWithUnit(storageSize);
+
+	// update engines
 
 	if (settings.searchEngines !== undefined)
 	{
@@ -424,9 +462,9 @@ function updateUIWithSettings()
 				onEnd: function (ev) {
 					if (DEBUG) { log("onEnd", settings); }
 					settings.searchEngines.splice(ev.newIndex, 0, settings.searchEngines.splice(ev.oldIndex, 1)[0]);
+					updateUIWithSettings();
 					browser.storage.local.set({ searchEngines: settings.searchEngines });
 					if (DEBUG) { log("saved!", settings); }
-					updateUIWithSettings();
 				},
 			});
 		}
@@ -467,16 +505,16 @@ function addSearchEngine(engine, i)
 		moveUpButton.type = "button";
 		moveUpButton.value = "↑";
 		if (i > 0) {
-			moveUpButton.onclick = function(ev) {
+			moveUpButton.onclick = (ev) => {
 				if (i <= 0) {
 					return;
 				}
 				let tmp = settings.searchEngines[i];
 				settings.searchEngines[i] = settings.searchEngines[i-1];
 				settings.searchEngines[i-1] = tmp;
+				updateUIWithSettings();
 				browser.storage.local.set({ searchEngines: settings.searchEngines });
 				if (DEBUG) { log("saved!", settings); }
-				updateUIWithSettings();
 			};
 		} else {
 			moveUpButton.style.opacity = 0.5;
@@ -492,16 +530,16 @@ function addSearchEngine(engine, i)
 		moveDownButton.type = "button";
 		moveDownButton.value = "↓";
 		if (i < settings.searchEngines.length-1) {
-			moveDownButton.onclick = function(ev) {
+			moveDownButton.onclick = (ev) => {
 				if (i >= settings.searchEngines.length-1) {
 					return;
 				}
 				let tmp = settings.searchEngines[i];
 				settings.searchEngines[i] = settings.searchEngines[i+1];
 				settings.searchEngines[i+1] = tmp;
+				updateUIWithSettings();
 				browser.storage.local.set({ searchEngines: settings.searchEngines });
 				if (DEBUG) { log("saved!", settings); }
-				updateUIWithSettings();
 			};
 		} else {
 			moveDownButton.style.opacity = 0.5;
@@ -518,7 +556,7 @@ function addSearchEngine(engine, i)
 	isEnabledInput.type = "checkbox";
 	isEnabledInput.checked = engine.isEnabled;
 	isEnabledInput.autocomplete = "off";
-	isEnabledInput.onchange = function(ev) {
+	isEnabledInput.onchange = (ev) => {
 		engine.isEnabled = isEnabledInput.checked;
 		browser.storage.local.set({ searchEngines: settings.searchEngines });
 		if (DEBUG) { log("saved!", settings); }
@@ -579,7 +617,7 @@ function addSearchEngine(engine, i)
 		let nameInput = document.createElement("input");
 		nameInput.type = "text";
 		nameInput.value = engine.name;
-		nameInput.onchange = function(ev) {
+		nameInput.onchange = (ev) => {
 			engine.name = nameInput.value;
 			browser.storage.local.set({ searchEngines: settings.searchEngines });
 			if (DEBUG) { log("saved!", settings); }
@@ -594,7 +632,7 @@ function addSearchEngine(engine, i)
 		let searchLinkInput = document.createElement("input");
 		searchLinkInput.type = "text";
 		searchLinkInput.value = engine.searchUrl;
-		searchLinkInput.onchange = function(ev) {
+		searchLinkInput.onchange = (ev) => {
 			engine.searchUrl = searchLinkInput.value;
 			browser.storage.local.set({ searchEngines: settings.searchEngines });
 			if (DEBUG) { log("saved!", settings); }
@@ -610,7 +648,7 @@ function addSearchEngine(engine, i)
 		iconLinkInput.type = "text";
 		iconLinkInput.value = engine.iconUrl;
 
-		iconLinkInput.oninput = function(ev) {
+		iconLinkInput.oninput = (ev) => {
 			delete settings.searchEnginesCache[engine.iconUrl];
 
 			engine.iconUrl = iconLinkInput.value.trim();
@@ -624,7 +662,7 @@ function addSearchEngine(engine, i)
 			}
 		};
 
-		iconLinkInput.onchange = function(ev) {
+		iconLinkInput.onchange = (ev) => {
 			browser.storage.local.set({ searchEngines: settings.searchEngines, searchEnginesCache: settings.searchEnginesCache });
 			if (DEBUG) { log("saved!", settings); }
 		};
@@ -638,12 +676,12 @@ function addSearchEngine(engine, i)
 		let deleteButton = document.createElement("input");
 		deleteButton.type = "button";
 		deleteButton.value = "✖";
-		deleteButton.onclick = function(ev) {
+		deleteButton.onclick = (ev) => {
 			settings.searchEngines.splice(i, 1);	// remove element at i
 			trimSearchEnginesCache(settings);
+			updateUIWithSettings();
 			browser.storage.local.set({ searchEngines: settings.searchEngines, searchEnginesCache: settings.searchEnginesCache });
 			if (DEBUG) { log("saved!", settings); }
-			updateUIWithSettings();
 		};
 		cell.appendChild(deleteButton);
 		row.appendChild(cell);
@@ -671,6 +709,34 @@ function trimSearchEnginesCache(settings)
 	settings.searchEnginesCache = newCache;
 }
 
+// removes from settings objects that are easily re-calculatable (ex.: caches),
+// in order to reduce size for an action, and then places them back and returns the action's result
+function runActionOnDietSettings(settings, onCleaned)
+{
+	let cache = settings.searchEnginesCache;
+	delete settings.searchEnginesCache;
+	let result = onCleaned(settings);
+	settings.searchEnginesCache = cache;
+	return result;
+}
+
+function importSettings(importedSettings)
+{
+	if (importedSettings.searchEngines === undefined) {
+		if (DEBUG) { log("imported settings are empty!", importedSettings); }
+		return;
+	}
+
+	settings = importedSettings;
+	settings.searchEnginesCache = {};
+
+	mainScript.runBackwardsCompatibilityUpdates(settings);
+
+	updateUIWithSettings();
+	browser.storage.local.set(settings);
+	if (DEBUG) { log("imported and saved settings!", settings); }
+}
+
 function updateColorText(text, value)
 {
 	value = value.toUpperCase();
@@ -688,5 +754,60 @@ function updatePickerColor(picker, value)
 
 	if (picker.value !== value) {
 		picker.value = value;
+	}
+}
+
+// taken from https://stackoverflow.com/a/11900218/2162837
+// by thomas-peter
+// License: https://creativecommons.org/licenses/by-sa/3.0/legalcode
+// Changes: formatting
+function roughSizeOfObject(object)
+{
+	var objectList = [];
+	var stack = [object];
+	var bytes = 0;
+
+	while (stack.length)
+	{
+		var value = stack.pop();
+
+		if (typeof value === 'boolean') {
+			bytes += 4;
+		}
+		else if (typeof value === 'string') {
+			bytes += value.length * 2;
+		}
+		else if (typeof value === 'number') {
+			bytes += 8;
+		}
+		else if (typeof value === 'object' && objectList.indexOf(value) === -1) {
+			objectList.push(value);
+
+			for (var i in value) {
+				stack.push(value[i]);
+			}
+		}
+	}
+	return bytes;
+}
+
+function getSizeWithUnit(size)
+{
+	let unit = 0;
+	while (size >= 1024 && unit <= 2) {
+		size /= 1024;
+		unit++;
+	}
+
+	size = Math.round(size);
+
+	if (unit == 0) {
+		return size + "B";
+	} else if (unit == 1) {
+		return size + "KB";
+	} else if (unit == 2) {
+		return size + "MB";
+	} else {
+		return size + "GB";
 	}
 }

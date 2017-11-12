@@ -144,6 +144,7 @@ browser.runtime.getBrowserInfo().then((browserInfo) => {
 
 	// clear all settings (for test purposes)
 	// browser.storage.local.clear();
+	// browser.storage.sync.clear();
 
 	// register with worker messages and changes to settings
 	browser.runtime.onMessage.addListener(onContentScriptMessage);
@@ -189,6 +190,7 @@ function onSettingsAcquired(settings)
 	isFirstLoad = false;
 }
 
+// Called from settings.
 function runBackwardsCompatibilityUpdates(settings)
 {
 	// add settings that were not available in older versions
