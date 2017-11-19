@@ -71,6 +71,7 @@ const defaultSettings = {
 	popupPaddingY: 1,
 	popupOffsetX: 0,
 	popupOffsetY: 0,
+	popupBorderRadius: 2,
 	enableEnginesInContextMenu: true,
 	contextMenuItemBehaviour: consts.MouseButtonBehaviour_NewBgTab,
 	contextMenuEnginesFilter: consts.ContextMenuEnginesFilter_SameAsPopup,
@@ -203,6 +204,11 @@ function runBackwardsCompatibilityUpdates(settings)
 
 	if (settings.allowPopupOnEditableFields === undefined) {
 		settings.allowPopupOnEditableFields = defaultSettings.allowPopupOnEditableFields;
+		shouldSave = true;
+	}
+
+	if (settings.popupBorderRadius === undefined) {
+		settings.popupBorderRadius = defaultSettings.popupBorderRadius;
 		shouldSave = true;
 	}
 

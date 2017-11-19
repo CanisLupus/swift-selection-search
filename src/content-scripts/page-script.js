@@ -217,7 +217,7 @@ overflow: hidden !important;
 user-select: none !important;
 background-color: ${settings.popupBackgroundColor} !important;
 box-shadow: 0px 0px 3px rgba(0,0,0,.5) !important;
-border-radius: 2px !important;
+border-radius: ${settings.popupBorderRadius}px !important;
 direction: ltr !important;
 padding: ${settings.popupPaddingY}px ${settings.popupPaddingX}px !important;
 width: initial !important;
