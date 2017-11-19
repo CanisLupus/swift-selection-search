@@ -207,22 +207,23 @@ function createPopup(settings, searchEngines)
 	// format popup, resetting all to initial and including values that will be changed later (set those to "initial" explicitly)
 	let popupCssText = `
 all: initial;
-font-size: 0;
-position: absolute;
-z-index: 2147483647;
-text-align: center;
-overflow: hidden;
--moz-user-select: none;
-user-select: none;
-background-color: ${settings.popupBackgroundColor};
-box-shadow: 0px 0px 3px rgba(0,0,0,.5);
-border-radius: 2px;
-direction: ltr;
-padding: ${settings.popupPaddingY}px ${settings.popupPaddingX}px;
-width: initial;
-height: initial;
-left: initial;
-top: initial;`;
+box-sizing: initial !important;
+font-size: 0 !important;
+position: absolute !important;
+z-index: 2147483647 !important;
+text-align: center !important;
+overflow: hidden !important;
+-moz-user-select: none !important;
+user-select: none !important;
+background-color: ${settings.popupBackgroundColor} !important;
+box-shadow: 0px 0px 3px rgba(0,0,0,.5) !important;
+border-radius: 2px !important;
+direction: ltr !important;
+padding: ${settings.popupPaddingY}px ${settings.popupPaddingX}px !important;
+width: initial !important;
+height: initial !important;
+left: initial !important;
+top: initial !important;`;
 
 	popup.style.cssText = popupCssText;
 
@@ -231,12 +232,13 @@ top: initial;`;
 	let sizeText = settings.popupItemSize + "px";
 	let iconCssText = `
 all: initial;
-fontSize: 0;
-cursor: pointer;
-pointer-events: auto;
-height: ${settings.popupItemSize}px;
-width: ${settings.popupItemSize}px;
-padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}px`;
+box-sizing: initial !important;
+fontSize: 0 !important;
+cursor: pointer !important;
+pointer-events: auto !important;
+height: ${settings.popupItemSize}px !important;
+width: ${settings.popupItemSize}px !important;
+padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}px !important`;
 
 	for (let i = 0; i < searchEngines.length; i++)
 	{
