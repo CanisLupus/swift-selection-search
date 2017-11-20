@@ -122,6 +122,32 @@
 
 <body>
 <div id="settings">
+	<div class="section-name">Instructions</div>
+
+	<div class="setting">
+		<div class="setting-name" style="max-width: 160px;">Quick setup!</div>
+		<div class="setting-description">
+			<ol>
+				<li>Add search engines using the "Add" button in the table below, and/or load them from Firefox. They will then appear in the SSS popup and context menu when you select text on a page. SSS comes with a few examples!</li>
+				<li>You can change the engine names, search URLs, and icon URLs. When you click a search engine in the popup or context menu, <i>{searchTerms}</i> (from the search URL) will be replaced by the selected text.</li>
+				<li>For customization of the popup appearance, context menu, click behaviour, etc, please check the other options in this page.</li>
+			</ol>
+		</div>
+	</div>
+
+	<div class="setting">
+		<div class="setting-name" style="max-width: 160px;">Troubleshooting</div>
+		<div class="setting-description">
+			Having problems?<br>
+			<ul>
+				<li>Some search engine icons may not appear if they are "resource://" links (some imported engines have those). This is normal, unfortunately. Please try finding another icon for the engine!</li>
+				<li>If an icon does not appear and its URL is correct, please check if that still happens when you add the icon URL again while having your ad blocker off. Some blocking lists in your ad blocker can stop certain images from downloading! (ex.: YouTube may be blocked by "Fanboy's Annoyance List")</li>
+				<li>Does the popup not appear at all on some websites or frames of a website? It may be a website content policy or an incompatibility with SSS. Please report it using the issues link below and I'll see what I can do! (ex.: addons.mozilla.org has page modifications blocked; bugzilla.mozilla.org blocks most images)</li>
+				<li>Is your problem not here? Or maybe you found a bug? Contact me or post an issue <a href="https://github.com/CanisLupus/swift-selection-search/issues">here</a>.</li>
+			</ul>
+		</div>
+	</div>
+
 	<div class="section-name">Search engines</div>
 
 	<div class="setting">
@@ -419,7 +445,7 @@
 	</div>
 
 	<div class="setting">
-		<div class="setting-name">Popup roundedness</div>
+		<div class="setting-name">Popup roundness</div>
 		<div class="setting-value">
 			<input type="number" name="popupBorderRadius" min="0" value="2">
 		</div>

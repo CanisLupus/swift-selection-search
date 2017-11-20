@@ -473,7 +473,8 @@ function updateUIWithSettings()
 
 function isDragSupported()
 {
-	return mainScript.getBrowserVersion() <= 55;
+	let browserVersion = mainScript.getBrowserVersion()
+	return browserVersion <= 55;
 }
 
 function addSearchEngine(engine, i)
