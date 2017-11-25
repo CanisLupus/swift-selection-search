@@ -298,10 +298,9 @@ padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}
 		}
 
 		icon.addEventListener("mouseup", onSearchEngineClick(engine, settings));
-		icon.addEventListener("mousedown", function(e) {
-			if (e.which === 2) {
-				e.preventDefault();
-			}
+		icon.addEventListener("mousedown", function(ev) {
+			// prevents focus from changing to icon and breaking copy from input fields
+			ev.preventDefault();
 		});
 		icon.ondragstart = function() { return false; };	// disable dragging popup images
 
