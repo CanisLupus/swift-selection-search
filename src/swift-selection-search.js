@@ -275,7 +275,7 @@ function onContentScriptMessage(msg, sender, sendResponse)
 	if (msg.type === "activationRequest") {
 		sendResponse({ popupLocation: sss.settings.popupLocation, popupOpenBehaviour: sss.settings.popupOpenBehaviour });
 	} else if (msg.type === "engineClick") {
-		onSearchEngineClick(msg.selection, msg.engine, msg.clickType);
+		onSearchEngineClick(msg.engine, msg.clickType, msg.selection, msg.hostname);
 	} else if (msg.type === "log") {
 		if (DEBUG) { log("[content script log]", msg.log); }
 	}
@@ -344,7 +344,8 @@ function onContextMenuItemClicked(info, tab)
 {
 	let engine = sss.settings.searchEngines.find(engine => engine.searchUrl === info.menuItemId);
 	if (engine !== undefined) {
-		let searchUrl = getSearchQuery(engine, info.selectionText);
+		let hostname = new URL(info.pageUrl).hostname;
+		let searchUrl = getSearchQuery(engine, info.selectionText, hostname);
 		openUrl(searchUrl, sss.settings.contextMenuItemBehaviour);
 	}
 }
@@ -438,7 +439,7 @@ function injectPageWorker(tabId)
 	, errorHandler);
 }
 
-function onSearchEngineClick(searchText, engineObject, clickType)
+function onSearchEngineClick(engineObject, clickType, searchText, hostname)
 {
 	if (engineObject.type === "sss") {
 		if (engineObject.id === "copyToClipboard") {
@@ -466,18 +467,21 @@ function onSearchEngineClick(searchText, engineObject, clickType)
 		let engine = sss.settings.searchEngines.find(engine => engine.searchUrl === engineObject.searchUrl);
 
 		if (clickType === "leftClick") {
-			openUrl(getSearchQuery(engine, searchText), sss.settings.mouseLeftButtonBehaviour);
+			openUrl(getSearchQuery(engine, searchText, hostname), sss.settings.mouseLeftButtonBehaviour);
 		} else if (clickType === "middleClick") {
-			openUrl(getSearchQuery(engine, searchText), sss.settings.mouseMiddleButtonBehaviour);
+			openUrl(getSearchQuery(engine, searchText, hostname), sss.settings.mouseMiddleButtonBehaviour);
 		} else if (clickType === "ctrlClick") {
-			openUrl(getSearchQuery(engine, searchText), consts.MouseButtonBehaviour_NewBgTab);
+			openUrl(getSearchQuery(engine, searchText, hostname), consts.MouseButtonBehaviour_NewBgTab);
 		}
 	}
 }
 
-function getSearchQuery(engine, searchText)
+function getSearchQuery(engine, searchText, hostname)
 {
-	return engine.searchUrl.replace("{searchTerms}", encodeURIComponent(searchText));
+	let query = engine.searchUrl;
+	query = query.replace("{searchTerms}", encodeURIComponent(searchText));
+	query = query.replace("{hostname}", hostname);
+	return query;
 }
 
 function openUrl(urlToOpen, openingBehaviour)

@@ -409,6 +409,7 @@ function onSearchEngineClick(engineObject, settings)
 				type: "engineClick",
 				selection: selection.text,
 				engine: engineObject,
+				hostname: window.location ? window.location.hostname : "",
 			};
 
 			if (ev.ctrlKey) {
