@@ -4,15 +4,35 @@
 <head>
 <meta charset="utf-8">
 <style>
-	body {
-		background-color: #F9F9FA;
-	}
 	* {
 		font: message-box;
 		font-size: 1rem;
 		box-sizing: border-box;
 		padding: 0;
 		margin: 0;
+	}
+	body {
+		background-color: #F9F9FA;
+	}
+	body.embedded .header {
+		display: none;
+	}
+	body:not(.embedded) {
+		max-width: 1400px;
+		padding: 50px 30px;
+		margin: 0 auto;
+	}
+	body:not(.embedded) .header {
+		display: flex;
+		align-items: center;
+	}
+	body:not(.embedded) .header img {
+		object-fit: contain;
+	}
+	body:not(.embedded) .header h1,
+	body:not(.embedded) .header span {
+		padding-left: 20px;
+		font-size: 2rem;
 	}
 	input[type=text],
 	input[type=number],
@@ -122,6 +142,11 @@
 
 <body>
 <div id="settings">
+	<div class="header">
+		<img src="/icons/icon96.png" alt="">
+		<h1><span style="color: #3399FF">Swift Selection Search</span> (SSS) settings page</h1>
+	</div>
+
 	<div class="section-name">Instructions</div>
 
 	<div class="setting">
@@ -141,8 +166,8 @@
 			Having problems?<br>
 			<ul>
 				<li>Some search engine icons may not appear if they are "resource://" links (some imported engines have those). This is normal, unfortunately. Please try finding another icon for the engine!</li>
-				<li>If an icon does not appear and its URL is correct, please check if that still happens when you add the icon URL again while having your ad blocker off. Some blocking lists in your ad blocker can stop certain images from downloading! (ex.: YouTube may be blocked by "Fanboy's Annoyance List")</li>
-				<li>Does the popup not appear at all on some websites or frames of a website? It may be a website content policy or an incompatibility with SSS. Please report it using the issues link below and I'll see what I can do! (ex.: addons.mozilla.org has page modifications blocked; bugzilla.mozilla.org blocks most images)</li>
+				<li>If an icon does not appear and its URL is correct, please check if that still happens if you disable your ad blocker and add the icon URL again. Some blocking lists in your ad blocker can stop certain images from downloading! (ex.: YouTube may be blocked by "Fanboy's Annoyance List")</li>
+				<li>Does the popup not appear at all on some websites or frames of a website? It may be a website content policy or an incompatibility with SSS. For example, addons.mozilla.org disables page modifications, and bugzilla.mozilla.org blocks most images. If you find another site, please report it using the issues link below and I'll see what I can do!</li>
 				<li>Is your problem not here? Or maybe you found a bug? Contact me or post an issue <a href="https://github.com/CanisLupus/swift-selection-search/issues">here</a>.</li>
 			</ul>
 		</div>

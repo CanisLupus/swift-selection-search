@@ -7,11 +7,15 @@ if (DEBUG) {
 }
 
 const page = {};
-let hasPageLoaded = false;
 let settings;
+let hasPageLoaded = false;
+let isFocused = true;
+let pendingSettings = false;
+let isSeparateTab = location.search.includes("open_in_tab=true");
 
 // Load settings. Either the last of both onSettingsAcquired and onPageLoaded will update the UI with the loaded settings.
 browser.storage.local.get().then(onSettingsAcquired, mainScript.getErrorHandler("Error getting settings in settings page."));
+browser.storage.onChanged.addListener(onSettingsChanged);
 
 document.addEventListener("DOMContentLoaded", onPageLoaded);
 
@@ -278,27 +282,53 @@ function onPageLoaded()
 
 	let defaultSettings = mainScript.getDefaultSettings();
 
+	// general layout (changes if page is embedded or separate)
+
+	if (!isSeparateTab) {
+		document.body.className = "embedded";
+	}
+
+	window.onfocus = (ev) => {
+		// if settings changed while page was not focused, reload settings and UI
+		if (pendingSettings) {
+			browser.storage.local.get().then(onSettingsAcquired, mainScript.getErrorHandler("Error getting settings in settings page."));
+		}
+		isFocused = true;
+	};
+
+	window.onblur = (ev) => {
+		isFocused = false;
+	};
+
 	// engines footnote
 
 	let enginesFootnoteElem = document.getElementById("engines-footnote");
 
-	function addToFootnote(text, link, linkText, postText) {
+	function addToFootnote(text, linkParams)
+	{
 		enginesFootnoteElem.appendChild(document.createTextNode(text));
-		let anchor = document.createElement("a");
-		anchor.href = link;
-		anchor.textContent = linkText;
-		anchor.target = "_blank";
-		enginesFootnoteElem.appendChild(anchor);
-		enginesFootnoteElem.appendChild(document.createTextNode(postText));
+
+		for (let i = 0; i < linkParams.length; ) {
+			let link = linkParams[i++];
+			let linkText = linkParams[i++];
+			let postText = linkParams[i++];
+			let anchor = document.createElement("a");
+			anchor.href = link;
+			anchor.textContent = linkText;
+			anchor.target = "_blank";
+			enginesFootnoteElem.appendChild(anchor);
+			enginesFootnoteElem.appendChild(document.createTextNode(postText));
+		}
 	}
 
 	if (!isDragSupported()) {
-		addToFootnote("* Apologies for forcing you to use ↑/↓ buttons to reorder items. I know it's less than ideal. Dragging is implemented but does not work in this page due to a ",
-			"https://bugzilla.mozilla.org/show_bug.cgi?id=1408756", "Firefox bug", ".");
+		addToFootnote("* My apologies for using ↑/↓ buttons to reorder the engines. Dragging is much better but it doesn't work in this page due to a ",
+			["https://bugzilla.mozilla.org/show_bug.cgi?id=1408756", "Firefox bug", ". It should work on a separate tab, however, so I've enabled it for ",
+			"/settings/settings.html?open_in_tab=true", "this link", " if you wish to try!"]);
 
 		if (mainScript.getBrowserVersion() < 58) {
 			addToFootnote(" If you click a dropdown and it appears far from where it should, that is also a ",
-				"https://bugzilla.mozilla.org/show_bug.cgi?id=1390445", "Firefox bug", " (fixed in Firefox 58).");
+				["https://bugzilla.mozilla.org/show_bug.cgi?id=1390445", "Firefox bug", " (fixed in Firefox 58)."]);
 		}
 	}
 
@@ -388,6 +418,13 @@ function onSettingsAcquired(_settings)
 	}
 }
 
+function onSettingsChanged()
+{
+	if (!isFocused) {
+		pendingSettings = true;
+	}
+}
+
 function updateUIWithSettings()
 {
 	if (DEBUG) { log("updateUIWithSettings", settings); }
@@ -473,8 +510,13 @@ function updateUIWithSettings()
 
 function isDragSupported()
 {
+	// check if we are on a version where drag is supported in the settings page
 	let browserVersion = mainScript.getBrowserVersion()
-	return browserVersion <= 55;
+	if (browserVersion <= 55) {
+		return true;
+	}
+	// otherwise check if we are on a separate tab and use drag anyway if that's the case
+	return isSeparateTab;
 }
 
 function addSearchEngine(engine, i)
