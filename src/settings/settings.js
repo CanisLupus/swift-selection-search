@@ -236,12 +236,14 @@ function onPageLoaded()
 				updateBrowserEnginesFromSearchJson(browserSearchEngines);
 				updateUIWithSettings();
 				saveSettings({ searchEngines: settings.searchEngines });
+				// alert("Your browser's search engines were imported!");
 			});
 		} else if (item.name === "importSettingsFromFileButton_real") {
 			let reader = new FileReader();
 			reader.onload = function() {
 				let importedSettings = JSON.parse(reader.result);
 				importSettings(importedSettings);
+				// alert("All settings were imported!");
 			};
 			reader.readAsText(ev.target.files[0]);
 		} else {
@@ -529,13 +531,11 @@ function updateUIWithSettings()
 
 	if (settings.sectionsExpansionState !== undefined)
 	{
-		log(settings.sectionsExpansionState);
 		for (let sectionId of Object.keys(settings.sectionsExpansionState))
 		{
 			let classList = document.getElementById(sectionId).classList;
 			let isExpanded = settings.sectionsExpansionState[sectionId];
 			classList.toggle("collapsed-section", !isExpanded);
-			log(sectionId, isExpanded);
 		}
 	}
 }

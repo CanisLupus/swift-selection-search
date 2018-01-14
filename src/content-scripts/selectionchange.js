@@ -44,7 +44,7 @@ var selectionchange = (function (undefined) {
 
 	function onInput(e) {
 		if (!HAS_OWN_SELECTION[e.target.tagName]) {
-			dispatchIfChanged(this, true);
+			dispatchIfChanged(this, true, e);
 		}
 	}
 
@@ -55,26 +55,28 @@ var selectionchange = (function (undefined) {
 			e.ctrlKey && MAC && MAC_MOVE_KEYS.indexOf(code) >= 0)
 		{
 			if (!HAS_OWN_SELECTION[e.target.tagName]) {	// comment to enable selections with keyboard
-				setTimeout(dispatchIfChanged.bind(null, this, true), 0);
+				setTimeout(dispatchIfChanged.bind(null, this, true, e), 0);
 			}
 		}
 	}
 
 	function onMouseUp(e) {
 		if (e.button === 0) {
-			setTimeout(dispatchIfChanged.bind(null, this, HAS_OWN_SELECTION[e.target.tagName]), 0);
+			setTimeout(dispatchIfChanged.bind(null, this, HAS_OWN_SELECTION[e.target.tagName], e), 0);
 		}
 	}
 
 	// function onFocus(e) {
-	// 	setTimeout(dispatchIfChanged.bind(null, this.document), 0);
+	// 	setTimeout(dispatchIfChanged.bind(null, this.document, e), 0);
 	// }
 
-	function dispatchIfChanged(doc, force) {
+	function dispatchIfChanged(doc, force, e) {
 		var r = getSelectionRange(doc);
 		if (force || !sameRange(r, ranges.get(doc))) {
 			ranges.set(doc, r);
-			setTimeout(doc.dispatchEvent.bind(doc, new Event('customselectionchange')), 0);
+			var event = new CustomEvent('customselectionchange');
+			event.altKey = e.altKey;
+			setTimeout(doc.dispatchEvent.bind(doc, event), 0);
 		}
 	}
 

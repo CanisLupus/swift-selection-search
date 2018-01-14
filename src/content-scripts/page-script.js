@@ -7,6 +7,7 @@ if (DEBUG) {
 // Subset of consts present in background script (avoids having to ask for them).
 const consts = {
 	PopupOpenBehaviour_Auto: "auto",
+	PopupOpenBehaviour_HoldAlt: "hold-alt",
 
 	PopupLocation_Selection: "selection",
 	PopupLocation_Cursor: "cursor",
@@ -47,7 +48,7 @@ function onMessageReceived(msg, sender, sendResponse)
 	} else if (msg.type === "deactivate") {
 		deactivate();
 	} else if (msg.type === "showPopup") {
-		onSelectionChange(true);
+		onSelectionChange(null, true);
 	} else if (msg.type === "copyToClipboard") {
 		document.execCommand("copy");
 	}
@@ -79,7 +80,7 @@ function activate(popupLocation, popupOpenBehaviour)
 		document.addEventListener("mouseenter", onMouseUpdate);
 	}
 
-	if (popupOpenBehaviour === consts.PopupOpenBehaviour_Auto) {
+	if (popupOpenBehaviour === consts.PopupOpenBehaviour_Auto || popupOpenBehaviour === consts.PopupOpenBehaviour_HoldAlt) {
 		selectionchange.start();
 		document.addEventListener("customselectionchange", onSelectionChange);
 	}
@@ -110,7 +111,7 @@ function deactivate()
 	if (DEBUG) { log("worker deactivated"); }
 }
 
-function onSelectionChange(force)
+function onSelectionChange(ev, force)
 {
 	if (!saveCurrentSelection()) {
 		return;
@@ -118,6 +119,10 @@ function onSelectionChange(force)
 
 	browser.storage.local.get().then(
 		settings => {
+			if (settings.popupOpenBehaviour === consts.PopupOpenBehaviour_HoldAlt && !ev.altKey) {
+				return;
+			}
+
 			if (force !== true)
 			{
 				if (selection.isInEditableField) {

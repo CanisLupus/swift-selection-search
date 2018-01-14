@@ -13,6 +13,7 @@ const consts = {
 	PopupOpenBehaviour_Off: "off",
 	PopupOpenBehaviour_Auto: "auto",
 	PopupOpenBehaviour_Keyboard: "keyboard",
+	PopupOpenBehaviour_HoldAlt: "hold-alt",
 
 	PopupLocation_Selection: "selection",
 	PopupLocation_Cursor: "cursor",
