@@ -234,6 +234,7 @@ top: initial !important;`;
 all: initial;
 box-sizing: initial !important;
 fontSize: 0 !important;
+border-radius: ${settings.popupItemBorderRadius}px !important;
 cursor: pointer !important;
 pointer-events: auto !important;
 height: ${settings.popupItemSize}px !important;

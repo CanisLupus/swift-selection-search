@@ -235,8 +235,7 @@ function onPageLoaded()
 				if (DEBUG) { log(browserSearchEngines); }
 				updateBrowserEnginesFromSearchJson(browserSearchEngines);
 				updateUIWithSettings();
-				browser.storage.local.set({ searchEngines: settings.searchEngines });
-				if (DEBUG) { log("saved!", settings); }
+				saveSettings({ searchEngines: settings.searchEngines });
 			});
 		} else if (item.name === "importSettingsFromFileButton_real") {
 			let reader = new FileReader();
@@ -256,8 +255,7 @@ function onPageLoaded()
 					value = item.value;
 				}
 				settings[item.name] = value;
-				browser.storage.local.set({ [item.name]: value });
-				if (DEBUG) { log("saved!", settings); }
+				saveSettings({ [item.name]: value });
 			}
 		}
 	};
@@ -279,6 +277,23 @@ function onPageLoaded()
 	page.popupBackgroundColor.oninput       = (ev) => updatePickerColor(page.popupBackgroundColorPicker, page.popupBackgroundColor.value);
 	page.popupHighlightColorPicker.oninput  = (ev) => updateColorText  (page.popupHighlightColor,        page.popupHighlightColorPicker.value);
 	page.popupHighlightColor.oninput        = (ev) => updatePickerColor(page.popupHighlightColorPicker,  page.popupHighlightColor.value);
+
+	// sections' collapse/expand code
+
+	let sectionNameElements = document.getElementsByClassName("section-name");
+
+	for (let sectionNameElement of sectionNameElements)
+	{
+		sectionNameElement.onclick = () => {
+			if (settings.sectionsExpansionState === undefined) {
+				settings.sectionsExpansionState = {};
+			}
+			let isCollapsed = sectionNameElement.parentElement.classList.toggle("collapsed-section");
+			log(sectionNameElement.textContent, isCollapsed, sectionNameElement.parentElement.id);
+			settings.sectionsExpansionState[sectionNameElement.parentElement.id] = !isCollapsed;
+			saveSettings({ sectionsExpansionState: settings.sectionsExpansionState });
+		}
+	}
 
 	let defaultSettings = mainScript.getDefaultSettings();
 
@@ -338,8 +353,7 @@ function onPageLoaded()
 		let searchEngine = JSON.parse(JSON.stringify(defaultSettings.searchEngines[2]));	// first two are special sss icons
 		settings.searchEngines.push(searchEngine);
 
-		browser.storage.local.set({ searchEngines: settings.searchEngines });
-		if (DEBUG) { log("saved!", settings); }
+		saveSettings({ searchEngines: settings.searchEngines });
 		updateUIWithSettings();
 	};
 
@@ -389,8 +403,7 @@ function onPageLoaded()
 			let defaultEngines = JSON.parse(JSON.stringify(defaultSettings.searchEngines));
 			settings.searchEngines = defaultEngines;
 			updateUIWithSettings();
-			browser.storage.local.set({ searchEngines: settings.searchEngines });
-			if (DEBUG) { log("saved!", settings); }
+			saveSettings({ searchEngines: settings.searchEngines });
 		}
 	);
 
@@ -400,8 +413,7 @@ function onPageLoaded()
 			settings = JSON.parse(JSON.stringify(defaultSettings));	// copy default settings
 			settings.searchEngines = searchEngines;	// restore engines
 			updateUIWithSettings();
-			browser.storage.local.set(settings);
-			if (DEBUG) { log("saved!", settings); }
+			saveSettings(settings);
 		}
 	);
 
@@ -507,10 +519,23 @@ function updateUIWithSettings()
 					if (DEBUG) { log("onEnd", settings); }
 					settings.searchEngines.splice(ev.newIndex, 0, settings.searchEngines.splice(ev.oldIndex, 1)[0]);
 					updateUIWithSettings();
-					browser.storage.local.set({ searchEngines: settings.searchEngines });
-					if (DEBUG) { log("saved!", settings); }
+					saveSettings({ searchEngines: settings.searchEngines });
 				},
 			});
+		}
+	}
+
+	// collapse or expand sections
+
+	if (settings.sectionsExpansionState !== undefined)
+	{
+		log(settings.sectionsExpansionState);
+		for (let sectionId of Object.keys(settings.sectionsExpansionState))
+		{
+			let classList = document.getElementById(sectionId).classList;
+			let isExpanded = settings.sectionsExpansionState[sectionId];
+			classList.toggle("collapsed-section", !isExpanded);
+			log(sectionId, isExpanded);
 		}
 	}
 }
@@ -582,8 +607,7 @@ function addSearchEngine(engine, i)
 				settings.searchEngines[i] = settings.searchEngines[i-1];
 				settings.searchEngines[i-1] = tmp;
 				updateUIWithSettings();
-				browser.storage.local.set({ searchEngines: settings.searchEngines });
-				if (DEBUG) { log("saved!", settings); }
+				saveSettings({ searchEngines: settings.searchEngines });
 			};
 		} else {
 			moveUpButton.style.opacity = 0.5;
@@ -607,8 +631,7 @@ function addSearchEngine(engine, i)
 				settings.searchEngines[i] = settings.searchEngines[i+1];
 				settings.searchEngines[i+1] = tmp;
 				updateUIWithSettings();
-				browser.storage.local.set({ searchEngines: settings.searchEngines });
-				if (DEBUG) { log("saved!", settings); }
+				saveSettings({ searchEngines: settings.searchEngines });
 			};
 		} else {
 			moveDownButton.style.opacity = 0.5;
@@ -627,8 +650,7 @@ function addSearchEngine(engine, i)
 	isEnabledInput.autocomplete = "off";
 	isEnabledInput.onchange = (ev) => {
 		engine.isEnabled = isEnabledInput.checked;
-		browser.storage.local.set({ searchEngines: settings.searchEngines });
-		if (DEBUG) { log("saved!", settings); }
+		saveSettings({ searchEngines: settings.searchEngines });
 	};
 	cell.style.paddingLeft = "6px";	// remove this when drag works again in add-on pages
 	cell.appendChild(isEnabledInput);
@@ -649,8 +671,7 @@ function addSearchEngine(engine, i)
 		getDataUriFromImgUrl(engine.iconUrl, function(base64Img) {
 			icon.src = base64Img;
 			settings.searchEnginesCache[engine.iconUrl] = base64Img;
-			browser.storage.local.set({ searchEnginesCache: settings.searchEnginesCache });
-			if (DEBUG) { log("saved!", settings); }
+			saveSettings({ searchEnginesCache: settings.searchEnginesCache });
 		});
 	} else {
 		icon.src = settings.searchEnginesCache[engine.iconUrl];
@@ -688,9 +709,8 @@ function addSearchEngine(engine, i)
 		nameInput.value = engine.name;
 		nameInput.onchange = (ev) => {
 			engine.name = nameInput.value;
-			browser.storage.local.set({ searchEngines: settings.searchEngines });
+			saveSettings({ searchEngines: settings.searchEngines });
 			calculateAndShowSettingsSize();
-			if (DEBUG) { log("saved!", settings); }
 		};
 		cell.appendChild(nameInput);
 		row.appendChild(cell);
@@ -704,9 +724,8 @@ function addSearchEngine(engine, i)
 		searchLinkInput.value = engine.searchUrl;
 		searchLinkInput.onchange = (ev) => {
 			engine.searchUrl = searchLinkInput.value;
-			browser.storage.local.set({ searchEngines: settings.searchEngines });
+			saveSettings({ searchEngines: settings.searchEngines });
 			calculateAndShowSettingsSize();
-			if (DEBUG) { log("saved!", settings); }
 		};
 		cell.appendChild(searchLinkInput);
 		row.appendChild(cell);
@@ -733,9 +752,8 @@ function addSearchEngine(engine, i)
 
 		iconLinkInput.onchange = (ev) => {
 			trimSearchEnginesCache(settings);
-			browser.storage.local.set({ searchEngines: settings.searchEngines, searchEnginesCache: settings.searchEnginesCache });
+			saveSettings({ searchEngines: settings.searchEngines, searchEnginesCache: settings.searchEnginesCache });
 			calculateAndShowSettingsSize();
-			if (DEBUG) { log("saved!", settings); }
 		};
 		cell.appendChild(iconLinkInput);
 		row.appendChild(cell);
@@ -751,8 +769,7 @@ function addSearchEngine(engine, i)
 			settings.searchEngines.splice(i, 1);	// remove element at i
 			trimSearchEnginesCache(settings);
 			updateUIWithSettings();
-			browser.storage.local.set({ searchEngines: settings.searchEngines, searchEnginesCache: settings.searchEnginesCache });
-			if (DEBUG) { log("saved!", settings); }
+			saveSettings({ searchEngines: settings.searchEngines, searchEnginesCache: settings.searchEnginesCache });
 		};
 		cell.appendChild(deleteButton);
 		row.appendChild(cell);
@@ -803,9 +820,10 @@ function importSettings(importedSettings)
 
 	mainScript.runBackwardsCompatibilityUpdates(settings);
 
+	if (DEBUG) { log("imported settings!", settings); }
+
 	updateUIWithSettings();
-	browser.storage.local.set(settings);
-	if (DEBUG) { log("imported and saved settings!", settings); }
+	saveSettings(settings);
 }
 
 function updateColorText(text, value)
@@ -814,8 +832,7 @@ function updateColorText(text, value)
 
 	if (text.value !== value) {
 		text.value = value;
-		browser.storage.local.set({ [text.name]: value });
-		if (DEBUG) { log("saved!", settings); }
+		saveSettings({ [text.name]: value });
 	}
 }
 
@@ -881,4 +898,10 @@ function getSizeWithUnit(size)
 	} else {
 		return size + "GB";
 	}
+}
+
+function saveSettings(obj)
+{
+	browser.storage.local.set(obj);
+	if (DEBUG) { log("saved!", settings); }
 }

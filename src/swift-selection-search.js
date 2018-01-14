@@ -65,6 +65,7 @@ const defaultSettings = {
 	popupItemPadding: 2,
 	popupItemVerticalPadding: 1,
 	popupItemHoverBehaviour: consts.ItemHoverBehaviour_HighlightAndMove,
+	popupItemBorderRadius: 0,
 	popupBackgroundColor: "#FFFFFF",
 	popupHighlightColor: "#3399FF",
 	popupPaddingX: 3,
@@ -209,6 +210,11 @@ function runBackwardsCompatibilityUpdates(settings)
 
 	if (settings.popupBorderRadius === undefined) {
 		settings.popupBorderRadius = defaultSettings.popupBorderRadius;
+		shouldSave = true;
+	}
+
+	if (settings.popupItemBorderRadius === undefined) {
+		settings.popupItemBorderRadius = defaultSettings.popupItemBorderRadius;
 		shouldSave = true;
 	}
 

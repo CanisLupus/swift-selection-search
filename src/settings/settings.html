@@ -50,14 +50,32 @@
 	select:hover {
 		border: 1px solid #3399FF;
 	}
+	.section {
+		padding: 7px 0px 0px 0px;
+	}
+	.vertically-padded {
+		padding: 25px 0px 25px 0px;
+	}
 	.section-name {
-		padding: 50px 0px 10px 6px;
+		padding: 0px 0px 10px 6px;
 		font-size: 130%;
 		color: #222222;
 		border-bottom: 1px #bbb solid;
 	}
+	.section-name:hover {
+		color: #3399FF;
+	}
 	.section-name:first-child {
 		padding: 0 0 10px 6px;
+	}
+	.section-name::before {
+		content: "▽ ";
+	}
+	.collapsed-section .section-settings {
+		display: none;
+	}
+	.collapsed-section .section-name::before {
+		content: "▷ ";
 	}
 	#engines-table * {
 		font-size: 0.8rem;
@@ -147,435 +165,471 @@
 		<h1><span style="color: #3399FF">Swift Selection Search</span> (SSS) settings page</h1>
 	</div>
 
-	<div class="section-name">Instructions</div>
+	<div class="section vertically-padded" id="section_instructions">
+		<div class="section-name">Instructions</div>
 
-	<div class="setting">
-		<div class="setting-name" style="max-width: 160px;">Quick setup!</div>
-		<div class="setting-description">
-			<ol>
-				<li>Add search engines using the "Add" button in the table below, and/or load them from Firefox. They will then appear in the SSS popup and context menu when you select text on a page. SSS comes with a few examples!</li>
-				<li>You can change the engine names, search URLs, and icon URLs. When you click a search engine in the popup or context menu, <i>{searchTerms}</i> (in the search URL) will be replaced by the selected text. Additionally (this is a more advanced use), if {hostname} is present, it will be replaced by the website domain you are on.</li>
-				<li>For customization of the popup appearance, context menu, click behaviour, etc, please check the other options in this page.</li>
-			</ol>
+		<div class="section-settings">
+			<div class="setting">
+				<div class="setting-name" style="max-width: 160px;">Quick setup!</div>
+				<div class="setting-description">
+					<ol>
+						<li>Add search engines using the "Add" button in the table below, and/or load them from Firefox. They will then appear in the SSS popup and context menu when you select text on a page. SSS comes with a few examples!</li>
+						<li>You can change the engine names, search URLs, and icon URLs. When you click a search engine in the popup or context menu, <i>{searchTerms}</i> (in the search URL) will be replaced by the selected text. Additionally (this is a more advanced use), if {hostname} is present, it will be replaced by the website domain you are on.</li>
+						<li>For customization of the popup appearance, context menu, click behaviour, etc, please check the other options in this page.</li>
+					</ol>
+				</div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name" style="max-width: 160px;">Troubleshooting</div>
+				<div class="setting-description">
+					Having problems?<br>
+					<ul>
+						<li>Some search engine icons may not appear if they are "resource://" links (some imported engines have those). This is normal, unfortunately. Please try finding another icon for the engine!</li>
+						<li>If an icon does not appear and its URL is correct, please check if that still happens if you disable your ad blocker and add the icon URL again. Some blocking lists in your ad blocker can stop certain images from downloading! (ex.: YouTube may be blocked by "Fanboy's Annoyance List")</li>
+						<li>Does the popup not appear at all on some websites or frames of a website? It may be a website content policy or an incompatibility with SSS. For example, addons.mozilla.org disables page modifications, and bugzilla.mozilla.org blocks most images. If you find another site, please report it using the issues link below and I'll see what I can do!</li>
+						<li>Is your problem not here? Or maybe you found a bug? Contact me or post an issue <a href="https://github.com/CanisLupus/swift-selection-search/issues">here</a>.</li>
+					</ul>
+				</div>
+			</div>
 		</div>
 	</div>
 
-	<div class="setting">
-		<div class="setting-name" style="max-width: 160px;">Troubleshooting</div>
-		<div class="setting-description">
-			Having problems?<br>
-			<ul>
-				<li>Some search engine icons may not appear if they are "resource://" links (some imported engines have those). This is normal, unfortunately. Please try finding another icon for the engine!</li>
-				<li>If an icon does not appear and its URL is correct, please check if that still happens if you disable your ad blocker and add the icon URL again. Some blocking lists in your ad blocker can stop certain images from downloading! (ex.: YouTube may be blocked by "Fanboy's Annoyance List")</li>
-				<li>Does the popup not appear at all on some websites or frames of a website? It may be a website content policy or an incompatibility with SSS. For example, addons.mozilla.org disables page modifications, and bugzilla.mozilla.org blocks most images. If you find another site, please report it using the issues link below and I'll see what I can do!</li>
-				<li>Is your problem not here? Or maybe you found a bug? Contact me or post an issue <a href="https://github.com/CanisLupus/swift-selection-search/issues">here</a>.</li>
-			</ul>
+	<div class="section vertically-padded" id="section_searchEngines">
+		<div class="section-name">Search engines</div>
+
+		<div class="section-settings">
+			<div class="setting">
+				<table id="engines-table">
+					<thead>
+						<tr id="engines-header">
+							<td class="variable-colspan" colspan=3></td>
+							<td class="engine-name">Name</td>
+							<td class="engine-search-link">Search link</td>
+							<td class="engine-icon-link">Icon link</td>
+						</tr>
+					</thead>
+					<tfoot>
+						<tr id="engines-footer">
+							<td class="variable-colspan" colspan=3></td>
+							<td class="engine-name"><input type="button" name="addEngineButton" value="Add"></td>
+						</tr>
+						<tr>
+							<td id="engines-footnote" colspan=10></td>
+						</tr>
+					</tfoot>
+					<tbody id="engines"></tbody>
+				</table>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Load browser search engines</div>
+				<div class="setting-value">
+					<input name="importBrowserEnginesFileButton" type="button" value='Select "search.json.mozlz4"'/>
+					<input name="importBrowserEnginesFileButton_real" type="file" accept=".json.mozlz4" style="display: none"/>
+				</div>
+				<div class="setting-description">
+					Import browser engines. SSS can't do this automatically in WebExtensions! Please select the "search.json.mozlz4" file usually located here:
+					<details>
+						<summary>[Press to view]</summary>
+							(Windows) C:\Users\[user]\AppData\Roaming\Mozilla\Firefox\Profiles\[profile-id]
+						<br>(macOS) Users/[user]/Library/Application Support/Firefox/Profiles/[profile-id]
+						<br>(macOS) Users/[user]/Library/Mozilla/Firefox/Profiles/[profile-id]
+						<br>(Linux) /home/[user]/.mozilla/firefox/[profile-id]
+						<br>NOTE: Some of these folders may be hidden. Please refer to <a href="http://kb.mozillazine.org/Profile_folder_-_Firefox">this page</a>.
+					</details>
+					NOTE: Some icons may not appear if they are "resource://" links.
+				</div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Reset search engines</div>
+				<div class="setting-value">
+					<input type="button" name="resetSearchEnginesButton" value="Reset engines">
+					<input type="button" name="resetSearchEnginesButton_real" value="Really reset engines" style="display: none">
+				</div>
+				<div class="setting-description">Resets search engines to the defaults (as if running SSS for the first time).</div>
+			</div>
+
+			<!-- <div class="setting">
+				<div class="setting-name">Manage browser search engines</div>
+				<div class="setting-value">
+					<input type="button" name="openEngineManager" value="Manage">
+				</div>
+				<div class="setting-description">Opens Firefox's search engines manager. To select which engines are shown in the popup, use the "Select from available search engines" button below.</div>
+			</div> -->
 		</div>
 	</div>
 
-	<div class="section-name">Search engines</div>
+	<div class="section vertically-padded" id="section_contextMenu">
+		<div class="section-name">Context menu</div>
 
-	<div class="setting">
-		<table id="engines-table">
-			<thead>
-				<tr id="engines-header">
-					<td class="variable-colspan" colspan=3></td>
-					<td class="engine-name">Name</td>
-					<td class="engine-search-link">Search link</td>
-					<td class="engine-icon-link">Icon link</td>
-				</tr>
-			</thead>
-			<tfoot>
-				<tr id="engines-footer">
-					<td class="variable-colspan" colspan=3></td>
-					<td class="engine-name"><input type="button" name="addEngineButton" value="Add"></td>
-				</tr>
-				<tr>
-					<td id="engines-footnote" colspan=10></td>
-				</tr>
-			</tfoot>
-			<tbody id="engines"></tbody>
-		</table>
-	</div>
+		<div class="section-settings">
+			<div class="setting">
+				<div class="setting-name">Is the context menu enabled?</div>
+				<div class="setting-value">
+					<input type="checkbox" name="enableEnginesInContextMenu" autocomplete="off" checked>
+				</div>
+				<div class="setting-description">Enables a context menu with all search engines. Appears when you right click somewhere with text selected.<br>(default: On)</div>
+			</div>
 
-	<div class="setting">
-		<div class="setting-name">Load browser search engines</div>
-		<div class="setting-value">
-			<input name="importBrowserEnginesFileButton" type="button" value='Select "search.json.mozlz4"'/>
-			<input name="importBrowserEnginesFileButton_real" type="file" accept=".json.mozlz4" style="display: none"/>
-		</div>
-		<div class="setting-description">
-			Import browser engines. SSS can't do this automatically in WebExtensions! Please select the "search.json.mozlz4" file usually located here:
-			<details>
-				<summary>[Press to view]</summary>
-				    (Windows) C:\Users\[user]\AppData\Roaming\Mozilla\Firefox\Profiles\[profile-id]
-				<br>(macOS) Users/[user]/Library/Application Support/Firefox/Profiles/[profile-id]
-				<br>(macOS) Users/[user]/Library/Mozilla/Firefox/Profiles/[profile-id]
-				<br>(Linux) /home/[user]/.mozilla/firefox/[profile-id]
-				<br>NOTE: Some of these folders may be hidden. Please refer to <a href="http://kb.mozillazine.org/Profile_folder_-_Firefox">this page</a>.
-			</details>
-			NOTE: Some icons may not appear if they are "resource://" links.
+			<div class="setting">
+				<div class="setting-name">Context menu item click behaviour</div>
+				<div class="setting-value">
+					<select name="contextMenuItemBehaviour">
+						<option value="this-tab">Open in this tab</option>
+						<option value="new-tab">Open in new tab</option>
+						<option value="new-bg-tab">Open in new background tab</option>
+						<option value="new-tab-next">Open in new tab (next to current tab)</option>
+						<option value="new-bg-tab-next">Open in new background tab (next to current tab)</option>
+					</select>
+				</div>
+				<div class="setting-description">What to do when a search engine is clicked in the context menu.<br>(default: Open in new background tab)</div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Context menu engines filter</div>
+				<div class="setting-value">
+					<select name="contextMenuEnginesFilter">
+						<option value="all">All</option>
+						<option value="same-as-popup">Same as popup</option>
+					</select>
+				</div>
+				<div class="setting-description">What engines to show on the context menu.<br>(default: Same as popup)</div>
+			</div>
 		</div>
 	</div>
 
-	<div class="setting">
-		<div class="setting-name">Reset search engines</div>
-		<div class="setting-value">
-			<input type="button" name="resetSearchEnginesButton" value="Reset engines">
-			<input type="button" name="resetSearchEnginesButton_real" value="Really reset engines" style="display: none">
-		</div>
-		<div class="setting-description">Resets search engines to the defaults (as if running SSS for the first time).</div>
-	</div>
+	<div class="section vertically-padded collapsed-section" id="section_popupBehaviour">
+		<div class="section-name">Popup Behaviour</div>
 
-	<!-- <div class="setting">
-		<div class="setting-name">Manage browser search engines</div>
-		<div class="setting-value">
-			<input type="button" name="openEngineManager" value="Manage">
-		</div>
-		<div class="setting-description">Opens Firefox's search engines manager. To select which engines are shown in the popup, use the "Select from available search engines" button below.</div>
-	</div> -->
+		<div class="section-settings">
+			<div class="setting">
+				<div class="setting-name">Opening behaviour</div>
+				<div class="setting-value">
+					<select name="popupOpenBehaviour">
+						<option value="off">Off (never)</option>
+						<option value="auto">Auto (opens on text selection)</option>
+						<option value="keyboard">Keyboard-only (press the keyboard shortcut when text is selected)</option>
+					</select>
+				</div>
+				<div class="setting-description">When to open the popup.<br>(default: Auto)</div>
+			</div>
 
-	<div class="section-name">Popup Behaviour</div>
+			<div class="setting">
+				<div class="setting-name">Popup location</div>
+				<div class="setting-value">
+					<select name="popupLocation">
+						<option value="selection">Bottom right corner of selection "rectangle"</option>
+						<option value="cursor">At cursor location</option>
+					</select>
+				</div>
+				<div class="setting-description">Where the popup should appear after selecting text.<br>(default: At cursor location)</div>
+			</div>
 
-	<div class="setting">
-		<div class="setting-name">Opening behaviour</div>
-		<div class="setting-value">
-			<select name="popupOpenBehaviour">
-				<option value="off">Off (never)</option>
-				<option value="auto">Auto (opens on text selection)</option>
-				<option value="keyboard">Keyboard-only (press the keyboard shortcut when text is selected)</option>
-			</select>
-		</div>
-		<div class="setting-description">When to open the popup.<br>(default: Auto)</div>
-	</div>
+			<div class="setting">
+				<div class="setting-name">Allow popup on editable fields</div>
+				<div class="setting-value">
+					<input type="checkbox" name="allowPopupOnEditableFields" autocomplete="off">
+				</div>
+				<div class="setting-description">Show the popup when text is selected with the mouse on an editable text field, such as a login form, a search bar, or an email composing window. NOTE: "Shortcut to open popup" ignores this setting and always works on editable fields.<br>(default: Off)</div>
+			</div>
 
-	<div class="setting">
-		<div class="setting-name">Popup location</div>
-		<div class="setting-value">
-			<select name="popupLocation">
-				<option value="selection">Bottom right corner of selection "rectangle"</option>
-				<option value="cursor">At cursor location</option>
-			</select>
-		</div>
-		<div class="setting-description">Where the popup should appear after selecting text.<br>(default: At cursor location)</div>
-	</div>
+			<div class="setting">
+				<div class="setting-name">Hide popup on page scroll</div>
+				<div class="setting-value">
+					<input type="checkbox" name="hidePopupOnPageScroll" autocomplete="off">
+				</div>
+				<div class="setting-description">Hides the popup when the page moves.<br>(default: On)</div>
+			</div>
 
-	<div class="setting">
-		<div class="setting-name">Allow popup on editable fields</div>
-		<div class="setting-value">
-			<input type="checkbox" name="allowPopupOnEditableFields" autocomplete="off">
-		</div>
-		<div class="setting-description">Show the popup when text is selected with the mouse on an editable text field, such as a login form, a search bar, or an email composing window. NOTE: "Shortcut to open popup" ignores this setting and always works on editable fields.<br>(default: Off)</div>
-	</div>
+			<div class="setting">
+				<div class="setting-name">Hide popup on search engine click</div>
+				<div class="setting-value">
+					<input type="checkbox" name="hidePopupOnSearch" autocomplete="off" checked>
+				</div>
+				<div class="setting-description">Hides the popup when a search engine is clicked.<br>(default: On)</div>
+			</div>
 
-	<div class="setting">
-		<div class="setting-name">Hide popup on page scroll</div>
-		<div class="setting-value">
-			<input type="checkbox" name="hidePopupOnPageScroll" autocomplete="off">
-		</div>
-		<div class="setting-description">Hides the popup when the page moves.<br>(default: On)</div>
-	</div>
+			<div class="setting disabled">
+				<div class="setting-name">Shortcut to open popup</div>
+				<div class="setting-value">
+					Ctrl+Shift+Space (Windows, Linux)<br>
+					Cmd+Shift+Space (macOS)
+					<!-- <input type="text" name="popupOpenHotkey" value="accel-shift-space"> -->
+				</div>
+				<div class="setting-description">
+					[NOTE: Not configurable in WebExtensions.]
+					<br>Opens the popup if you have text selected. Works for editable fields even if "Allow popup on editable fields" is Off. Useful if "Opening behaviour" is set to Keyboard-only.
+					<!-- <details>
+						<summary>[Press for details]</summary>
+						Use at least one: shift, control, alt, meta (Mac Command), accel (Control on Windows/Linux, Command on Mac). Clear the box to disable the hotkey.<br>(default: accel-shift-space, which is Ctrl/Cmd+Shift+Spacebar)
+					</details> -->
+				</div>
+			</div>
 
-	<div class="setting">
-		<div class="setting-name">Hide popup on search engine click</div>
-		<div class="setting-value">
-			<input type="checkbox" name="hidePopupOnSearch" autocomplete="off" checked>
-		</div>
-		<div class="setting-description">Hides the popup when a search engine is clicked.<br>(default: On)</div>
-	</div>
+			<div class="setting disabled">
+				<div class="setting-name">Shortcut to toggle auto popup opening</div>
+				<div class="setting-value">
+					<!-- <input type="text" name="popupDisableHotkey" value="accel-shift-u"> -->
+					Ctrl+Shift+U (Windows, Linux)<br>
+					Cmd+Shift+U (macOS)
+				</div>
+				<div class="setting-description">
+					[NOTE: Not configurable in WebExtensions.]
+					<br>Toggles "Opening behaviour" setting between Auto and Keyboard-only modes (if not Off). Use this when the popup is getting in the way of your browsing or text writing.
+					<!-- <details>
+						<summary>[Press for details]</summary>
+						<br>(default: accel-shift-u)
+					</details> -->
+				</div>
+			</div>
 
-	<div class="setting disabled">
-		<div class="setting-name">Shortcut to open popup</div>
-		<div class="setting-value">
-			Ctrl+Shift+Space (Windows, Linux)<br>
-			Cmd+Shift+Space (macOS)
-			<!-- <input type="text" name="popupOpenHotkey" value="accel-shift-space"> -->
-		</div>
-		<div class="setting-description">
-			[NOTE: Not configurable in WebExtensions.]
-			<br>Opens the popup if you have text selected. Works for editable fields even if "Allow popup on editable fields" is Off. Useful if "Opening behaviour" is set to Keyboard-only.
-			<!-- <details>
-				<summary>[Press for details]</summary>
-				Use at least one: shift, control, alt, meta (Mac Command), accel (Control on Windows/Linux, Command on Mac). Clear the box to disable the hotkey.<br>(default: accel-shift-space, which is Ctrl/Cmd+Shift+Spacebar)
-			</details> -->
-		</div>
-	</div>
+			<div class="setting">
+				<div class="setting-name">Left mouse button behaviour</div>
+				<div class="setting-value">
+					<select name="mouseLeftButtonBehaviour">
+						<option value="this-tab">Open in this tab</option>
+						<option value="new-tab">Open in new tab</option>
+						<option value="new-bg-tab">Open in new background tab</option>
+						<option value="new-tab-next">Open in new tab (next to current tab)</option>
+						<option value="new-bg-tab-next">Open in new background tab (next to current tab)</option>
+					</select>
+				</div>
+				<div class="setting-description">What to do when a search engine is clicked with the left mouse button.<br>(default: Open in this tab)</div>
+			</div>
 
-	<div class="setting disabled">
-		<div class="setting-name">Shortcut to toggle auto popup opening</div>
-		<div class="setting-value">
-			<!-- <input type="text" name="popupDisableHotkey" value="accel-shift-u"> -->
-			Ctrl+Shift+U (Windows, Linux)<br>
-			Cmd+Shift+U (macOS)
-		</div>
-		<div class="setting-description">
-			[NOTE: Not configurable in WebExtensions.]
-			<br>Toggles "Opening behaviour" setting between Auto and Keyboard-only modes (if not Off). Use this when the popup is getting in the way of your browsing or text writing.
-			<!-- <details>
-				<summary>[Press for details]</summary>
-				<br>(default: accel-shift-u)
-			</details> -->
-		</div>
-	</div>
+			<div class="setting">
+				<div class="setting-name">Middle mouse button behaviour</div>
+				<div class="setting-value">
+					<select name="mouseMiddleButtonBehaviour">
+						<option value="this-tab">Open in this tab</option>
+						<option value="new-tab">Open in new tab</option>
+						<option value="new-bg-tab">Open in new background tab</option>
+						<option value="new-tab-next">Open in new tab (next to current tab)</option>
+						<option value="new-bg-tab-next">Open in new background tab (next to current tab)</option>
+					</select>
+				</div>
+				<div class="setting-description">What to do when a search engine is clicked with the middle mouse button.<br>(default: Open in new background tab)</div>
+			</div>
 
-	<div class="setting">
-		<div class="setting-name">Left mouse button behaviour</div>
-		<div class="setting-value">
-			<select name="mouseLeftButtonBehaviour">
-				<option value="this-tab">Open in this tab</option>
-				<option value="new-tab">Open in new tab</option>
-				<option value="new-bg-tab">Open in new background tab</option>
-				<option value="new-tab-next">Open in new tab (next to current tab)</option>
-				<option value="new-bg-tab-next">Open in new background tab (next to current tab)</option>
-			</select>
-		</div>
-		<div class="setting-description">What to do when a search engine is clicked with the left mouse button.<br>(default: Open in this tab)</div>
-	</div>
+			<div class="setting">
+				<div class="setting-name">Popup animation duration</div>
+				<div class="setting-value">
+					<input type="number" name="popupAnimationDuration" min="0" value="200">
+				</div>
+				<div class="setting-description">Duration of popup animation, in milliseconds. 0 makes the popup show instantly.<br>(default: 200)</div>
+			</div>
 
-	<div class="setting">
-		<div class="setting-name">Middle mouse button behaviour</div>
-		<div class="setting-value">
-			<select name="mouseMiddleButtonBehaviour">
-				<option value="this-tab">Open in this tab</option>
-				<option value="new-tab">Open in new tab</option>
-				<option value="new-bg-tab">Open in new background tab</option>
-				<option value="new-tab-next">Open in new tab (next to current tab)</option>
-				<option value="new-bg-tab-next">Open in new background tab (next to current tab)</option>
-			</select>
-		</div>
-		<div class="setting-description">What to do when a search engine is clicked with the middle mouse button.<br>(default: Open in new background tab)</div>
-	</div>
-
-	<div class="setting">
-		<div class="setting-name">Popup animation duration</div>
-		<div class="setting-value">
-			<input type="number" name="popupAnimationDuration" min="0" value="200">
-		</div>
-		<div class="setting-description">Duration of popup animation, in milliseconds. 0 makes the popup show instantly.<br>(default: 200)</div>
-	</div>
-
-	<div class="setting">
-		<div class="setting-name">Auto copy to clipboard</div>
-		<div class="setting-value">
-			<select name="autoCopyToClipboard">
-				<option value="off">Off</option>
-				<option value="always">Always</option>
-			</select>
-		</div>
-		<div class="setting-description">Automatically copy selected text to clipboard when popup opens.<br>(default: Off)</div>
-	</div>
-
-	<div class="section-name">Popup Appearance</div>
-
-	<div class="setting">
-		<div class="setting-name">Use single row</div>
-		<div class="setting-value">
-			<input type="checkbox" name="useSingleRow" autocomplete="off" checked>
-		</div>
-		<div class="setting-description">Places all search engines in a single row, instead of a grid.<br>(default: On)</div>
-	</div>
-
-	<div class="setting">
-		<div class="setting-name">Number of icons per row in grid</div>
-		<div class="setting-value">
-			<input type="number" name="nPopupIconsPerRow" min="1" value="4">
-		</div>
-		<div class="setting-description">Max number of search engines per row when in grid (i.e. if "Use single row" is off).<br>(default: 4)</div>
-	</div>
-
-	<div class="setting">
-		<div class="setting-name">Icon size</div>
-		<div class="setting-value">
-			<input type="number" name="popupItemSize" value="24">
-		</div>
-		<div class="setting-description">Search engine icon size in pixels.<br>(default: 24)</div>
-	</div>
-
-	<div class="setting">
-		<div class="setting-name">Icon horizontal padding</div>
-		<div class="setting-value">
-			<input type="number" name="popupItemPadding" value="2">
-		</div>
-		<div class="setting-description">Search engine icon horizontal padding (left and right) in pixels.<br>(default: 2)</div>
-	</div>
-
-	<div class="setting">
-		<div class="setting-name">Icon vertical padding</div>
-		<div class="setting-value">
-			<input type="number" name="popupItemVerticalPadding" value="1">
-		</div>
-		<div class="setting-description">Search engine icon vertical padding (top and bottom) in pixels.<br>(default: 1)</div>
-	</div>
-
-	<div class="setting">
-		<div class="setting-name">Icon hover behaviour</div>
-		<div class="setting-value">
-			<select name="popupItemHoverBehaviour">
-				<option value="nothing">Nothing (no hover effect)</option>
-				<option value="highlight">Highlight-only</option>
-				<option value="highlight-and-move">Highlight & Move</option>
-			</select>
-		</div>
-		<div class="setting-description">What happens to hovered search engine icons.<br>(default: Highlight & Move)</div>
-	</div>
-
-	<div class="setting">
-		<div class="setting-name">Popup background color</div>
-		<div class="setting-value">
-			<input type="color" name="popupBackgroundColorPicker" value="#FFFFFF">
-			<input type="text" name="popupBackgroundColor" value="#FFFFFF">
-		</div>
-		<div class="setting-description">Color for the popup background. Supports transparency using #rrggbbaa.<br>(default: white, #FFFFFF)</div>
-	</div>
-
-	<div class="setting">
-		<div class="setting-name">Popup highlight color</div>
-		<div class="setting-value">
-			<input type="color" name="popupHighlightColorPicker" value="#3399FF">
-			<input type="text" name="popupHighlightColor" value="#3399FF">
-		</div>
-		<div class="setting-description">Color for the popup highlight. Supports transparency using #rrggbbaa.<br>(default: blue, #3399FF)</div>
-	</div>
-
-	<div class="setting">
-		<div class="setting-name">Popup horizontal padding</div>
-		<div class="setting-value">
-			<input type="number" name="popupPaddingX" min="0" value="3">
-		</div>
-		<div class="setting-description">Popup left/right padding, in pixels.<br>(default: 3)</div>
-	</div>
-
-	<div class="setting">
-		<div class="setting-name">Popup vertical padding</div>
-		<div class="setting-value">
-			<input type="number" name="popupPaddingY" min="0" value="1">
-		</div>
-		<div class="setting-description">Popup top/bottom padding, in pixels.<br>(default: 1)</div>
-	</div>
-
-	<div class="setting">
-		<div class="setting-name">Popup horizontal offset</div>
-		<div class="setting-value">
-			<input type="number" name="popupOffsetX" value="0">
-		</div>
-		<div class="setting-description">Popup horizontal offset in pixels (positive values move right).<br>(default: 0)</div>
-	</div>
-
-	<div class="setting">
-		<div class="setting-name">Popup vertical offset</div>
-		<div class="setting-value">
-			<input type="number" name="popupOffsetY" value="0">
-		</div>
-		<div class="setting-description">Popup vertical offset in pixels (positive values move up).<br>(default: 0)</div>
-	</div>
-
-	<div class="setting">
-		<div class="setting-name">Popup roundness</div>
-		<div class="setting-value">
-			<input type="number" name="popupBorderRadius" min="0" value="2">
-		</div>
-		<div class="setting-description">Popup border radius in pixels. Makes popup more or less round.<br>(default: 2)</div>
-	</div>
-
-	<div class="section-name">Context menu</div>
-
-	<div class="setting">
-		<div class="setting-name">Is the context menu enabled?</div>
-		<div class="setting-value">
-			<input type="checkbox" name="enableEnginesInContextMenu" autocomplete="off" checked>
-		</div>
-		<div class="setting-description">Enables a context menu with all search engines. Appears when you right click somewhere with text selected.<br>(default: On)</div>
-	</div>
-
-	<div class="setting">
-		<div class="setting-name">Context menu item click behaviour</div>
-		<div class="setting-value">
-			<select name="contextMenuItemBehaviour">
-				<option value="this-tab">Open in this tab</option>
-				<option value="new-tab">Open in new tab</option>
-				<option value="new-bg-tab">Open in new background tab</option>
-				<option value="new-tab-next">Open in new tab (next to current tab)</option>
-				<option value="new-bg-tab-next">Open in new background tab (next to current tab)</option>
-			</select>
-		</div>
-		<div class="setting-description">What to do when a search engine is clicked in the context menu.<br>(default: Open in new background tab)</div>
-	</div>
-
-	<div class="setting">
-		<div class="setting-name">Context menu engines filter</div>
-		<div class="setting-value">
-			<select name="contextMenuEnginesFilter">
-				<option value="all">All</option>
-				<option value="same-as-popup">Same as popup</option>
-			</select>
-		</div>
-		<div class="setting-description">What engines to show on the context menu.<br>(default: Same as popup)</div>
-	</div>
-
-	<div class="section-name">Storage & Backup</div>
-
-	<div class="setting" style="display: none">
-		<div class="setting-name">Storage size</div>
-		<div class="setting-value">
-			<span id="storage-size" class="warn-when-over-storage-limit"></span>
-		</div>
-		<div class="setting-description">
-			This is an estimate size of your SSS engines and settings. <span class="warn-when-over-storage-limit">Engines with "data:image" icons tend to occupy a lot of space</span> (these are generally imported from the browser). WARNING: Actual size may be over (or below) the displayed value.
+			<div class="setting">
+				<div class="setting-name">Auto copy to clipboard</div>
+				<div class="setting-value">
+					<select name="autoCopyToClipboard">
+						<option value="off">Off</option>
+						<option value="always">Always</option>
+					</select>
+				</div>
+				<div class="setting-description">Automatically copy selected text to clipboard when popup opens.<br>(default: Off)</div>
+			</div>
 		</div>
 	</div>
 
-	<div class="setting" style="display: none">
-		<div class="setting-name">Sync settings (upload)</div>
-		<div class="setting-value">
-			<input type="button" name="saveSettingsToSyncButton" value="Save to Sync" class="warn-when-over-storage-limit">
-		</div>
-		<div class="setting-description">
-			Saves all SSS settings and engines in Firefox Sync. This does not force upload, so you may have to wait for Firefox or force sync yourself. <span class="warn-when-over-storage-limit">Beware that storage size must be below 100KB for this to work.</span> Estimate size is not exact, so it may still work if above the limit, or fail if below it.
+	<div class="section vertically-padded collapsed-section" id="section_popupAppearance">
+		<div class="section-name">Popup Appearance</div>
+
+		<div class="section-settings">
+			<div class="setting">
+				<div class="setting-name">Use single row</div>
+				<div class="setting-value">
+					<input type="checkbox" name="useSingleRow" autocomplete="off" checked>
+				</div>
+				<div class="setting-description">Places all search engines in a single row, instead of a grid.<br>(default: On)</div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Number of icons per row in grid</div>
+				<div class="setting-value">
+					<input type="number" name="nPopupIconsPerRow" min="1" value="4">
+				</div>
+				<div class="setting-description">Max number of search engines per row when in grid (i.e. if "Use single row" is off).<br>(default: 4)</div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Icon size</div>
+				<div class="setting-value">
+					<input type="number" name="popupItemSize" value="24">
+				</div>
+				<div class="setting-description">Search engine icon size in pixels.<br>(default: 24)</div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Icon horizontal padding</div>
+				<div class="setting-value">
+					<input type="number" name="popupItemPadding" value="2">
+				</div>
+				<div class="setting-description">Search engine icon horizontal padding (left and right) in pixels.<br>(default: 2)</div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Icon vertical padding</div>
+				<div class="setting-value">
+					<input type="number" name="popupItemVerticalPadding" value="1">
+				</div>
+				<div class="setting-description">Search engine icon vertical padding (top and bottom) in pixels.<br>(default: 1)</div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Icon hover behaviour</div>
+				<div class="setting-value">
+					<select name="popupItemHoverBehaviour">
+						<option value="nothing">Nothing (no hover effect)</option>
+						<option value="highlight">Highlight-only</option>
+						<option value="highlight-and-move">Highlight & Move</option>
+					</select>
+				</div>
+				<div class="setting-description">What happens to hovered search engine icons.<br>(default: Highlight & Move)</div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Icon roundness</div>
+				<div class="setting-value">
+					<input type="number" name="popupItemBorderRadius" min="0" value="0">
+				</div>
+				<div class="setting-description">Icon border radius in pixels. Makes icons more or less round. NOTE: on icons without a background this will likely be unnoticeable.<br>(default: 0)</div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Popup background color</div>
+				<div class="setting-value">
+					<input type="color" name="popupBackgroundColorPicker" value="#FFFFFF">
+					<input type="text" name="popupBackgroundColor" value="#FFFFFF">
+				</div>
+				<div class="setting-description">Color for the popup background. Supports transparency using #rrggbbaa.<br>(default: white, #FFFFFF)</div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Popup highlight color</div>
+				<div class="setting-value">
+					<input type="color" name="popupHighlightColorPicker" value="#3399FF">
+					<input type="text" name="popupHighlightColor" value="#3399FF">
+				</div>
+				<div class="setting-description">Color for the popup highlight. Supports transparency using #rrggbbaa.<br>(default: blue, #3399FF)</div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Popup horizontal padding</div>
+				<div class="setting-value">
+					<input type="number" name="popupPaddingX" min="0" value="3">
+				</div>
+				<div class="setting-description">Popup left/right padding, in pixels.<br>(default: 3)</div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Popup vertical padding</div>
+				<div class="setting-value">
+					<input type="number" name="popupPaddingY" min="0" value="1">
+				</div>
+				<div class="setting-description">Popup top/bottom padding, in pixels.<br>(default: 1)</div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Popup horizontal offset</div>
+				<div class="setting-value">
+					<input type="number" name="popupOffsetX" value="0">
+				</div>
+				<div class="setting-description">Popup horizontal offset in pixels (positive values move right).<br>(default: 0)</div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Popup vertical offset</div>
+				<div class="setting-value">
+					<input type="number" name="popupOffsetY" value="0">
+				</div>
+				<div class="setting-description">Popup vertical offset in pixels (positive values move up).<br>(default: 0)</div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Popup roundness</div>
+				<div class="setting-value">
+					<input type="number" name="popupBorderRadius" min="0" value="2">
+				</div>
+				<div class="setting-description">Popup border radius in pixels. Makes popup more or less round.<br>(default: 2)</div>
+			</div>
 		</div>
 	</div>
 
-	<div class="setting" style="display: none">
-		<div class="setting-name">Sync settings (download)</div>
-		<div class="setting-value">
-			<input type="button" name="loadSettingsFromSyncButton" value="Load from Sync">
-			<input type="button" name="loadSettingsFromSyncButton_real" value="Really load from Sync" style="display: none">
-		</div>
-		<div class="setting-description">
-			Downloads previously saved SSS settings and engines from Firefox Sync. This will override all existing settings and engines!
+	<div class="section vertically-padded collapsed-section" id="section_storageAndBackup">
+		<div class="section-name">Storage & Backup</div>
+
+		<div class="section-settings">
+			<div class="setting" style="display: none">
+				<div class="setting-name">Storage size</div>
+				<div class="setting-value">
+					<span id="storage-size" class="warn-when-over-storage-limit"></span>
+				</div>
+				<div class="setting-description">
+					This is an estimate size of your SSS engines and settings. <span class="warn-when-over-storage-limit">Engines with "data:image" icons tend to occupy a lot of space</span> (these are generally imported from the browser). WARNING: Actual size may be over (or below) the displayed value.
+				</div>
+			</div>
+
+			<div class="setting" style="display: none">
+				<div class="setting-name">Sync settings (upload)</div>
+				<div class="setting-value">
+					<input type="button" name="saveSettingsToSyncButton" value="Save to Sync" class="warn-when-over-storage-limit">
+				</div>
+				<div class="setting-description">
+					Saves all SSS settings and engines in Firefox Sync. This does not force upload, so you may have to wait for Firefox or force sync yourself. <span class="warn-when-over-storage-limit">Beware that storage size must be below 100KB for this to work.</span> Estimate size is not exact, so it may still work if above the limit, or fail if below it.
+				</div>
+			</div>
+
+			<div class="setting" style="display: none">
+				<div class="setting-name">Sync settings (download)</div>
+				<div class="setting-value">
+					<input type="button" name="loadSettingsFromSyncButton" value="Load from Sync">
+					<input type="button" name="loadSettingsFromSyncButton_real" value="Really load from Sync" style="display: none">
+				</div>
+				<div class="setting-description">
+					Downloads previously saved SSS settings and engines from Firefox Sync. This will override all existing settings and engines!
+				</div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Export settings to file</div>
+				<div class="setting-value">
+					<input type="button" name="exportSettingsToFileButton" value="Export to file">
+					<input name="exportSettingsToFileButton_real" type="file" accept=".json" style="display: none"/>
+				</div>
+				<div class="setting-description">
+					Exports all SSS settings and engines to a file.
+				</div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Import settings from file</div>
+				<div class="setting-value">
+					<input type="button" name="importSettingsFromFileButton" value="Import from file">
+					<input name="importSettingsFromFileButton_real" type="file" accept=".json" style="display: none"/>
+				</div>
+				<div class="setting-description">
+					Imports SSS settings and engines from a file (previously exported). This will override all existing settings and engines!
+				</div>
+			</div>
 		</div>
 	</div>
 
-	<div class="setting">
-		<div class="setting-name">Export settings to file</div>
-		<div class="setting-value">
-			<input type="button" name="exportSettingsToFileButton" value="Export to file">
-			<input name="exportSettingsToFileButton_real" type="file" accept=".json" style="display: none"/>
-		</div>
-		<div class="setting-description">
-			Exports all SSS settings and engines to a file.
-		</div>
-	</div>
+	<div class="section vertically-padded collapsed-section" id="section_reset">
+		<div class="section-name">Reset</div>
 
-	<div class="setting">
-		<div class="setting-name">Import settings from file</div>
-		<div class="setting-value">
-			<input type="button" name="importSettingsFromFileButton" value="Import from file">
-			<input name="importSettingsFromFileButton_real" type="file" accept=".json" style="display: none"/>
+		<div class="section-settings">
+			<div class="setting">
+				<div class="setting-name">Reset settings</div>
+				<div class="setting-value">
+					<input type="button" name="resetSettingsButton" value="Reset settings">
+					<input type="button" name="resetSettingsButton_real" value="Really reset settings" style="display: none">
+				</div>
+				<div class="setting-description">Resets all options except search engines to their defaults (as if running SSS for the first time).</div>
+			</div>
 		</div>
-		<div class="setting-description">
-			Imports SSS settings and engines from a file (previously exported). This will override all existing settings and engines!
-		</div>
-	</div>
-
-	<div class="section-name">Reset</div>
-
-	<div class="setting">
-		<div class="setting-name">Reset settings</div>
-		<div class="setting-value">
-			<input type="button" name="resetSettingsButton" value="Reset settings">
-			<input type="button" name="resetSettingsButton_real" value="Really reset settings" style="display: none">
-		</div>
-		<div class="setting-description">Resets all options except search engines to their defaults (as if running SSS for the first time).</div>
 	</div>
 </div>
 
