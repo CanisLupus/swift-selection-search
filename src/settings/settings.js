@@ -234,9 +234,9 @@ function onPageLoaded()
 				let browserSearchEngines = JSON.parse(json);
 				if (DEBUG) { log(browserSearchEngines); }
 				updateBrowserEnginesFromSearchJson(browserSearchEngines);
+				updateUIWithSettings();
 				browser.storage.local.set({ searchEngines: settings.searchEngines });
 				if (DEBUG) { log("saved!", settings); }
-				updateUIWithSettings();
 			});
 		} else if (item.name === "importSettingsFromFileButton_real") {
 			let reader = new FileReader();
@@ -345,12 +345,20 @@ function onPageLoaded()
 
 	page.saveSettingsToSyncButton.onclick = (ev) => {
 		if (DEBUG) { log("saving!"); }
-		let syncedSettings = runActionOnDietSettings(settings, (settings) => JSON.parse(JSON.stringify(settings)));
-		browser.storage.sync.set(syncedSettings).then(
+		let settingsStr = runActionOnDietSettings(settings, (settings) => JSON.stringify(settings));
+
+		// divide into different fields so as not to trigger Firefox's "Maximum bytes per object exceeded ([number of bytes] > 16384 Bytes.)"
+		let chunks = {};
+		let chunkIndex = 0;
+		for (let i = 0, length = settingsStr.length; i < length; i += 1000, chunkIndex++) {
+			chunks["p"+chunkIndex] = settingsStr.substring(i, i + 1000);
+		}
+
+		browser.storage.sync.set(chunks).then(
 			() => log("All settings and engines were saved in Sync!"),
 			() => log("Uploading to Sync failed! Is your network working? Are you under the 100KB size limit?")
 		);
-		if (DEBUG) { log("saved in sync!", syncedSettings); }
+		if (DEBUG) { log("saved in sync!", chunks); }
 	};
 
 	// confirmation buttons
@@ -398,7 +406,16 @@ function onPageLoaded()
 	);
 
 	setupConfirmationProcessForButton(page.loadSettingsFromSyncButton, page.loadSettingsFromSyncButton_real, page.loadSettingsFromSyncButton.value,
-		() => browser.storage.sync.get().then(importSettings, mainScript.getErrorHandler("Error getting settings from sync.")));
+		() => browser.storage.sync.get().then((chunks) => {
+			console.log(chunks);
+			let chunksList = [];
+			let p;
+			for (let i = 0; (p = chunks["p"+i]) !== undefined; i++) {
+				chunksList.push(p);
+			}
+			let settingsStr = chunksList.join("");
+			importSettings(JSON.parse(settingsStr));
+		}, mainScript.getErrorHandler("Error getting settings from sync.")));
 
 	// finish and set elements based on settings, if they are already loaded
 
@@ -453,17 +470,7 @@ function updateUIWithSettings()
 
 	// calculate storage size
 
-	let storageSize = runActionOnDietSettings(settings, (settings) => roughSizeOfObject(settings));
-	// let storageSize = runActionOnDietSettings(settings, (settings) => JSON.stringify(settings).length);
-
-	if (storageSize > 100 * 1024) {
-		for (let elem of document.getElementsByClassName("warn-when-over-storage-limit")) {
-			elem.style.color = "red";
-		}
-	}
-
-	let storageSizeElement = document.getElementById("storage-size");
-	storageSizeElement.textContent = getSizeWithUnit(storageSize);
+	calculateAndShowSettingsSize();
 
 	// update engines
 
@@ -517,6 +524,25 @@ function isDragSupported()
 	}
 	// otherwise check if we are on a separate tab and use drag anyway if that's the case
 	return isSeparateTab;
+}
+
+function calculateAndShowSettingsSize()
+{
+	if (true) return;	// we don't care about this code until Sync is bug-free
+
+	// let storageSize = runActionOnDietSettings(settings, (settings) => roughSizeOfObject(settings));
+	let storageSize = runActionOnDietSettings(settings, (settings) => JSON.stringify(settings).length * 2);
+	if (storageSize > 100 * 1024) {
+		for (let elem of document.getElementsByClassName("warn-when-over-storage-limit")) {
+			elem.style.color = "red";
+		}
+	} else {
+		for (let elem of document.getElementsByClassName("warn-when-over-storage-limit")) {
+			elem.style.color = "";
+		}
+	}
+	let storageSizeElement = document.getElementById("storage-size");
+	storageSizeElement.textContent = getSizeWithUnit(storageSize);
 }
 
 function addSearchEngine(engine, i)
@@ -663,6 +689,7 @@ function addSearchEngine(engine, i)
 		nameInput.onchange = (ev) => {
 			engine.name = nameInput.value;
 			browser.storage.local.set({ searchEngines: settings.searchEngines });
+			calculateAndShowSettingsSize();
 			if (DEBUG) { log("saved!", settings); }
 		};
 		cell.appendChild(nameInput);
@@ -678,6 +705,7 @@ function addSearchEngine(engine, i)
 		searchLinkInput.onchange = (ev) => {
 			engine.searchUrl = searchLinkInput.value;
 			browser.storage.local.set({ searchEngines: settings.searchEngines });
+			calculateAndShowSettingsSize();
 			if (DEBUG) { log("saved!", settings); }
 		};
 		cell.appendChild(searchLinkInput);
@@ -706,6 +734,7 @@ function addSearchEngine(engine, i)
 		iconLinkInput.onchange = (ev) => {
 			trimSearchEnginesCache(settings);
 			browser.storage.local.set({ searchEngines: settings.searchEngines, searchEnginesCache: settings.searchEnginesCache });
+			calculateAndShowSettingsSize();
 			if (DEBUG) { log("saved!", settings); }
 		};
 		cell.appendChild(iconLinkInput);
@@ -751,7 +780,7 @@ function trimSearchEnginesCache(settings)
 	settings.searchEnginesCache = newCache;
 }
 
-// removes from settings objects that are easily re-calculatable (ex.: caches),
+// removes from settings any objects that are easily re-calculatable (ex.: caches)
 // in order to reduce size for an action, and then places them back and returns the action's result
 function runActionOnDietSettings(settings, onCleaned)
 {
