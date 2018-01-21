@@ -395,30 +395,38 @@ function onHotkey(command)
 
 function setup_Popup()
 {
-	browser.tabs.onUpdated.removeListener(onTabUpdated);
+	// browser.tabs.onUpdated.removeListener(onTabUpdated);
+	browser.webNavigation.onDOMContentLoaded.removeListener(onDOMContentLoaded);
 
 	if (sss.settings.popupOpenBehaviour !== consts.PopupOpenBehaviour_Off) {
-		browser.tabs.onUpdated.addListener(onTabUpdated);
+		// browser.tabs.onUpdated.addListener(onTabUpdated);
+		browser.webNavigation.onDOMContentLoaded.addListener(onDOMContentLoaded);
 		browser.tabs.query({}).then(installOnOpenTabs, getErrorHandler("Error querying tabs."));
 	}
 }
 
+function onDOMContentLoaded(details)
+{
+	injectPageWorker(details.tabId, details.frameId);
+}
+
 function installOnOpenTabs(tabs)
 {
+	// if (DEBUG) { log("installOnOpenTabs"); }
 	for (let tab of tabs) {
-		injectPageWorkerIfNeeded(tab.id);
+		injectPageWorkerIfNeeded(tab.id, undefined, true);	// inject on all frames if possible
 	}
 }
 
-function onTabUpdated(tabId, changeInfo, tab)
-{
-	// if (DEBUG) { log("onTabUpdated " + changeInfo.status + " "+ tabId); }
-	if (changeInfo.status === "loading") {
-		injectPageWorkerIfNeeded(tabId);
-	}
-}
+// function onTabUpdated(tabId, changeInfo, tab)
+// {
+// 	// if (DEBUG) { log("onTabUpdated " + changeInfo.status + " "+ tabId); }
+// 	if (changeInfo.status === "loading") {
+// 		injectPageWorkerIfNeeded(tabId);
+// 	}
+// }
 
-function injectPageWorkerIfNeeded(tabId)
+function injectPageWorkerIfNeeded(tabId, frameId, allFrames)
 {
 	// if (DEBUG) { log("injecting on "+ tabId); }
 
@@ -426,21 +434,21 @@ function injectPageWorkerIfNeeded(tabId)
 	browser.tabs.sendMessage(tabId, { type: "isAlive" }).then(
 		msg => {
 			if (msg === undefined) {
-				injectPageWorker(tabId);
+				injectPageWorker(tabId, frameId, allFrames);
 			}
 		},
-		_ => injectPageWorker(tabId)
+		_ => injectPageWorker(tabId, frameId, allFrames)
 	);
 }
 
-function injectPageWorker(tabId)
+function injectPageWorker(tabId, frameId, allFrames)
 {
-	if (DEBUG) { log("injectPageWorker "+ tabId); }
+	if (DEBUG) { log("injectPageWorker " + tabId + " frameId: " + frameId + " allFrames: " + allFrames); }
 
 	let errorHandler = getErrorHandler(`Error injecting page worker in tab ${tabId}.`);
-	browser.tabs.executeScript(tabId, { runAt: "document_start", code: "const DEBUG = " + DEBUG + ";"        }).then(result =>
-	browser.tabs.executeScript(tabId, { runAt: "document_start", file: "/content-scripts/selectionchange.js" }).then(result =>
-	browser.tabs.executeScript(tabId, { runAt: "document_start", file: "/content-scripts/page-script.js"     }).then(null
+	browser.tabs.executeScript(tabId, { runAt: "document_start", frameId: frameId, allFrames: allFrames, code: "const DEBUG = " + DEBUG + ";"        }).then(result =>
+	browser.tabs.executeScript(tabId, { runAt: "document_start", frameId: frameId, allFrames: allFrames, file: "/content-scripts/selectionchange.js" }).then(result =>
+	browser.tabs.executeScript(tabId, { runAt: "document_start", frameId: frameId, allFrames: allFrames, file: "/content-scripts/page-script.js"     }).then(null
 	, errorHandler)
 	, errorHandler)
 	, errorHandler);

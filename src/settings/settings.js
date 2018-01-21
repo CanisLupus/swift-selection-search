@@ -291,7 +291,6 @@ function onPageLoaded()
 				settings.sectionsExpansionState = {};
 			}
 			let isCollapsed = sectionNameElement.parentElement.classList.toggle("collapsed-section");
-			log(sectionNameElement.textContent, isCollapsed, sectionNameElement.parentElement.id);
 			settings.sectionsExpansionState[sectionNameElement.parentElement.id] = !isCollapsed;
 			saveSettings({ sectionsExpansionState: settings.sectionsExpansionState });
 		}
@@ -371,8 +370,8 @@ function onPageLoaded()
 		}
 
 		browser.storage.sync.set(chunks).then(
-			() => log("All settings and engines were saved in Sync!"),
-			() => log("Uploading to Sync failed! Is your network working? Are you under the 100KB size limit?")
+			() => { if (DEBUG) { log("All settings and engines were saved in Sync!"); } },
+			() => { if (DEBUG) { log("Uploading to Sync failed! Is your network working? Are you under the 100KB size limit?"); } }
 		);
 		if (DEBUG) { log("saved in sync!", chunks); }
 	};
@@ -421,7 +420,7 @@ function onPageLoaded()
 
 	setupConfirmationProcessForButton(page.loadSettingsFromSyncButton, page.loadSettingsFromSyncButton_real, page.loadSettingsFromSyncButton.value,
 		() => browser.storage.sync.get().then((chunks) => {
-			console.log(chunks);
+			if (DEBUG) { log(chunks); }
 			let chunksList = [];
 			let p;
 			for (let i = 0; (p = chunks["p"+i]) !== undefined; i++) {
