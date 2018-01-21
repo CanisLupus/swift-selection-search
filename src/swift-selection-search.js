@@ -51,6 +51,7 @@ const consts = {
 const defaultSettings = {
 	popupOpenBehaviour: consts.PopupOpenBehaviour_Auto,
 	popupLocation: consts.PopupLocation_Cursor,
+	minSelectedCharacters: 0,
 	allowPopupOnEditableFields: false,
 	hidePopupOnPageScroll: true,
 	hidePopupOnSearch: true,
@@ -216,6 +217,11 @@ function runBackwardsCompatibilityUpdates(settings)
 
 	if (settings.popupItemBorderRadius === undefined) {
 		settings.popupItemBorderRadius = defaultSettings.popupItemBorderRadius;
+		shouldSave = true;
+	}
+
+	if (settings.minSelectedCharacters === undefined) {
+		settings.minSelectedCharacters = defaultSettings.minSelectedCharacters;
 		shouldSave = true;
 	}
 

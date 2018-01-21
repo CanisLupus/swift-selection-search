@@ -123,6 +123,10 @@ function onSelectionChange(ev, force)
 				return;
 			}
 
+			if (settings.popupOpenBehaviour === consts.PopupOpenBehaviour_Auto && selection.text.length < settings.minSelectedCharacters) {
+				return;
+			}
+
 			if (force !== true)
 			{
 				if (selection.isInEditableField) {
@@ -285,7 +289,9 @@ padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}
 		{
 			icon.onmouseover = () => {
 				icon.style.borderBottom = `2px ${settings.popupHighlightColor} solid`;
-				icon.style.borderRadius = "2px";
+				if (settings.popupItemBorderRadius == 0) {
+					icon.style.borderRadius = "2px";
+				}
 				if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight) {
 					// remove 2 pixels to counter the added border of 2px
 					icon.style.paddingBottom = (3 + settings.popupItemVerticalPadding - 2) + "px";
@@ -297,7 +303,9 @@ padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}
 			icon.onmouseout = () => {
 				let verticalPaddingStr = (3 + settings.popupItemVerticalPadding) + "px";
 				icon.style.borderBottom = "";
-				icon.style.borderRadius = "";
+				if (settings.popupItemBorderRadius == 0) {
+					icon.style.borderRadius = "";
+				}
 				icon.style.paddingTop = verticalPaddingStr;
 				icon.style.paddingBottom = verticalPaddingStr;
 			};
