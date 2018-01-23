@@ -85,7 +85,7 @@ function activate(popupLocation, popupOpenBehaviour)
 		document.addEventListener("customselectionchange", onSelectionChange);
 	}
 
-	if (DEBUG) { log("worker activated"); }
+	if (DEBUG) { log("worker activated, url: " + window.location.href.substr(0, 40)); }
 }
 
 function deactivate()
