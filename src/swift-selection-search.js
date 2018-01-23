@@ -509,11 +509,16 @@ function openUrl(urlToOpen, openingBehaviour)
 {
 	switch (openingBehaviour)
 	{
-		case consts.MouseButtonBehaviour_ThisTab:            browser.tabs.update({ url: urlToOpen }); break;
-		case consts.MouseButtonBehaviour_NewTab:             browser.tabs.create({ url: urlToOpen }); break;
-		case consts.MouseButtonBehaviour_NewBgTab:           browser.tabs.create({ url: urlToOpen, active: false }); break;
-		case consts.MouseButtonBehaviour_NewTabNextToThis:   getCurrentTab(tab => browser.tabs.create({ url: urlToOpen, index: tab.index+1 })); break;
-		case consts.MouseButtonBehaviour_NewBgTabNextToThis: getCurrentTab(tab => browser.tabs.create({ url: urlToOpen, index: tab.index+1, active: false })); break;
+		case consts.MouseButtonBehaviour_ThisTab:
+			browser.tabs.update({ url: urlToOpen, openerTabId: tab.id }); break;
+		case consts.MouseButtonBehaviour_NewTab:
+			browser.tabs.create({ url: urlToOpen, openerTabId: tab.id }); break;
+		case consts.MouseButtonBehaviour_NewBgTab:
+			browser.tabs.create({ url: urlToOpen, openerTabId: tab.id, active: false }); break;
+		case consts.MouseButtonBehaviour_NewTabNextToThis:
+			getCurrentTab(tab => browser.tabs.create({ url: urlToOpen, index: tab.index+1, openerTabId: tab.id })); break;
+		case consts.MouseButtonBehaviour_NewBgTabNextToThis:
+			getCurrentTab(tab => browser.tabs.create({ url: urlToOpen, index: tab.index+1, openerTabId: tab.id, active: false })); break;
 	}
 }
 
