@@ -507,19 +507,39 @@ function getSearchQuery(engine, searchText, hostname)
 
 function openUrl(urlToOpen, openingBehaviour)
 {
-	switch (openingBehaviour)
+	getCurrentTab(tab =>
 	{
-		case consts.MouseButtonBehaviour_ThisTab:
-			getCurrentTab(tab => browser.tabs.update({ url: urlToOpen, openerTabId: tab.id })); break;
-		case consts.MouseButtonBehaviour_NewTab:
-			getCurrentTab(tab => browser.tabs.create({ url: urlToOpen, openerTabId: tab.id })); break;
-		case consts.MouseButtonBehaviour_NewBgTab:
-			getCurrentTab(tab => browser.tabs.create({ url: urlToOpen, openerTabId: tab.id, active: false })); break;
-		case consts.MouseButtonBehaviour_NewTabNextToThis:
-			getCurrentTab(tab => browser.tabs.create({ url: urlToOpen, index: tab.index+1, openerTabId: tab.id })); break;
-		case consts.MouseButtonBehaviour_NewBgTabNextToThis:
-			getCurrentTab(tab => browser.tabs.create({ url: urlToOpen, index: tab.index+1, openerTabId: tab.id, active: false })); break;
-	}
+		const lastTabIndex = 9999;
+		let options = { url: urlToOpen };
+		if (browserVersion >= 57) {
+			options["openerTabId"] = tab.id;
+		}
+
+		switch (openingBehaviour)
+		{
+			case consts.MouseButtonBehaviour_ThisTab:
+				browser.tabs.update(options);
+				break;
+			case consts.MouseButtonBehaviour_NewTab:
+				options["index"] = lastTabIndex + 1;
+				browser.tabs.create(options);
+				break;
+			case consts.MouseButtonBehaviour_NewBgTab:
+				options["index"] = lastTabIndex + 1;
+				options["active"] = false;
+				browser.tabs.create(options);
+				break;
+			case consts.MouseButtonBehaviour_NewTabNextToThis:
+				options["index"] = tab.index + 1;
+				browser.tabs.create(options);
+				break;
+			case consts.MouseButtonBehaviour_NewBgTabNextToThis:
+				options["index"] = tab.index + 1;
+				options["active"] = false;
+				browser.tabs.create(options);
+				break;
+		}
+	});
 }
 
 function getCurrentTab(callback)

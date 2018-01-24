@@ -39,7 +39,7 @@ var selectionchange = (function (undefined) {
 
 	function getSelectionRange(doc) {
 		var s = doc.getSelection();
-		return s.rangeCount ? s.getRangeAt(0) : null;
+		return s !== null && s.rangeCount ? s.getRangeAt(0) : null;
 	}
 
 	function onInput(e) {
