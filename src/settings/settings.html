@@ -282,6 +282,8 @@
 						<option value="new-bg-tab">Open in new background tab</option>
 						<option value="new-tab-next">Open in new tab (next to current tab)</option>
 						<option value="new-bg-tab-next">Open in new background tab (next to current tab)</option>
+						<option value="new-window">Open in new window</option>
+						<option value="new-bg-window">(unsupported by Firefox) Open in new background window</option>
 					</select>
 				</div>
 				<div class="setting-description">What to do when a search engine is clicked in the context menu.<br>(default: Open in new background tab)</div>
@@ -312,6 +314,7 @@
 						<option value="auto">Auto (opens on text selection)</option>
 						<option value="hold-alt">Hold Alt/Option (hold the alt key [option on Mac] when selecting)</option>
 						<option value="keyboard">Keyboard-only (press the keyboard shortcut after text is selected)</option>
+						<option value="middle-mouse">Middle mouse button (press the middle button on the selected text)</option>
 					</select>
 				</div>
 				<div class="setting-description">When to open the popup.<br>(default: Auto)</div>
@@ -333,7 +336,7 @@
 				<div class="setting-value">
 					<input type="number" name="minSelectedCharacters" min="0" value="200">
 				</div>
-				<div class="setting-description">In "Auto" opening behaviour, only shows popup if you have at least this number of characters selected. Setting to 0 always shows.<br>(default: 0)</div>
+				<div class="setting-description">In "Auto" opening behaviour, only shows popup if you have at least this number of characters selected (discarding surrounding spaces). Setting to 0 always shows.<br>(default: 0)</div>
 			</div>
 
 			<div class="setting">
@@ -403,6 +406,8 @@
 						<option value="new-bg-tab">Open in new background tab</option>
 						<option value="new-tab-next">Open in new tab (next to current tab)</option>
 						<option value="new-bg-tab-next">Open in new background tab (next to current tab)</option>
+						<option value="new-window">Open in new window</option>
+						<option value="new-bg-window">(unsupported by Firefox) Open in new background window</option>
 					</select>
 				</div>
 				<div class="setting-description">What to do when a search engine is clicked with the left mouse button.<br>(default: Open in this tab)</div>
@@ -417,6 +422,8 @@
 						<option value="new-bg-tab">Open in new background tab</option>
 						<option value="new-tab-next">Open in new tab (next to current tab)</option>
 						<option value="new-bg-tab-next">Open in new background tab (next to current tab)</option>
+						<option value="new-window">Open in new window</option>
+						<option value="new-bg-window">(unsupported by Firefox) Open in new background window</option>
 					</select>
 				</div>
 				<div class="setting-description">What to do when a search engine is clicked with the middle mouse button.<br>(default: Open in new background tab)</div>
@@ -427,7 +434,7 @@
 				<div class="setting-value">
 					<input type="number" name="popupAnimationDuration" min="0" value="200">
 				</div>
-				<div class="setting-description">Duration of popup animation, in milliseconds. 0 makes the popup show instantly.<br>(default: 200)</div>
+				<div class="setting-description">Duration of popup animation, in milliseconds. Use 0 to make the popup show instantly.<br>(default: 200)</div>
 			</div>
 
 			<div class="setting">

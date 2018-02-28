@@ -8,6 +8,7 @@ if (DEBUG) {
 const consts = {
 	PopupOpenBehaviour_Auto: "auto",
 	PopupOpenBehaviour_HoldAlt: "hold-alt",
+	PopupOpenBehaviour_MiddleMouse: "middle-mouse",
 
 	PopupLocation_Selection: "selection",
 	PopupLocation_Cursor: "cursor",
@@ -23,6 +24,7 @@ let popup = null;
 let selection = {};
 let mousePositionX = 0;
 let mousePositionY = 0;
+let canMiddleClickEngine = true;
 
 // be prepared for messages from background (main) script
 browser.runtime.onMessage.addListener(onMessageReceived);
@@ -84,6 +86,10 @@ function activate(popupLocation, popupOpenBehaviour)
 		selectionchange.start();
 		document.addEventListener("customselectionchange", onSelectionChange);
 	}
+	else if (popupOpenBehaviour === consts.PopupOpenBehaviour_MiddleMouse) {
+		document.addEventListener("mousedown", onMouseDown);
+		document.addEventListener("mouseup", onMouseUp);
+	}
 
 	if (DEBUG) { log("worker activated, url: " + window.location.href.substr(0, 40)); }
 }
@@ -100,6 +106,8 @@ function deactivate()
 
 	document.removeEventListener("mousemove", onMouseUpdate);
 	document.removeEventListener("mouseenter", onMouseUpdate);
+	document.removeEventListener("mousedown", onMouseDown);
+	document.removeEventListener("mouseup", onMouseUp);
 	document.documentElement.removeEventListener("keypress", hidePopup);
 	document.documentElement.removeEventListener("mousedown", hidePopup);
 	window.removeEventListener("scroll", hidePopup);
@@ -123,7 +131,7 @@ function onSelectionChange(ev, force)
 				return;
 			}
 
-			if (settings.popupOpenBehaviour === consts.PopupOpenBehaviour_Auto && selection.text.length < settings.minSelectedCharacters) {
+			if (settings.popupOpenBehaviour === consts.PopupOpenBehaviour_Auto && selection.text.trim().length < settings.minSelectedCharacters) {
 				return;
 			}
 
@@ -311,7 +319,7 @@ padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}
 			};
 		}
 
-		icon.addEventListener("mouseup", onSearchEngineClick(engine, settings));
+		icon.addEventListener("mouseup", onSearchEngineClick(engine, settings));	// "mouse up" instead of "click" to support middle click
 		icon.addEventListener("mousedown", function(ev) {
 			// prevents focus from changing to icon and breaking copy from input fields
 			ev.preventDefault();
@@ -413,6 +421,10 @@ function onMouseUpdate(e)
 function onSearchEngineClick(engineObject, settings)
 {
 	return function(ev) {
+		if (ev.which === 2 && !canMiddleClickEngine) {
+			return;	// early out and don't hide popup
+		}
+
 		if (settings.hidePopupOnSearch) {
 			hidePopup();
 		}
@@ -430,11 +442,63 @@ function onSearchEngineClick(engineObject, settings)
 				message.clickType = "ctrlClick";
 			} else if (ev.which === 1) {
 				message.clickType = "leftClick";
-			} else /*if (e.which === 2)*/ {
+			} else /*if (ev.which === 2)*/ {
 				message.clickType = "middleClick";
 			}
 
 			browser.runtime.sendMessage(message);
 		}
 	};
+}
+
+function onMouseDown(e)
+{
+	if (e.which !== 2) {
+		return;
+	}
+
+	let selection = window.getSelection();
+
+	if (selection.rangeCount <= 0)
+	{
+		let elem = document.activeElement;
+
+		if (elem.tagName === "TEXTAREA" || (elem.tagName === "INPUT" && elem.type !== "password")) {
+			if (forceSelectionIfWithinRect(e, elem.getBoundingClientRect())) {
+				canMiddleClickEngine = false;
+				return false;
+			}
+		}
+
+		return;
+	}
+
+	for (let i = 0; i < selection.rangeCount; ++i)
+	{
+		let range = selection.getRangeAt(i); // get the text range
+		if (forceSelectionIfWithinRect(e, range.getBoundingClientRect())) {
+			canMiddleClickEngine = false;
+			return false;
+		}
+	}
+}
+
+function onMouseUp(e)
+{
+	if (e.which === 2) {
+		canMiddleClickEngine = true;
+	}
+}
+
+function forceSelectionIfWithinRect(e, rect)
+{
+	if (e.clientX > rect.left && e.clientX < rect.right
+	 && e.clientY > rect.top  && e.clientY < rect.bottom)
+	{
+		e.preventDefault();
+		e.stopPropagation();
+		onSelectionChange(e, false);
+		return true;
+	}
+	return false;
 }

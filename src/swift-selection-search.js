@@ -14,6 +14,7 @@ const consts = {
 	PopupOpenBehaviour_Auto: "auto",
 	PopupOpenBehaviour_Keyboard: "keyboard",
 	PopupOpenBehaviour_HoldAlt: "hold-alt",
+	PopupOpenBehaviour_MiddleMouse: "middle-mouse",
 
 	PopupLocation_Selection: "selection",
 	PopupLocation_Cursor: "cursor",
@@ -23,6 +24,8 @@ const consts = {
 	MouseButtonBehaviour_NewBgTab: "new-bg-tab",
 	MouseButtonBehaviour_NewTabNextToThis: "new-tab-next",
 	MouseButtonBehaviour_NewBgTabNextToThis: "new-bg-tab-next",
+	MouseButtonBehaviour_NewWindow: "new-window",
+	MouseButtonBehaviour_NewBgWindow: "new-bg-window",
 
 	AutoCopyToClipboard_Off: "off",
 	AutoCopyToClipboard_Always: "always",
@@ -511,7 +514,7 @@ function openUrl(urlToOpen, openingBehaviour)
 	{
 		const lastTabIndex = 9999;
 		let options = { url: urlToOpen };
-		if (browserVersion >= 57) {
+		if (browserVersion >= 57 && openingBehaviour !== consts.MouseButtonBehaviour_NewWindow && openingBehaviour !== consts.MouseButtonBehaviour_NewBgWindow) {
 			options["openerTabId"] = tab.id;
 		}
 
@@ -537,6 +540,13 @@ function openUrl(urlToOpen, openingBehaviour)
 				options["index"] = tab.index + 1;
 				options["active"] = false;
 				browser.tabs.create(options);
+				break;
+			case consts.MouseButtonBehaviour_NewWindow:
+				browser.windows.create(options);
+				break;
+			case consts.MouseButtonBehaviour_NewBgWindow:
+				// options["focused"] = false;	// crashes because it's unsupported by Firefox
+				browser.windows.create(options);
 				break;
 		}
 	});
