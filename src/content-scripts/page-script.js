@@ -26,6 +26,7 @@ let mousePositionX = 0;
 let mousePositionY = 0;
 let canMiddleClickEngine = true;
 let middleMouseSelectionClickMargin;	// TODO: don't like this here, should improve settings passing
+let settings;
 
 // be prepared for messages from background (main) script
 browser.runtime.onMessage.addListener(onMessageReceived);
@@ -74,7 +75,7 @@ function getErrorHandler(text)
 	return error => log(`${text} (${error})`);
 }
 
-function activate(popupLocation, popupOpenBehaviour, middleMouseSelectionClickMargin_)
+function activate(popupLocation, popupOpenBehaviour, _middleMouseSelectionClickMargin)
 {
 	// register with events based on user settings
 
@@ -88,7 +89,7 @@ function activate(popupLocation, popupOpenBehaviour, middleMouseSelectionClickMa
 		document.addEventListener("customselectionchange", onSelectionChange);
 	}
 	else if (popupOpenBehaviour === consts.PopupOpenBehaviour_MiddleMouse) {
-		middleMouseSelectionClickMargin = middleMouseSelectionClickMargin_;
+		middleMouseSelectionClickMargin = _middleMouseSelectionClickMargin;
 		document.addEventListener("mousedown", onMouseDown);
 		document.addEventListener("mouseup", onMouseUp);
 	}
@@ -128,7 +129,9 @@ function onSelectionChange(ev, force)
 	}
 
 	browser.storage.local.get().then(
-		settings => {
+		_settings => {
+			settings = _settings;
+
 			if (settings.popupOpenBehaviour === consts.PopupOpenBehaviour_HoldAlt && !ev.altKey) {
 				return;
 			}
@@ -211,11 +214,17 @@ function showPopup(settings, searchEngines)
 	}
 }
 
-function hidePopup()
+function hidePopup(ev)
 {
-	if (popup !== null) {
-		popup.style.display = "none";
+	if (popup === null) {
+		return;
 	}
+
+	if (settings && settings.hidePopupOnRightClick === false && ev && ev.which === 3) {
+		return;
+	}
+
+	popup.style.display = "none";
 }
 
 function createPopup(settings, searchEngines)

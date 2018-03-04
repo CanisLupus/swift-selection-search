@@ -58,6 +58,7 @@ const defaultSettings = {
 	minSelectedCharacters: 0,
 	allowPopupOnEditableFields: false,
 	hidePopupOnPageScroll: true,
+	hidePopupOnRightClick: true,
 	hidePopupOnSearch: true,
 	popupOpenHotkey: "accel-shift-space",
 	popupDisableHotkey: "accel-shift-x",
@@ -231,6 +232,11 @@ function runBackwardsCompatibilityUpdates(settings)
 
 	if (settings.middleMouseSelectionClickMargin === undefined) {
 		settings.middleMouseSelectionClickMargin = defaultSettings.middleMouseSelectionClickMargin;
+		shouldSave = true;
+	}
+
+	if (settings.hidePopupOnRightClick === undefined) {
+		settings.hidePopupOnRightClick = defaultSettings.hidePopupOnRightClick;
 		shouldSave = true;
 	}
 
