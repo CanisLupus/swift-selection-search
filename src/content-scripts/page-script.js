@@ -25,6 +25,7 @@ let selection = {};
 let mousePositionX = 0;
 let mousePositionY = 0;
 let canMiddleClickEngine = true;
+let middleMouseSelectionClickMargin;	// TODO: don't like this here, should improve settings passing
 
 // be prepared for messages from background (main) script
 browser.runtime.onMessage.addListener(onMessageReceived);
@@ -38,7 +39,7 @@ function requestActivation()
 {
 	// ask the main script to activate this worker
 	browser.runtime.sendMessage({ type: "activationRequest" }).then(
-		msg => activate(msg.popupLocation, msg.popupOpenBehaviour),	// main script passes a few settings needed for setup
+		msg => activate(msg.popupLocation, msg.popupOpenBehaviour, msg.middleMouseSelectionClickMargin),	// main script passes a few settings needed for setup
 		getErrorHandler("Error sending activation message from worker.")
 	);
 }
@@ -73,7 +74,7 @@ function getErrorHandler(text)
 	return error => log(`${text} (${error})`);
 }
 
-function activate(popupLocation, popupOpenBehaviour)
+function activate(popupLocation, popupOpenBehaviour, middleMouseSelectionClickMargin_)
 {
 	// register with events based on user settings
 
@@ -87,6 +88,7 @@ function activate(popupLocation, popupOpenBehaviour)
 		document.addEventListener("customselectionchange", onSelectionChange);
 	}
 	else if (popupOpenBehaviour === consts.PopupOpenBehaviour_MiddleMouse) {
+		middleMouseSelectionClickMargin = middleMouseSelectionClickMargin_;
 		document.addEventListener("mousedown", onMouseDown);
 		document.addEventListener("mouseup", onMouseUp);
 	}
@@ -492,8 +494,8 @@ function onMouseUp(e)
 
 function forceSelectionIfWithinRect(e, rect)
 {
-	if (e.clientX > rect.left && e.clientX < rect.right
-	 && e.clientY > rect.top  && e.clientY < rect.bottom)
+	if (e.clientX > rect.left - middleMouseSelectionClickMargin && e.clientX < rect.right + middleMouseSelectionClickMargin
+	 && e.clientY > rect.top - middleMouseSelectionClickMargin  && e.clientY < rect.bottom + middleMouseSelectionClickMargin)
 	{
 		e.preventDefault();
 		e.stopPropagation();

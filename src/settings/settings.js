@@ -6,6 +6,11 @@ if (DEBUG) {
 	var log = mainScript.log;
 }
 
+// Subset of consts present in background script (avoids having to ask for them).
+const consts = {
+	PopupOpenBehaviour_MiddleMouse: "middle-mouse",
+};
+
 const page = {};
 let settings;
 let hasPageLoaded = false;
@@ -246,19 +251,21 @@ function onPageLoaded()
 				// alert("All settings were imported!");
 			};
 			reader.readAsText(ev.target.files[0]);
-		} else {
-			if (item.name in settings) {
-				let value;
-				if (item.type === "checkbox") {
-					value = item.checked;
-				} else if (item.type === "number") {
-					value = parseInt(item.value);
-				} else {
-					value = item.value;
-				}
-				settings[item.name] = value;
-				saveSettings({ [item.name]: value });
+		} else if (item.name in settings) {
+			if (item.name === "popupOpenBehaviour") {
+				updateMiddleMouseSelectionClickMarginSetting(item.value);
 			}
+
+			let value;
+			if (item.type === "checkbox") {
+				value = item.checked;
+			} else if (item.type === "number") {
+				value = parseInt(item.value);
+			} else {
+				value = item.value;
+			}
+			settings[item.name] = value;
+			saveSettings({ [item.name]: value });
 		}
 	};
 
@@ -480,6 +487,8 @@ function updateUIWithSettings()
 
 	updatePickerColor(page.popupBackgroundColorPicker, page.popupBackgroundColor.value);
 	updatePickerColor(page.popupHighlightColorPicker, page.popupHighlightColor.value);
+
+	updateMiddleMouseSelectionClickMarginSetting(settings.popupOpenBehaviour);
 
 	// calculate storage size
 
@@ -841,6 +850,16 @@ function updatePickerColor(picker, value)
 
 	if (picker.value !== value) {
 		picker.value = value;
+	}
+}
+
+function updateMiddleMouseSelectionClickMarginSetting(popupOpenBehaviour)
+{
+	let middleMouseSelectionClickMarginSetting = page["middleMouseSelectionClickMargin"].closest(".setting");
+	if (popupOpenBehaviour === consts.PopupOpenBehaviour_MiddleMouse) {
+		middleMouseSelectionClickMarginSetting.classList.remove("hidden");
+	} else {
+		middleMouseSelectionClickMarginSetting.classList.add("hidden");
 	}
 }
 

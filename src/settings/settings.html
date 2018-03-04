@@ -155,6 +155,9 @@
 	.setting.disabled:hover {
 		background-color: #0000;
 	}
+	.setting.hidden {
+		display: none;
+	}
 </style>
 </head>
 
@@ -318,6 +321,14 @@
 					</select>
 				</div>
 				<div class="setting-description">When to open the popup.<br>(default: Auto)</div>
+			</div>
+
+			<div class="setting hidden">
+				<div class="setting-name">Middle mouse click margin</div>
+				<div class="setting-value">
+					<input type="number" name="middleMouseSelectionClickMargin" min="0" value="14">
+				</div>
+				<div class="setting-description">Adds a margin in pixels so you can middle-click near the selection as well as on it.<br>(default: 14)</div>
 			</div>
 
 			<div class="setting">

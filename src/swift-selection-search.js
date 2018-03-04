@@ -53,6 +53,7 @@ const consts = {
 
 const defaultSettings = {
 	popupOpenBehaviour: consts.PopupOpenBehaviour_Auto,
+	middleMouseSelectionClickMargin: 14,
 	popupLocation: consts.PopupLocation_Cursor,
 	minSelectedCharacters: 0,
 	allowPopupOnEditableFields: false,
@@ -228,6 +229,11 @@ function runBackwardsCompatibilityUpdates(settings)
 		shouldSave = true;
 	}
 
+	if (settings.middleMouseSelectionClickMargin === undefined) {
+		settings.middleMouseSelectionClickMargin = defaultSettings.middleMouseSelectionClickMargin;
+		shouldSave = true;
+	}
+
 	for (let engine of settings.searchEngines)
 	{
 		if (engine.iconUrl === undefined && engine.type === "browser") {
@@ -289,7 +295,11 @@ function onContentScriptMessage(msg, sender, sendResponse)
 	}
 
 	if (msg.type === "activationRequest") {
-		sendResponse({ popupLocation: sss.settings.popupLocation, popupOpenBehaviour: sss.settings.popupOpenBehaviour });
+		sendResponse({
+			popupLocation: sss.settings.popupLocation,
+			popupOpenBehaviour: sss.settings.popupOpenBehaviour,
+			middleMouseSelectionClickMargin: sss.settings.middleMouseSelectionClickMargin
+		});
 	} else if (msg.type === "engineClick") {
 		onSearchEngineClick(msg.engine, msg.clickType, msg.selection, msg.hostname);
 	} else if (msg.type === "log") {
