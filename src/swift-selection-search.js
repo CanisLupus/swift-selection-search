@@ -47,6 +47,11 @@ const consts = {
 			name: "Open as link",
 			description: '[SSS] Adds an "Open selection as link" icon to the popup.',
 			iconPath: "res/sss-engine-icons/open-link.svg",
+		},
+		separator: {
+			name: "Separator",
+			description: '[SSS] Adds an empty space.',
+			iconPath: "res/sss-engine-icons/separator.png",
 		}
 	}
 };
@@ -93,6 +98,11 @@ const defaultSettings = {
 		{
 			type: "sss",
 			id: "openAsLink",
+			isEnabled: true,
+		},
+		{
+			type: "sss",
+			id: "separator",
 			isEnabled: true,
 		},
 		{
