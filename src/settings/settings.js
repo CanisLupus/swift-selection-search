@@ -358,8 +358,19 @@ function onPageLoaded()
 	// register events for button clicks
 
 	page.addEngineButton.onclick = (ev) => {
-		let searchEngine = JSON.parse(JSON.stringify(defaultSettings.searchEngines[2]));	// first two are special sss icons
+		let searchEngine = JSON.parse(JSON.stringify(defaultSettings.searchEngines[3]));	// first two are special sss icons
 		settings.searchEngines.push(searchEngine);
+
+		saveSettings({ searchEngines: settings.searchEngines });
+		updateUIWithSettings();
+	};
+
+	page.addSeparatorButton.onclick = (ev) => {
+		settings.searchEngines.push({
+					type: "sss",
+					id: "separator",
+					isEnabled: true,
+				});
 
 		saveSettings({ searchEngines: settings.searchEngines });
 		updateUIWithSettings();
