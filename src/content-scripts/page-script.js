@@ -275,6 +275,9 @@ padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}
 
 		let iconTitle;
 		let iconImgSource;
+		let staticDiv = false;
+		let divClass;
+
 
 		if (engine.type === "sss") {
 			// icon paths should not be hardcoded here, but getting them from bg script is cumbersome
@@ -284,6 +287,10 @@ padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}
 			} else if (engine.id === "openAsLink") {
 				iconTitle = "Open as link";
 				iconImgSource = browser.extension.getURL("res/sss-engine-icons/open-link.svg");
+			}
+			else if (engine.id === "separator") {
+				staticDiv = true;
+				divClass = "swift-separator"
 			}
 		} else {
 			iconTitle = engine.name;
@@ -299,45 +306,68 @@ padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}
 			}
 		}
 
-		let icon = document.createElement("img");
-		icon.setAttribute("src", iconImgSource);
-		icon.title = iconTitle;
-		icon.style.cssText = iconCssText;
+		if (!staticDiv) {
+			let icon = document.createElement("img");
+			icon.setAttribute("src", iconImgSource);
+			icon.title = iconTitle;
+			icon.style.cssText = iconCssText;
 
-		if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight || settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_HighlightAndMove)
-		{
-			icon.onmouseover = () => {
-				icon.style.borderBottom = `2px ${settings.popupHighlightColor} solid`;
-				if (settings.popupItemBorderRadius == 0) {
-					icon.style.borderRadius = "2px";
-				}
-				if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight) {
-					// remove 2 pixels to counter the added border of 2px
-					icon.style.paddingBottom = (3 + settings.popupItemVerticalPadding - 2) + "px";
-				} else {
-					// remove 2 pixels of top padding to cause icon to move up
-					icon.style.paddingTop = (3 + settings.popupItemVerticalPadding - 2) + "px";
-				}
-			};
-			icon.onmouseout = () => {
-				let verticalPaddingStr = (3 + settings.popupItemVerticalPadding) + "px";
-				icon.style.borderBottom = "";
-				if (settings.popupItemBorderRadius == 0) {
-					icon.style.borderRadius = "";
-				}
-				icon.style.paddingTop = verticalPaddingStr;
-				icon.style.paddingBottom = verticalPaddingStr;
-			};
+			if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight || settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_HighlightAndMove)
+			{
+				icon.onmouseover = () => {
+					icon.style.borderBottom = `2px ${settings.popupHighlightColor} solid`;
+					if (settings.popupItemBorderRadius == 0) {
+						icon.style.borderRadius = "2px";
+					}
+					if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight) {
+						// remove 2 pixels to counter the added border of 2px
+						icon.style.paddingBottom = (3 + settings.popupItemVerticalPadding - 2) + "px";
+					} else {
+						// remove 2 pixels of top padding to cause icon to move up
+						icon.style.paddingTop = (3 + settings.popupItemVerticalPadding - 2) + "px";
+					}
+				};
+				icon.onmouseout = () => {
+					let verticalPaddingStr = (3 + settings.popupItemVerticalPadding) + "px";
+					icon.style.borderBottom = "";
+					if (settings.popupItemBorderRadius == 0) {
+						icon.style.borderRadius = "";
+					}
+					icon.style.paddingTop = verticalPaddingStr;
+					icon.style.paddingBottom = verticalPaddingStr;
+				};
+			}
+
+			icon.addEventListener("mouseup", onSearchEngineClick(engine, settings));	// "mouse up" instead of "click" to support middle click
+			icon.addEventListener("mousedown", function(ev) {
+				// prevents focus from changing to icon and breaking copy from input fields
+				ev.preventDefault();
+			});
+			icon.ondragstart = function() { return false; };	// disable dragging popup images
+
+			popup.appendChild(icon);
+
+		} else {
+
+			let icon = document.createElement("img");
+			let div = document.createElement("div");
+			div.className = divClass;
+
+			let divCSSText = `border-left: rgb(228, 227, 227) 1px solid;
+width: 1px;
+height: 24px;
+position: relative;
+display: inline-block;
+vertical-align: unset;
+box-shadow: rgb(250, 250, 250) -1px 0px 0px 0px;
+`
+
+			div.style.cssText = divCSSText+"margin: "+(3 + settings.popupItemVerticalPadding) + "px 10px;";
+			popup.appendChild(div);
+
 		}
 
-		icon.addEventListener("mouseup", onSearchEngineClick(engine, settings));	// "mouse up" instead of "click" to support middle click
-		icon.addEventListener("mousedown", function(ev) {
-			// prevents focus from changing to icon and breaking copy from input fields
-			ev.preventDefault();
-		});
-		icon.ondragstart = function() { return false; };	// disable dragging popup images
 
-		popup.appendChild(icon);
 	}
 
 	// add popup to page
