@@ -479,7 +479,7 @@ function onSearchEngineClick(engineObject, settings)
 				hostname: window.location ? window.location.hostname : "",
 			};
 
-			if (ev.ctrlKey) {
+			if (ev[selectionchange.modifier]) {
 				message.clickType = "ctrlClick";
 			} else if (ev.button === 0) {
 				message.clickType = "leftClick";
