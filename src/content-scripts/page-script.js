@@ -233,8 +233,8 @@ function createPopup(settings, searchEngines)
 	popup = document.createElement("swift-selection-search-popup");
 
 	// format popup, resetting all to initial and including values that will be changed later (set those to "initial" explicitly)
-	let popupCssText = `
-all: initial;
+	let popupCssText =
+`all: initial;
 box-sizing: initial !important;
 font-size: 0 !important;
 position: absolute !important;
@@ -258,8 +258,8 @@ top: initial !important;`;
 	// create all engine icons
 
 	let sizeText = settings.popupItemSize + "px";
-	let iconCssText = `
-all: initial;
+	let iconCssText =
+`all: initial;
 box-sizing: initial !important;
 fontSize: 0 !important;
 border-radius: ${settings.popupItemBorderRadius}px !important;
@@ -273,101 +273,31 @@ padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}
 	{
 		let engine = searchEngines[i];
 
-		let iconTitle;
-		let iconImgSource;
-		let staticDiv = false;
-		let divClass;
-
-
 		if (engine.type === "sss") {
 			// icon paths should not be hardcoded here, but getting them from bg script is cumbersome
 			if (engine.id === "copyToClipboard") {
-				iconTitle = "Copy to clipboard";
-				iconImgSource = browser.extension.getURL("res/sss-engine-icons/copy.svg");
-			} else if (engine.id === "openAsLink") {
-				iconTitle = "Open as link";
-				iconImgSource = browser.extension.getURL("res/sss-engine-icons/open-link.svg");
+				let iconImgSource = browser.extension.getURL("res/sss-engine-icons/copy.svg");
+				setupEngineIcon(engine, iconImgSource, "Copy to clipboard", iconCssText, settings);
+			}
+			else if (engine.id === "openAsLink") {
+				let iconImgSource = browser.extension.getURL("res/sss-engine-icons/open-link.svg");
+				setupEngineIcon(engine, iconImgSource, "Open as link", iconCssText, settings);
 			}
 			else if (engine.id === "separator") {
-				staticDiv = true;
-				divClass = "swift-separator"
+				setupSeparatorIcon(settings);
 			}
 		} else {
-			iconTitle = engine.name;
+			let iconImgSource;
+
 			if (engine.iconUrl.startsWith("data:")) {
 				iconImgSource = engine.iconUrl;
 			} else {
 				let cachedIcon = settings.searchEnginesCache[engine.iconUrl];
-				if (cachedIcon) {
-					iconImgSource = cachedIcon;
-				} else {
-					iconImgSource = engine.iconUrl;
-				}
-			}
-		}
-
-		if (!staticDiv) {
-			let icon = document.createElement("img");
-			icon.setAttribute("src", iconImgSource);
-			icon.title = iconTitle;
-			icon.style.cssText = iconCssText;
-
-			if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight || settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_HighlightAndMove)
-			{
-				icon.onmouseover = () => {
-					icon.style.borderBottom = `2px ${settings.popupHighlightColor} solid`;
-					if (settings.popupItemBorderRadius == 0) {
-						icon.style.borderRadius = "2px";
-					}
-					if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight) {
-						// remove 2 pixels to counter the added border of 2px
-						icon.style.paddingBottom = (3 + settings.popupItemVerticalPadding - 2) + "px";
-					} else {
-						// remove 2 pixels of top padding to cause icon to move up
-						icon.style.paddingTop = (3 + settings.popupItemVerticalPadding - 2) + "px";
-					}
-				};
-				icon.onmouseout = () => {
-					let verticalPaddingStr = (3 + settings.popupItemVerticalPadding) + "px";
-					icon.style.borderBottom = "";
-					if (settings.popupItemBorderRadius == 0) {
-						icon.style.borderRadius = "";
-					}
-					icon.style.paddingTop = verticalPaddingStr;
-					icon.style.paddingBottom = verticalPaddingStr;
-				};
+				iconImgSource = cachedIcon ? cachedIcon : engine.iconUrl;	// should have cached icon, but if not (for some reason) fall back to URL
 			}
 
-			icon.addEventListener("mouseup", onSearchEngineClick(engine, settings));	// "mouse up" instead of "click" to support middle click
-			icon.addEventListener("mousedown", function(ev) {
-				// prevents focus from changing to icon and breaking copy from input fields
-				ev.preventDefault();
-			});
-			icon.ondragstart = function() { return false; };	// disable dragging popup images
-
-			popup.appendChild(icon);
-
-		} else {
-
-			let icon = document.createElement("img");
-			let div = document.createElement("div");
-			div.className = divClass;
-
-			let divCSSText = `border-left: rgb(228, 227, 227) 1px solid;
-width: 1px;
-height: 24px;
-position: relative;
-display: inline-block;
-vertical-align: unset;
-box-shadow: rgb(250, 250, 250) -1px 0px 0px 0px;
-`
-
-			div.style.cssText = divCSSText+"margin: "+(3 + settings.popupItemVerticalPadding) + "px 10px;";
-			popup.appendChild(div);
-
+			setupEngineIcon(engine, iconImgSource, engine.name, iconCssText, settings);
 		}
-
-
 	}
 
 	// add popup to page
@@ -380,6 +310,66 @@ box-shadow: rgb(250, 250, 250) -1px 0px 0px 0px;
 	if (settings.hidePopupOnPageScroll) {
 		window.addEventListener("scroll", hidePopup);
 	}
+}
+
+function setupEngineIcon(engine, iconImgSource, iconTitle, iconCssText, settings)
+{
+	let icon = document.createElement("img");
+	icon.setAttribute("src", iconImgSource);
+	icon.title = iconTitle;
+	icon.style.cssText = iconCssText;
+
+	if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight || settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_HighlightAndMove)
+	{
+		icon.onmouseover = () => {
+			icon.style.borderBottom = `2px ${settings.popupHighlightColor} solid`;
+			if (settings.popupItemBorderRadius == 0) {
+				icon.style.borderRadius = "2px";
+			}
+			if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight) {
+				// remove 2 pixels to counter the added border of 2px
+				icon.style.paddingBottom = (3 + settings.popupItemVerticalPadding - 2) + "px";
+			} else {
+				// remove 2 pixels of top padding to cause icon to move up
+				icon.style.paddingTop = (3 + settings.popupItemVerticalPadding - 2) + "px";
+			}
+		};
+		icon.onmouseout = () => {
+			let verticalPaddingStr = (3 + settings.popupItemVerticalPadding) + "px";
+			icon.style.borderBottom = "";
+			if (settings.popupItemBorderRadius == 0) {
+				icon.style.borderRadius = "";
+			}
+			icon.style.paddingTop = verticalPaddingStr;
+			icon.style.paddingBottom = verticalPaddingStr;
+		};
+	}
+
+	icon.addEventListener("mouseup", onSearchEngineClick(engine, settings)); // "mouse up" instead of "click" to support middle click
+	icon.addEventListener("mousedown", function (ev) {
+		// prevents focus from changing to icon and breaking copy from input fields
+		ev.preventDefault();
+	});
+	icon.ondragstart = function() { return false; };	// disable dragging popup images
+
+	popup.appendChild(icon);
+}
+
+function setupSeparatorIcon(settings)
+{
+	let div = document.createElement("div");
+
+	div.style.cssText =
+`border-left: rgb(228, 227, 227) 1px solid;
+width: 1px;
+height: 24px;
+position: relative;
+display: inline-block;
+vertical-align: unset;
+box-shadow: rgb(250, 250, 250) -1px 0px 0px 0px;
+margin: ${3 + settings.popupItemVerticalPadding}px 10px;`;
+
+	popup.appendChild(div);
 }
 
 function setPopupPositionAndSize(popup, nEngines, settings)
