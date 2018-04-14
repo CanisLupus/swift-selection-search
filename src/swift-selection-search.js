@@ -51,7 +51,15 @@ const consts = {
 		separator: {
 			name: "Separator",
 			description: '[SSS] Adds a separator.',
-			iconPath: "res/sss-engine-icons/separator.png",
+			divCSS: `border-left: rgb(228, 227, 227) 1px solid;
+			width: 1px;
+			height: 24px;
+			margin: 10px;
+			position: relative;
+			display: inline-block;
+			vertical-align: unset;
+			box-shadow: rgb(250, 250, 250) -1px 0px 0px 0px;
+			`,
 		}
 	}
 };
@@ -88,6 +96,8 @@ const defaultSettings = {
 	enableEnginesInContextMenu: true,
 	contextMenuItemBehaviour: consts.MouseButtonBehaviour_NewBgTab,
 	contextMenuEnginesFilter: consts.ContextMenuEnginesFilter_SameAsPopup,
+
+	sssIcons: consts.sssIcons,
 
 	searchEngines: [
 		{
