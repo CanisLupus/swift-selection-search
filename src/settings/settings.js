@@ -716,85 +716,101 @@ function addSearchEngine(engine, i)
 		cell.colSpan = 2;
 		cell.textContent = sssIcon.description;
 		row.appendChild(cell);
+
+		if (engine.id === "separator") {
+			row.appendChild(createDeleteButton(i));
+		}
 	}
 	else
 	{
-		// name
-
-		cell = document.createElement("td");
-		cell.className = "engine-name";
-		let nameInput = document.createElement("input");
-		nameInput.type = "text";
-		nameInput.value = engine.name;
-		nameInput.onchange = (ev) => {
-			engine.name = nameInput.value;
-			saveSettings({ searchEngines: settings.searchEngines });
-			calculateAndShowSettingsSize();
-		};
-		cell.appendChild(nameInput);
-		row.appendChild(cell);
-
-		// search link
-
-		cell = document.createElement("td");
-		cell.className = "engine-search-link";
-		let searchLinkInput = document.createElement("input");
-		searchLinkInput.type = "text";
-		searchLinkInput.value = engine.searchUrl;
-		searchLinkInput.onchange = (ev) => {
-			engine.searchUrl = searchLinkInput.value;
-			saveSettings({ searchEngines: settings.searchEngines });
-			calculateAndShowSettingsSize();
-		};
-		cell.appendChild(searchLinkInput);
-		row.appendChild(cell);
-
-		// icon link
-
-		cell = document.createElement("td");
-		cell.className = "engine-icon-link";
-		let iconLinkInput = document.createElement("input");
-		iconLinkInput.type = "text";
-		iconLinkInput.value = engine.iconUrl;
-
-		iconLinkInput.oninput = (ev) => {
-			engine.iconUrl = iconLinkInput.value.trim();
-			icon.src = engine.iconUrl;
-
-			if (!engine.iconUrl.startsWith("data:")) {
-				getDataUriFromImgUrl(engine.iconUrl, function(base64Img) {
-					icon.src = base64Img;
-					settings.searchEnginesCache[engine.iconUrl] = base64Img;
-				});
-			}
-		};
-
-		iconLinkInput.onchange = (ev) => {
-			trimSearchEnginesCache(settings);
-			saveSettings({ searchEngines: settings.searchEngines, searchEnginesCache: settings.searchEnginesCache });
-			calculateAndShowSettingsSize();
-		};
-		cell.appendChild(iconLinkInput);
-		row.appendChild(cell);
-
-		// delete button
-
-		cell = document.createElement("td");
-		cell.className = "engine-delete";
-		let deleteButton = document.createElement("input");
-		deleteButton.type = "button";
-		deleteButton.value = "✖";
-		deleteButton.onclick = (ev) => {
-			settings.searchEngines.splice(i, 1);	// remove element at i
-			trimSearchEnginesCache(settings);
-			updateUIWithSettings();
-			saveSettings({ searchEngines: settings.searchEngines, searchEnginesCache: settings.searchEnginesCache });
-		};
-		cell.appendChild(deleteButton);
-		row.appendChild(cell);
+		row.appendChild(createEngineName(engine));
+		row.appendChild(createEngineSearchLink(engine));
+		row.appendChild(createEngineIconLink(engine, icon));
+		row.appendChild(createDeleteButton(i));
 	}
 
 	page.engines.appendChild(row);
+}
+
+function createEngineName(engine)
+{
+	let cell = document.createElement("td");
+	cell.className = "engine-name";
+
+	let nameInput = document.createElement("input");
+	nameInput.type = "text";
+	nameInput.value = engine.name;
+	nameInput.onchange = (ev) => {
+		engine.name = nameInput.value;
+		saveSettings({ searchEngines: settings.searchEngines });
+		calculateAndShowSettingsSize();
+	};
+	cell.appendChild(nameInput);
+	return cell;
+}
+
+function createEngineSearchLink(engine)
+{
+	let cell = document.createElement("td");
+	cell.className = "engine-search-link";
+
+	let searchLinkInput = document.createElement("input");
+	searchLinkInput.type = "text";
+	searchLinkInput.value = engine.searchUrl;
+	searchLinkInput.onchange = (ev) => {
+		engine.searchUrl = searchLinkInput.value;
+		saveSettings({ searchEngines: settings.searchEngines });
+		calculateAndShowSettingsSize();
+	};
+	cell.appendChild(searchLinkInput);
+	return cell;
+}
+
+function createEngineIconLink(engine, icon)
+{
+	let cell = document.createElement("td");
+	cell.className = "engine-icon-link";
+
+	let iconLinkInput = document.createElement("input");
+	iconLinkInput.type = "text";
+	iconLinkInput.value = engine.iconUrl;
+	iconLinkInput.oninput = (ev) => {
+		engine.iconUrl = iconLinkInput.value.trim();
+		icon.src = engine.iconUrl;
+
+		if (!engine.iconUrl.startsWith("data:")) {
+			getDataUriFromImgUrl(engine.iconUrl, function(base64Img) {
+				icon.src = base64Img;
+				settings.searchEnginesCache[engine.iconUrl] = base64Img;
+			});
+		}
+	};
+
+	iconLinkInput.onchange = (ev) => {
+		trimSearchEnginesCache(settings);
+		saveSettings({ searchEngines: settings.searchEngines, searchEnginesCache: settings.searchEnginesCache });
+		calculateAndShowSettingsSize();
+	};
+	cell.appendChild(iconLinkInput);
+	return cell;
+}
+
+function createDeleteButton(i)
+{
+	let cell = document.createElement("td");
+	cell.className = "engine-delete";
+
+	let deleteButton = document.createElement("input");
+	deleteButton.type = "button";
+	deleteButton.value = "✖";
+	deleteButton.onclick = (ev) => {
+		settings.searchEngines.splice(i, 1); // remove element at i
+		trimSearchEnginesCache(settings);
+		updateUIWithSettings();
+		saveSettings({ searchEngines: settings.searchEngines, searchEnginesCache: settings.searchEnginesCache });
+	};
+	cell.appendChild(deleteButton);
+	return cell;
 }
 
 function trimSearchEnginesCache(settings)

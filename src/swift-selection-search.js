@@ -50,7 +50,7 @@ const consts = {
 		},
 		separator: {
 			name: "Separator",
-			description: '[SSS] Adds an empty space.',
+			description: '[SSS] Adds a separator.',
 			iconPath: "res/sss-engine-icons/separator.png",
 		}
 	}
