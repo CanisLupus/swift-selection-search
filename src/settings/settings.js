@@ -679,24 +679,56 @@ function addSearchEngine(engine, i)
 
 	cell = document.createElement("td");
 	cell.className = "engine-icon-img";
-	let icon = document.createElement("img");
+	let icon
 
 	if (engine.type === "sss") {
-		icon.src = browser.extension.getURL(mainScript.getSssIcon(engine.id).iconPath);
-	} else if (engine.iconUrl.startsWith("data:")) {
-		icon.src = engine.iconUrl;
-	} else if (settings.searchEnginesCache[engine.iconUrl] === undefined && engine.iconUrl) {
-		icon.src = engine.iconUrl;
-		getDataUriFromImgUrl(engine.iconUrl, function(base64Img) {
-			icon.src = base64Img;
-			settings.searchEnginesCache[engine.iconUrl] = base64Img;
-			saveSettings({ searchEnginesCache: settings.searchEnginesCache });
-		});
-	} else {
-		icon.src = settings.searchEnginesCache[engine.iconUrl];
-	}
-	cell.appendChild(icon);
+
+		let sssEngine = mainScript.getSssIcon(engine.id)
+
+		if (sssEngine.iconPath) {
+			let iconImgSource = browser.extension.getURL(sssEngine.iconPath);
+			icon = setupEngineIcon(sssEngine, iconImgSource, sssEngine.description, '', cell, settings);
+		} else if (sssEngine.divCSS) {
+			icon = setupEngineDiv(sssEngine.divCSS, cell, settings);
+		}
+
+	} else
+		icon = setupEngineIcon(engine, engine.iconUrl, engine.name, '', cell, settings);
+
 	row.appendChild(cell);
+
+	function setupEngineIcon(engine, iconImgSource, iconTitle, iconCssText, parent, settings)
+	{
+		let icon = document.createElement("img");
+
+		if (iconImgSource.startsWith("data:")) {
+			icon.src = iconImgSource
+		} else if (settings.searchEnginesCache[iconImgSource] === undefined && iconImgSource) {
+		 	icon.src = iconImgSource;
+			getDataUriFromImgUrl(iconImgSource, function(base64Img) {
+				icon.src = base64Img;
+				settings.searchEnginesCache[iconImgSource] = base64Img;
+				saveSettings({ searchEnginesCache: settings.searchEnginesCache });
+			});
+		} else {
+			icon.src = settings.searchEnginesCache[iconImgSource];
+		}
+
+		parent.appendChild(icon);
+		return icon
+	}
+
+	function setupEngineDiv(divCSS, parent, settings)
+	{
+		let div = document.createElement("div");
+
+		div.style.cssText = divCSS
+		div.style.marginBottom = "0px";
+		div.style.marginTop = "0px";
+
+		parent.appendChild(div);
+		return div
+	}
 
 	if (engine.type === "sss")
 	{
