@@ -220,7 +220,7 @@ function hidePopup(ev)
 		return;
 	}
 
-	if (settings && settings.hidePopupOnRightClick === false && ev && ev.which === 3) {
+	if (settings && settings.hidePopupOnRightClick === false && ev && ev.button === 2) {
 		return;
 	}
 
@@ -452,7 +452,7 @@ function onMouseUpdate(e)
 function onSearchEngineClick(engineObject, settings)
 {
 	return function(ev) {
-		if (ev.which === 2 && !canMiddleClickEngine) {
+		if (ev.button === 1 && !canMiddleClickEngine) {
 			return;	// early out and don't hide popup
 		}
 
@@ -460,7 +460,7 @@ function onSearchEngineClick(engineObject, settings)
 			hidePopup();
 		}
 
-		if (ev.which === 1 || ev.which === 2)
+		if (ev.button === 0 || ev.button === 1)
 		{
 			let message = {
 				type: "engineClick",
@@ -471,7 +471,7 @@ function onSearchEngineClick(engineObject, settings)
 
 			if (ev[selectionchange.modifier]) {
 				message.clickType = "ctrlClick";
-			} else if (ev.which === 1) {
+			} else if (ev.button === 0) {
 				message.clickType = "leftClick";
 			} else /*if (ev.which === 2)*/ {
 				message.clickType = "middleClick";
@@ -484,7 +484,7 @@ function onSearchEngineClick(engineObject, settings)
 
 function onMouseDown(e)
 {
-	if (e.which !== 2) {
+	if (e.button !== 1) {
 		return;
 	}
 
@@ -516,7 +516,7 @@ function onMouseDown(e)
 
 function onMouseUp(e)
 {
-	if (e.which === 2) {
+	if (e.button === 1) {
 		canMiddleClickEngine = true;
 	}
 }
