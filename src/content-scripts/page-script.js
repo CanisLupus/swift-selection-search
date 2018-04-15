@@ -473,7 +473,7 @@ function onSearchEngineClick(engineObject, settings)
 				message.clickType = "ctrlClick";
 			} else if (ev.button === 0) {
 				message.clickType = "leftClick";
-			} else /*if (ev.which === 2)*/ {
+			} else {
 				message.clickType = "middleClick";
 			}
 
