@@ -34,7 +34,8 @@ var selectionchange = (function (undefined) {
 				d.removeEventListener('mouseup', onMouseUp, true);
 				// d.defaultView.removeEventListener('focus', onFocus, true);
 			}
-		}
+		},
+		modifier: SELECT_ALL_MODIFIER
 	};
 
 	function getSelectionRange(doc) {
