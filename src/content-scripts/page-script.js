@@ -25,8 +25,8 @@ let selection = {};
 let mousePositionX = 0;
 let mousePositionY = 0;
 let canMiddleClickEngine = true;
-let settings;
 let activationSettings;
+let settings;
 
 // be prepared for messages from background (main) script
 browser.runtime.onMessage.addListener(onMessageReceived);
@@ -149,6 +149,9 @@ function deactivate()
 		popup = null;
 	}
 
+	activationSettings = null;
+	settings = null;
+
 	// other listeners are destroyed along with their popup objects
 
 	if (DEBUG) { log("content script deactivated"); }
@@ -160,52 +163,19 @@ function onSelectionChange(ev, isForced)
 		return;
 	}
 
-	// ask the main script for all needed settings
-	browser.runtime.sendMessage({ type: "getPopupSettings" }).then(
-		popupSettings => {
-			settings = popupSettings;
-
-			if (settings.popupOpenBehaviour === consts.PopupOpenBehaviour_HoldAlt && !ev.altKey) {
-				return;
-			}
-
-			if (settings.popupOpenBehaviour === consts.PopupOpenBehaviour_Auto && selection.text.trim().length < settings.minSelectedCharacters) {
-				return;
-			}
-
-			if (!isForced && !settings.allowPopupOnEditableFields)
-			{
-				if (selection.isInEditableField) {
-					return;
-				}
-
-				// even if this is not an input field, don't show popup in contentEditable elements, such as Gmail's compose window
-				for (let elem = selection.selection.anchorNode; elem !== document; elem = elem.parentNode)
-				{
-					if (elem.isContentEditable === undefined) {
-						continue;	// check parent for value
-					} else if (elem.isContentEditable) {
-						return;		// quit
-					} else {
-						break;		// show popup
-					}
-				}
-			}
-
-			if (settings.autoCopyToClipboard === consts.AutoCopyToClipboard_Always) {
-				document.execCommand("copy");
-			}
-
-			if (DEBUG) { log("showing popup: " + popup); }
-
-			if (popup === null) {
-				createPopup(settings);
-			}
-
-			showPopup(settings);
-		},
-		getErrorHandler("Error sending getPopupSettings message from content script.")
-	);
+	if (settings !== null) {
+		// if we have settings already, use them...
+		tryShowPopup(ev, isForced);
+	} else {
+		// ...otherwise ask the main script for all needed settings, store them, and try to show the popup
+		browser.runtime.sendMessage({ type: "getPopupSettings" }).then(
+			popupSettings => {
+				settings = popupSettings;
+				tryShowPopup(ev, isForced);
+			},
+			getErrorHandler("Error sending getPopupSettings message from content script.")
+		);
+	}
 }
 
 function saveCurrentSelection()
@@ -228,6 +198,48 @@ function saveCurrentSelection()
 	}
 
 	return selection.text.length > 0;
+}
+
+function tryShowPopup(ev, isForced)
+{
+	if (settings.popupOpenBehaviour === consts.PopupOpenBehaviour_HoldAlt && !ev.altKey) {
+		return;
+	}
+
+	if (settings.popupOpenBehaviour === consts.PopupOpenBehaviour_Auto && selection.text.trim().length < settings.minSelectedCharacters) {
+		return;
+	}
+
+	if (!isForced && !settings.allowPopupOnEditableFields)
+	{
+		if (selection.isInEditableField) {
+			return;
+		}
+
+		// even if this is not an input field, don't show popup in contentEditable elements, such as Gmail's compose window
+		for (let elem = selection.selection.anchorNode; elem !== document; elem = elem.parentNode)
+		{
+			if (elem.isContentEditable === undefined) {
+				continue;	// check parent for value
+			} else if (elem.isContentEditable) {
+				return;		// quit
+			} else {
+				break;		// show popup
+			}
+		}
+	}
+
+	if (settings.autoCopyToClipboard === consts.AutoCopyToClipboard_Always) {
+		document.execCommand("copy");
+	}
+
+	if (DEBUG) { log("showing popup: " + popup); }
+
+	if (popup === null) {
+		createPopup(settings);
+	}
+
+	showPopup(settings);
 }
 
 function showPopup(settings)
