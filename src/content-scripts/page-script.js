@@ -45,16 +45,23 @@ function requestActivation()
 	);
 }
 
-function onMessageReceived(msg, sender, sendResponse)
+function onMessageReceived(msg, sender, callbackFunc)
 {
-	if (msg.type === "isAlive") {
-		sendResponse(true);
-	} else if (msg.type === "deactivate") {
-		deactivate();
-	} else if (msg.type === "showPopup") {
-		onSelectionChange(null, true);
-	} else if (msg.type === "copyToClipboard") {
-		document.execCommand("copy");
+	switch (msg.type)
+	{
+		case "isAlive":
+			callbackFunc(true);
+			break;
+
+		case "showPopup":
+			onSelectionChange(null, true);
+			break;
+
+		case "copyToClipboard":
+			document.execCommand("copy");
+			break;
+
+		default: break;
 	}
 }
 
@@ -113,25 +120,36 @@ function activate(_activationSettings)
 
 function deactivate()
 {
-	if (popup !== null) {
+	// unregister with all events
+
+	if (activationSettings.popupLocation === consts.PopupLocation_Cursor) {
+		document.removeEventListener("mousemove", onMouseUpdate);
+		document.removeEventListener("mouseenter", onMouseUpdate);
+	}
+
+	if (activationSettings.popupOpenBehaviour === consts.PopupOpenBehaviour_Auto || activationSettings.popupOpenBehaviour === consts.PopupOpenBehaviour_HoldAlt) {
+		document.removeEventListener("customselectionchange", onSelectionChange);
+		selectionchange.stop();
+	}
+	else if (activationSettings.popupOpenBehaviour === consts.PopupOpenBehaviour_MiddleMouse) {
+		document.removeEventListener("mousedown", onMouseDown);
+		document.removeEventListener("mouseup", onMouseUp);
+	}
+
+	if (popup !== null)
+	{
+		document.documentElement.removeEventListener("keypress", hidePopup);
+		document.documentElement.removeEventListener("mousedown", hidePopup);
+		if (settings.hidePopupOnPageScroll) {
+			window.removeEventListener("scroll", hidePopup);
+		}
+
 		// clean page
 		document.documentElement.removeChild(popup);
 		popup = null;
 	}
 
-	// unregister with all events
-
-	document.removeEventListener("mousemove", onMouseUpdate);
-	document.removeEventListener("mouseenter", onMouseUpdate);
-	document.removeEventListener("mousedown", onMouseDown);
-	document.removeEventListener("mouseup", onMouseUp);
-	document.documentElement.removeEventListener("keypress", hidePopup);
-	document.documentElement.removeEventListener("mousedown", hidePopup);
-	window.removeEventListener("scroll", hidePopup);
 	// other listeners are destroyed along with their popup objects
-
-	document.removeEventListener("customselectionchange", onSelectionChange);
-	selectionchange.stop();
 
 	if (DEBUG) { log("content script deactivated"); }
 }
@@ -287,7 +305,7 @@ padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}
 		let engine = settings.searchEngines[i];
 
 		if (engine.type === "sss") {
-			// icon paths should not be hardcoded here, but getting them from bg script is cumbersome
+			// TODO: icon paths should not be hardcoded here, but getting them from bg script is cumbersome
 			if (engine.id === "copyToClipboard") {
 				let iconImgSource = browser.extension.getURL("res/sss-engine-icons/copy.svg");
 				setupEngineIcon(engine, iconImgSource, "Copy to clipboard", iconCssText, settings);
@@ -359,11 +377,11 @@ function setupEngineIcon(engine, iconImgSource, iconTitle, iconCssText, settings
 	}
 
 	icon.addEventListener("mouseup", onSearchEngineClick(engine, settings)); // "mouse up" instead of "click" to support middle click
-	icon.addEventListener("mousedown", function (ev) {
+	icon.addEventListener("mousedown", ev => {
 		// prevents focus from changing to icon and breaking copy from input fields
 		ev.preventDefault();
 	});
-	icon.ondragstart = function() { return false; };	// disable dragging popup images
+	icon.ondragstart = () => false;	// disable dragging popup images
 
 	popup.appendChild(icon);
 }
