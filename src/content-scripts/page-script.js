@@ -303,6 +303,7 @@ top: initial !important;`;
 	let sizeText = settings.popupItemSize + "px";
 	let iconCssText =
 `all: initial;
+display: initial !important;
 box-sizing: initial !important;
 fontSize: 0 !important;
 border-radius: ${settings.popupItemBorderRadius}px !important;
