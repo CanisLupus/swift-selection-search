@@ -6,11 +6,7 @@ if (DEBUG) {
 	var log = mainScript.log;
 }
 
-// Subset of consts present in background script (avoids having to ask for them).
-const consts = {
-	PopupOpenBehaviour_MiddleMouse: "middle-mouse",
-};
-
+const consts = mainScript.getConsts();
 const page = {};
 let settings;
 let hasPageLoaded = false;
@@ -90,7 +86,7 @@ function readMozlz4File(file, onRead, onError)
 {
 	let reader = new FileReader();
 
-	reader.onload = function() {
+	reader.onload = () => {
 		let input = new Uint8Array(reader.result);
 		let output;
 		let uncompressedSize = input.length*3;	// size estimate for uncompressed data!
@@ -173,7 +169,7 @@ function getDataUriFromImgUrl(url, callback)
 {
 	var img = new Image();
 	img.crossOrigin = 'Anonymous';
-	img.onload = function() {
+	img.onload = () => {
 		const maxSize = 48;
 		let width;
 		let height;
@@ -182,20 +178,20 @@ function getDataUriFromImgUrl(url, callback)
 
 		// scale image to smaller icon if needed
 		// (we don't want stored SSS icons to take a lot of space)
-		if (this.width > this.height) {
-			width = Math.min(maxSize, this.width);
-			height = width * this.height / this.width;
+		if (img.width > img.height) {
+			width = Math.min(maxSize, img.width);
+			height = width * img.height / img.width;
 			yPos = (width - height) / 2;
-		} else if (this.height > this.width) {
-			height = Math.min(maxSize, this.height);
-			width = height * this.width / this.height;
+		} else if (img.height > img.width) {
+			height = Math.min(maxSize, img.height);
+			width = height * img.width / img.height;
 			xPos = (height - width) / 2;
 		} else {
-			width = Math.min(maxSize, this.width);
+			width = Math.min(maxSize, img.width);
 			height = width;
 		}
 
-		if (DEBUG) { log(this.width + "x" + this.height + " became " + width + "x" + height); }
+		if (DEBUG) { log(img.width + "x" + img.height + " became " + width + "x" + height); }
 
 		// canvas is always a square (using larger dimension)
 		let canvas = document.createElement('canvas');
@@ -203,7 +199,7 @@ function getDataUriFromImgUrl(url, callback)
 
 		// draw image with size and position defined above
 		let ctx = canvas.getContext('2d');
-		ctx.drawImage(this, xPos, yPos, width, height);
+		ctx.drawImage(img, xPos, yPos, width, height);
 
 		let dataURL = canvas.toDataURL();
 		if (DEBUG) { log(dataURL.length); }
@@ -227,7 +223,7 @@ function onPageLoaded()
 	}
 
 	// register change event for anything in the form
-	page.container.onchange = (ev) => {
+	page.container.onchange = ev => {
 		let item = ev.target;
 		if (item.type === "color") {
 			return;
@@ -245,7 +241,7 @@ function onPageLoaded()
 			});
 		} else if (item.name === "importSettingsFromFileButton_real") {
 			let reader = new FileReader();
-			reader.onload = function() {
+			reader.onload = () => {
 				let importedSettings = JSON.parse(reader.result);
 				importSettings(importedSettings);
 				// alert("All settings were imported!");
@@ -271,7 +267,7 @@ function onPageLoaded()
 
 	page.importBrowserEnginesFileButton.onclick = ev => page.importBrowserEnginesFileButton_real.click();
 	page.exportSettingsToFileButton.onclick = ev => {
-		var blob = runActionOnDietSettings(settings, (settings) => new Blob([JSON.stringify(settings)]));
+		var blob = runActionOnDietSettings(settings, settings => new Blob([JSON.stringify(settings)]));
 		let filename = "SSS settings backup (" + new Date(Date.now()).toJSON().replace(/:/g, ".") + ").json";
 		browser.downloads.download({
 			"saveAs": true,
@@ -282,10 +278,10 @@ function onPageLoaded()
 	page.importSettingsFromFileButton.onclick = ev => page.importSettingsFromFileButton_real.click();
 
 	// register events for specific behaviour when certain fields change
-	page.popupBackgroundColorPicker.oninput = (ev) => updateColorText  (page.popupBackgroundColor,       page.popupBackgroundColorPicker.value);
-	page.popupBackgroundColor.oninput       = (ev) => updatePickerColor(page.popupBackgroundColorPicker, page.popupBackgroundColor.value);
-	page.popupHighlightColorPicker.oninput  = (ev) => updateColorText  (page.popupHighlightColor,        page.popupHighlightColorPicker.value);
-	page.popupHighlightColor.oninput        = (ev) => updatePickerColor(page.popupHighlightColorPicker,  page.popupHighlightColor.value);
+	page.popupBackgroundColorPicker.oninput = ev => updateColorText  (page.popupBackgroundColor,       page.popupBackgroundColorPicker.value);
+	page.popupBackgroundColor.oninput       = ev => updatePickerColor(page.popupBackgroundColorPicker, page.popupBackgroundColor.value);
+	page.popupHighlightColorPicker.oninput  = ev => updateColorText  (page.popupHighlightColor,        page.popupHighlightColorPicker.value);
+	page.popupHighlightColor.oninput        = ev => updatePickerColor(page.popupHighlightColorPicker,  page.popupHighlightColor.value);
 
 	// sections' collapse/expand code
 
@@ -303,15 +299,13 @@ function onPageLoaded()
 		}
 	}
 
-	let defaultSettings = mainScript.getDefaultSettings();
-
 	// general layout (changes if page is embedded or separate)
 
 	if (!isSeparateTab) {
 		document.body.className = "embedded";
 	}
 
-	window.onfocus = (ev) => {
+	window.onfocus = ev => {
 		// if settings changed while page was not focused, reload settings and UI
 		if (pendingSettings) {
 			browser.storage.local.get().then(onSettingsAcquired, mainScript.getErrorHandler("Error getting settings in settings page."));
@@ -319,32 +313,32 @@ function onPageLoaded()
 		isFocused = true;
 	};
 
-	window.onblur = (ev) => {
+	window.onblur = ev => {
 		isFocused = false;
 	};
 
 	// engines footnote
 
-	let enginesFootnoteElem = document.getElementById("engines-footnote");
-
-	function addToFootnote(text, linkParams)
+	if (!isDragSupported())
 	{
-		enginesFootnoteElem.appendChild(document.createTextNode(text));
+		let enginesFootnoteElem = document.getElementById("engines-footnote");
 
-		for (let i = 0; i < linkParams.length; ) {
-			let link = linkParams[i++];
-			let linkText = linkParams[i++];
-			let postText = linkParams[i++];
-			let anchor = document.createElement("a");
-			anchor.href = link;
-			anchor.textContent = linkText;
-			anchor.target = "_blank";
-			enginesFootnoteElem.appendChild(anchor);
-			enginesFootnoteElem.appendChild(document.createTextNode(postText));
-		}
-	}
+		let addToFootnote = (text, linkParams) => {
+			enginesFootnoteElem.appendChild(document.createTextNode(text));
 
-	if (!isDragSupported()) {
+			for (let i = 0; i < linkParams.length; ) {
+				let link = linkParams[i++];
+				let linkText = linkParams[i++];
+				let postText = linkParams[i++];
+				let anchor = document.createElement("a");
+				anchor.href = link;
+				anchor.textContent = linkText;
+				anchor.target = "_blank";
+				enginesFootnoteElem.appendChild(anchor);
+				enginesFootnoteElem.appendChild(document.createTextNode(postText));
+			}
+		};
+
 		addToFootnote("* My apologies for using ↑/↓ buttons to reorder the engines. Dragging is much better but it doesn't work in this page due to a ",
 			["https://bugzilla.mozilla.org/show_bug.cgi?id=1408756", "Firefox bug", ". It should work on a separate tab, however, so I've enabled it for ",
 			"/settings/settings.html?open_in_tab=true", "this link", " if you wish to try!"]);
@@ -357,28 +351,31 @@ function onPageLoaded()
 
 	// register events for button clicks
 
-	page.addEngineButton.onclick = (ev) => {
-		let searchEngine = JSON.parse(JSON.stringify(defaultSettings.searchEngines[3]));	// first two are special sss icons
-		settings.searchEngines.push(searchEngine);
+	let defaultSettings = mainScript.getDefaultSettings();
+
+	page.addEngineButton.onclick = ev => {
+		let templateEngine = defaultSettings.searchEngines.find(engine => engine.type === "custom");	// first one that is not a special SSS icon
+		let newSearchEngine = JSON.parse(JSON.stringify(templateEngine));
+		settings.searchEngines.push(newSearchEngine);
 
 		saveSettings({ searchEngines: settings.searchEngines });
 		updateUIWithSettings();
 	};
 
-	page.addSeparatorButton.onclick = (ev) => {
+	page.addSeparatorButton.onclick = ev => {
 		settings.searchEngines.push({
-					type: "sss",
-					id: "separator",
-					isEnabled: true,
-				});
+			type: "sss",
+			id: "separator",
+			isEnabled: true,
+		});
 
 		saveSettings({ searchEngines: settings.searchEngines });
 		updateUIWithSettings();
 	};
 
-	page.saveSettingsToSyncButton.onclick = (ev) => {
+	page.saveSettingsToSyncButton.onclick = ev => {
 		if (DEBUG) { log("saving!"); }
-		let settingsStr = runActionOnDietSettings(settings, (settings) => JSON.stringify(settings));
+		let settingsStr = runActionOnDietSettings(settings, settings => JSON.stringify(settings));
 
 		// divide into different fields so as not to trigger Firefox's "Maximum bytes per object exceeded ([number of bytes] > 16384 Bytes.)"
 		let chunks = {};
@@ -396,9 +393,8 @@ function onPageLoaded()
 
 	// confirmation buttons
 
-	function setupConfirmationProcessForButton(mainButton, confirmationButton, originalMainButtonValue, onConfirm)
-	{
-		mainButton.onclick = (ev) => {
+	let setupConfirmationProcessForButton = (mainButton, confirmationButton, originalMainButtonValue, onConfirm) => {
+		mainButton.onclick = ev => {
 			if (mainButton.value === "Cancel") {
 				mainButton.value = originalMainButtonValue;
 				confirmationButton.style.display = "none";
@@ -408,7 +404,7 @@ function onPageLoaded()
 			}
 		};
 
-		confirmationButton.onclick = (ev) => {
+		confirmationButton.onclick = ev => {
 			mainButton.value = originalMainButtonValue;
 			confirmationButton.style.display = "none";
 
@@ -437,7 +433,7 @@ function onPageLoaded()
 	);
 
 	setupConfirmationProcessForButton(page.loadSettingsFromSyncButton, page.loadSettingsFromSyncButton_real, page.loadSettingsFromSyncButton.value,
-		() => browser.storage.sync.get().then((chunks) => {
+		() => browser.storage.sync.get().then(chunks => {
 			if (DEBUG) { log(chunks); }
 			let chunksList = [];
 			let p;
@@ -499,7 +495,7 @@ function updateUIWithSettings()
 	updatePickerColor(page.popupBackgroundColorPicker, page.popupBackgroundColor.value);
 	updatePickerColor(page.popupHighlightColorPicker, page.popupHighlightColor.value);
 
-	updateMiddleMouseSelectionClickMarginSetting(settings.popupOpenBehaviour);
+	updateMiddleMouseSelectionClickMarginSetting(settings.popupOpenBehaviour);	// margin option only appears if using middle click for opening behaviour
 
 	// calculate storage size
 
@@ -509,11 +505,13 @@ function updateUIWithSettings()
 
 	if (settings.searchEngines !== undefined)
 	{
-		let engineElements = page.engines.getElementsByClassName("engine");
-		while (engineElements.length > 0) {
-			engineElements[0].remove();
+		// delete existing engine HTML elements
+		let engineParent = page.engines;
+		while (engineParent.firstChild) {
+			engineParent.removeChild(engineParent.firstChild);
 		}
 
+		// add all engines
 		for (let i = 0; i < settings.searchEngines.length; i++) {
 			let engine = settings.searchEngines[i];
 			addSearchEngine(engine, i);
@@ -521,22 +519,24 @@ function updateUIWithSettings()
 
 		let useDrag = isDragSupported();
 
+		// if using drag we have only 3 columns before each engine because the dragger replaces the up/down buttons
+		let colSpan = useDrag ? 3 : 4;
 		for (let column of document.getElementsByClassName("variable-colspan")) {
-			column.colSpan = useDrag ? 3 : 4;
+			column.colSpan = colSpan;
 		}
 
 		if (useDrag)
 		{
 			Sortable.create(page.engines, {
 				handle: ".engine-dragger",
-				onStart: function (/**Event*/evt) {
-					if (DEBUG) { log("start drag", evt.oldIndex); }
+				onStart: ev => {
+					if (DEBUG) { log("start drag", ev.oldIndex); }
 				},
-				onUpdate: function (evt/**Event*/){
-					var item = evt.item; // the current dragged HTMLElement
+				onUpdate: ev => {
+					var item = ev.item; // the current dragged HTMLElement
 					if (DEBUG) { log("onUpdate", item); }
 				},
-				onEnd: function (ev) {
+				onEnd: ev => {
 					if (DEBUG) { log("onEnd", settings); }
 					settings.searchEngines.splice(ev.newIndex, 0, settings.searchEngines.splice(ev.oldIndex, 1)[0]);
 					updateUIWithSettings();
@@ -562,8 +562,7 @@ function updateUIWithSettings()
 function isDragSupported()
 {
 	// check if we are on a version where drag is supported in the settings page
-	let browserVersion = mainScript.getBrowserVersion()
-	if (browserVersion <= 55) {
+	if (mainScript.getBrowserVersion() <= 55) {
 		return true;
 	}
 	// otherwise check if we are on a separate tab and use drag anyway if that's the case
@@ -574,8 +573,8 @@ function calculateAndShowSettingsSize()
 {
 	if (true) return;	// we don't care about this code until Sync is bug-free
 
-	// let storageSize = runActionOnDietSettings(settings, (settings) => roughSizeOfObject(settings));
-	let storageSize = runActionOnDietSettings(settings, (settings) => JSON.stringify(settings).length * 2);
+	// let storageSize = runActionOnDietSettings(settings, settings => roughSizeOfObject(settings));
+	let storageSize = runActionOnDietSettings(settings, settings => JSON.stringify(settings).length * 2);
 	if (storageSize > 100 * 1024) {
 		for (let elem of document.getElementsByClassName("warn-when-over-storage-limit")) {
 			elem.style.color = "red";
@@ -618,7 +617,7 @@ function addSearchEngine(engine, i)
 		moveUpButton.type = "button";
 		moveUpButton.value = "↑";
 		if (i > 0) {
-			moveUpButton.onclick = (ev) => {
+			moveUpButton.onclick = ev => {
 				if (i <= 0) {
 					return;
 				}
@@ -642,7 +641,7 @@ function addSearchEngine(engine, i)
 		moveDownButton.type = "button";
 		moveDownButton.value = "↓";
 		if (i < settings.searchEngines.length-1) {
-			moveDownButton.onclick = (ev) => {
+			moveDownButton.onclick = ev => {
 				if (i >= settings.searchEngines.length-1) {
 					return;
 				}
@@ -667,7 +666,7 @@ function addSearchEngine(engine, i)
 	isEnabledInput.type = "checkbox";
 	isEnabledInput.checked = engine.isEnabled;
 	isEnabledInput.autocomplete = "off";
-	isEnabledInput.onchange = (ev) => {
+	isEnabledInput.onchange = ev => {
 		engine.isEnabled = isEnabledInput.checked;
 		saveSettings({ searchEngines: settings.searchEngines });
 	};
@@ -682,12 +681,12 @@ function addSearchEngine(engine, i)
 	let icon = document.createElement("img");
 
 	if (engine.type === "sss") {
-		icon.src = browser.extension.getURL(mainScript.getSssIcon(engine.id).iconPath);
+		icon.src = browser.extension.getURL(consts.sssIcons[engine.id].iconPath);
 	} else if (engine.iconUrl.startsWith("data:")) {
 		icon.src = engine.iconUrl;
 	} else if (settings.searchEnginesCache[engine.iconUrl] === undefined && engine.iconUrl) {
 		icon.src = engine.iconUrl;
-		getDataUriFromImgUrl(engine.iconUrl, function(base64Img) {
+		getDataUriFromImgUrl(engine.iconUrl, base64Img => {
 			icon.src = base64Img;
 			settings.searchEnginesCache[engine.iconUrl] = base64Img;
 			saveSettings({ searchEnginesCache: settings.searchEnginesCache });
@@ -700,7 +699,7 @@ function addSearchEngine(engine, i)
 
 	if (engine.type === "sss")
 	{
-		let sssIcon = mainScript.getSssIcon(engine.id);
+		let sssIcon = consts.sssIcons[engine.id];
 
 		// name
 
@@ -740,7 +739,7 @@ function createEngineName(engine)
 	let nameInput = document.createElement("input");
 	nameInput.type = "text";
 	nameInput.value = engine.name;
-	nameInput.onchange = (ev) => {
+	nameInput.onchange = ev => {
 		engine.name = nameInput.value;
 		saveSettings({ searchEngines: settings.searchEngines });
 		calculateAndShowSettingsSize();
@@ -757,7 +756,7 @@ function createEngineSearchLink(engine)
 	let searchLinkInput = document.createElement("input");
 	searchLinkInput.type = "text";
 	searchLinkInput.value = engine.searchUrl;
-	searchLinkInput.onchange = (ev) => {
+	searchLinkInput.onchange = ev => {
 		engine.searchUrl = searchLinkInput.value;
 		saveSettings({ searchEngines: settings.searchEngines });
 		calculateAndShowSettingsSize();
@@ -774,19 +773,19 @@ function createEngineIconLink(engine, icon)
 	let iconLinkInput = document.createElement("input");
 	iconLinkInput.type = "text";
 	iconLinkInput.value = engine.iconUrl;
-	iconLinkInput.oninput = (ev) => {
+	iconLinkInput.oninput = ev => {
 		engine.iconUrl = iconLinkInput.value.trim();
 		icon.src = engine.iconUrl;
 
 		if (!engine.iconUrl.startsWith("data:")) {
-			getDataUriFromImgUrl(engine.iconUrl, function(base64Img) {
+			getDataUriFromImgUrl(engine.iconUrl, base64Img => {
 				icon.src = base64Img;
 				settings.searchEnginesCache[engine.iconUrl] = base64Img;
 			});
 		}
 	};
 
-	iconLinkInput.onchange = (ev) => {
+	iconLinkInput.onchange = ev => {
 		trimSearchEnginesCache(settings);
 		saveSettings({ searchEngines: settings.searchEngines, searchEnginesCache: settings.searchEnginesCache });
 		calculateAndShowSettingsSize();
@@ -803,7 +802,7 @@ function createDeleteButton(i)
 	let deleteButton = document.createElement("input");
 	deleteButton.type = "button";
 	deleteButton.value = "✖";
-	deleteButton.onclick = (ev) => {
+	deleteButton.onclick = ev => {
 		settings.searchEngines.splice(i, 1); // remove element at i
 		trimSearchEnginesCache(settings);
 		updateUIWithSettings();

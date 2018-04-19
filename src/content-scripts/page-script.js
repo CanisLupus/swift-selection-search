@@ -1,7 +1,7 @@
 "use strict";
 
 if (DEBUG) {
-	var log = (msg) => browser.runtime.sendMessage({ type: "log", log: msg });
+	var log = msg => browser.runtime.sendMessage({ type: "log", log: msg });
 }
 
 // Subset of consts present in background script (avoids having to ask for them).
@@ -25,8 +25,8 @@ let selection = {};
 let mousePositionX = 0;
 let mousePositionY = 0;
 let canMiddleClickEngine = true;
-let middleMouseSelectionClickMargin;	// TODO: don't like this here, should improve settings passing
-let settings;
+let activationSettings = null;
+let settings = null;
 
 // be prepared for messages from background (main) script
 browser.runtime.onMessage.addListener(onMessageReceived);
@@ -38,144 +38,144 @@ requestActivation();
 
 function requestActivation()
 {
-	// ask the main script to activate this worker
-	browser.runtime.sendMessage({ type: "activationRequest" }).then(
-		msg => activate(msg.popupLocation, msg.popupOpenBehaviour, msg.middleMouseSelectionClickMargin),	// main script passes a few settings needed for setup
-		getErrorHandler("Error sending activation message from worker.")
+	// ask the main script to activate this content script
+	browser.runtime.sendMessage({ type: "getActivationSettings" }).then(
+		activationSettings => activate(activationSettings),	// main script passes a few settings needed for setup
+		getErrorHandler("Error sending getActivationSettings message from content script.")
 	);
 }
 
-function onMessageReceived(msg, sender, sendResponse)
+function onMessageReceived(msg, sender, callbackFunc)
 {
-	if (msg.type === "isAlive") {
-		sendResponse(true);
-	} else if (msg.type === "deactivate") {
-		deactivate();
-	} else if (msg.type === "showPopup") {
-		onSelectionChange(null, true);
-	} else if (msg.type === "copyToClipboard") {
-		document.execCommand("copy");
+	switch (msg.type)
+	{
+		case "isAlive":
+			callbackFunc(true);
+			break;
+
+		case "showPopup":
+			onSelectionChange(null, true);
+			break;
+
+		case "copyToClipboard":
+			document.execCommand("copy");
+			break;
+
+		default: break;
 	}
 }
 
 function onSettingsChanged(changes, area)
 {
-	if (area !== "local" || Object.keys(changes).length === 0) {
+	if (area !== "local" || isObjectEmpty(changes)) {
 		return;
 	}
 
 	if (DEBUG) { log("onSettingsChanged"); }
 
+	// restart content script
 	deactivate();
 	requestActivation();
 }
 
-function getErrorHandler(text)
+function isObjectEmpty(object)
 {
-	return error => log(`${text} (${error})`);
+	for (const key in object) {
+		return false;	// has at least one element
+	}
+	return false;
 }
 
-function activate(popupLocation, popupOpenBehaviour, _middleMouseSelectionClickMargin)
+function getErrorHandler(text)
 {
+	if (DEBUG) {
+		return error => { log(`${text} (${error})`); };
+	} else {
+		return undefined;
+	}
+}
+
+function activate(_activationSettings)
+{
+	activationSettings = _activationSettings;
+
 	// register with events based on user settings
 
-	if (popupLocation === consts.PopupLocation_Cursor) {
+	if (activationSettings.popupLocation === consts.PopupLocation_Cursor) {
 		document.addEventListener("mousemove", onMouseUpdate);
 		document.addEventListener("mouseenter", onMouseUpdate);
 	}
 
-	if (popupOpenBehaviour === consts.PopupOpenBehaviour_Auto || popupOpenBehaviour === consts.PopupOpenBehaviour_HoldAlt) {
+	if (activationSettings.popupOpenBehaviour === consts.PopupOpenBehaviour_Auto || activationSettings.popupOpenBehaviour === consts.PopupOpenBehaviour_HoldAlt) {
 		selectionchange.start();
 		document.addEventListener("customselectionchange", onSelectionChange);
 	}
-	else if (popupOpenBehaviour === consts.PopupOpenBehaviour_MiddleMouse) {
-		middleMouseSelectionClickMargin = _middleMouseSelectionClickMargin;
+	else if (activationSettings.popupOpenBehaviour === consts.PopupOpenBehaviour_MiddleMouse) {
 		document.addEventListener("mousedown", onMouseDown);
 		document.addEventListener("mouseup", onMouseUp);
 	}
 
-	if (DEBUG) { log("worker activated, url: " + window.location.href.substr(0, 40)); }
+	if (DEBUG) { log("content script activated, url: " + window.location.href.substr(0, 40)); }
 }
 
 function deactivate()
 {
-	if (popup !== null) {
+	// unregister with all events
+
+	if (activationSettings.popupLocation === consts.PopupLocation_Cursor) {
+		document.removeEventListener("mousemove", onMouseUpdate);
+		document.removeEventListener("mouseenter", onMouseUpdate);
+	}
+
+	if (activationSettings.popupOpenBehaviour === consts.PopupOpenBehaviour_Auto || activationSettings.popupOpenBehaviour === consts.PopupOpenBehaviour_HoldAlt) {
+		document.removeEventListener("customselectionchange", onSelectionChange);
+		selectionchange.stop();
+	}
+	else if (activationSettings.popupOpenBehaviour === consts.PopupOpenBehaviour_MiddleMouse) {
+		document.removeEventListener("mousedown", onMouseDown);
+		document.removeEventListener("mouseup", onMouseUp);
+	}
+
+	if (popup !== null)
+	{
+		document.documentElement.removeEventListener("keypress", hidePopup);
+		document.documentElement.removeEventListener("mousedown", hidePopup);
+		if (settings.hidePopupOnPageScroll) {
+			window.removeEventListener("scroll", hidePopup);
+		}
+
 		// clean page
 		document.documentElement.removeChild(popup);
 		popup = null;
 	}
 
-	// unregister with all events
+	activationSettings = null;
+	settings = null;
 
-	document.removeEventListener("mousemove", onMouseUpdate);
-	document.removeEventListener("mouseenter", onMouseUpdate);
-	document.removeEventListener("mousedown", onMouseDown);
-	document.removeEventListener("mouseup", onMouseUp);
-	document.documentElement.removeEventListener("keypress", hidePopup);
-	document.documentElement.removeEventListener("mousedown", hidePopup);
-	window.removeEventListener("scroll", hidePopup);
 	// other listeners are destroyed along with their popup objects
 
-	document.removeEventListener("customselectionchange", onSelectionChange);
-	selectionchange.stop();
-
-	if (DEBUG) { log("worker deactivated"); }
+	if (DEBUG) { log("content script deactivated"); }
 }
 
-function onSelectionChange(ev, force)
+function onSelectionChange(ev, isForced)
 {
 	if (!saveCurrentSelection()) {
 		return;
 	}
 
-	browser.storage.local.get().then(
-		_settings => {
-			settings = _settings;
-
-			if (settings.popupOpenBehaviour === consts.PopupOpenBehaviour_HoldAlt && !ev.altKey) {
-				return;
-			}
-
-			if (settings.popupOpenBehaviour === consts.PopupOpenBehaviour_Auto && selection.text.trim().length < settings.minSelectedCharacters) {
-				return;
-			}
-
-			if (force !== true)
-			{
-				if (selection.isInEditableField) {
-					if (!settings.allowPopupOnEditableFields) {
-						return;
-					}
-				} else if (!settings.allowPopupOnEditableFields) {
-					// even if this is not an input field, don't show popup in contentEditable elements, such as Gmail's compose window
-					for (let elem = selection.selection.anchorNode; elem !== document; elem = elem.parentNode)
-					{
-						if (elem.isContentEditable === undefined) {
-							continue;	// check parent for value
-						} else if (elem.isContentEditable) {
-							return;		// quit
-						} else {
-							break;		// show popup
-						}
-					}
-				}
-			}
-
-			if (settings.autoCopyToClipboard === consts.AutoCopyToClipboard_Always) {
-				document.execCommand("copy");
-			}
-
-			let searchEngines = settings.searchEngines.filter(e => e.isEnabled);
-
-			if (DEBUG) { log("showing popup: " + popup); }
-
-			if (popup === null) {
-				createPopup(settings, searchEngines);
-			}
-
-			showPopup(settings, searchEngines);
-		},
-		getErrorHandler("Error getting settings after onSelectionChange."));
+	if (settings !== null) {
+		// if we have settings already, use them...
+		tryShowPopup(ev, isForced);
+	} else {
+		// ...otherwise ask the main script for all needed settings, store them, and try to show the popup
+		browser.runtime.sendMessage({ type: "getPopupSettings" }).then(
+			popupSettings => {
+				settings = popupSettings;
+				tryShowPopup(ev, isForced);
+			},
+			getErrorHandler("Error sending getPopupSettings message from content script.")
+		);
+	}
 }
 
 function saveCurrentSelection()
@@ -200,14 +200,57 @@ function saveCurrentSelection()
 	return selection.text.length > 0;
 }
 
-function showPopup(settings, searchEngines)
+function tryShowPopup(ev, isForced)
+{
+	if (settings.popupOpenBehaviour === consts.PopupOpenBehaviour_HoldAlt && !ev.altKey) {
+		return;
+	}
+
+	if (settings.popupOpenBehaviour === consts.PopupOpenBehaviour_Auto && selection.text.trim().length < settings.minSelectedCharacters) {
+		return;
+	}
+
+	if (!isForced && !settings.allowPopupOnEditableFields)
+	{
+		if (selection.isInEditableField) {
+			return;
+		}
+
+		// even if this is not an input field, don't show popup in contentEditable elements, such as Gmail's compose window
+		for (let elem = selection.selection.anchorNode; elem !== document; elem = elem.parentNode)
+		{
+			if (elem.isContentEditable === undefined) {
+				continue;	// check parent for value
+			} else if (elem.isContentEditable) {
+				return;		// quit
+			} else {
+				break;		// show popup
+			}
+		}
+	}
+
+	if (settings.autoCopyToClipboard === consts.AutoCopyToClipboard_Always) {
+		document.execCommand("copy");
+	}
+
+	if (DEBUG) { log("showing popup: " + popup); }
+
+	if (popup === null) {
+		createPopup(settings);
+	}
+
+	showPopup(settings);
+}
+
+function showPopup(settings)
 {
 	if (popup !== null)
 	{
 		popup.style.display = "inline-block";
-		setPopupPositionAndSize(popup, searchEngines.length, settings);
+		setPopupPositionAndSize(popup, settings.searchEngines.length, settings);
 
 		if (settings.popupAnimationDuration > 0) {
+			// cloneInto fixes a Firefox bug that causes animations to not work in the settings page
 			popup.animate(cloneInto({ transform: ["scale(0.8)", "scale(1)"] }, window), settings.popupAnimationDuration);
 			popup.animate(cloneInto({ opacity: [0, 1] }, window), settings.popupAnimationDuration * 0.5);
 		}
@@ -227,7 +270,7 @@ function hidePopup(ev)
 	popup.style.display = "none";
 }
 
-function createPopup(settings, searchEngines)
+function createPopup(settings)
 {
 	// create popup parent (will contain all icons)
 	popup = document.createElement("swift-selection-search-popup");
@@ -269,12 +312,12 @@ height: ${settings.popupItemSize}px !important;
 width: ${settings.popupItemSize}px !important;
 padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}px !important`;
 
-	for (let i = 0; i < searchEngines.length; i++)
+	for (let i = 0; i < settings.searchEngines.length; i++)
 	{
-		let engine = searchEngines[i];
+		let engine = settings.searchEngines[i];
 
 		if (engine.type === "sss") {
-			// icon paths should not be hardcoded here, but getting them from bg script is cumbersome
+			// TODO: icon paths should not be hardcoded here, but getting them from bg script is cumbersome
 			if (engine.id === "copyToClipboard") {
 				let iconImgSource = browser.extension.getURL("res/sss-engine-icons/copy.svg");
 				setupEngineIcon(engine, iconImgSource, "Copy to clipboard", iconCssText, settings);
@@ -305,7 +348,7 @@ padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}
 
 	document.documentElement.addEventListener("keypress", hidePopup);
 	document.documentElement.addEventListener("mousedown", hidePopup);	// hide popup from a press down anywhere...
-	popup.addEventListener("mousedown", e => e.stopPropagation());	// ...except on the popup itself
+	popup.addEventListener("mousedown", ev => ev.stopPropagation());	// ...except on the popup itself
 
 	if (settings.hidePopupOnPageScroll) {
 		window.addEventListener("scroll", hidePopup);
@@ -346,11 +389,11 @@ function setupEngineIcon(engine, iconImgSource, iconTitle, iconCssText, settings
 	}
 
 	icon.addEventListener("mouseup", onSearchEngineClick(engine, settings)); // "mouse up" instead of "click" to support middle click
-	icon.addEventListener("mousedown", function (ev) {
+	icon.addEventListener("mousedown", ev => {
 		// prevents focus from changing to icon and breaking copy from input fields
 		ev.preventDefault();
 	});
-	icon.ondragstart = function() { return false; };	// disable dragging popup images
+	icon.ondragstart = () => false;	// disable dragging popup images
 
 	popup.appendChild(icon);
 }
@@ -443,15 +486,15 @@ function setPopupPositionAndSize(popup, nEngines, settings)
 	popup.style.top = positionTop + "px";
 }
 
-function onMouseUpdate(e)
+function onMouseUpdate(ev)
 {
-	mousePositionX = e.pageX;
-	mousePositionY = e.pageY;
+	mousePositionX = ev.pageX;
+	mousePositionY = ev.pageY;
 }
 
 function onSearchEngineClick(engineObject, settings)
 {
-	return function(ev) {
+	return ev => {
 		if (ev.button === 1 && !canMiddleClickEngine) {
 			return;	// early out and don't hide popup
 		}
@@ -482,9 +525,9 @@ function onSearchEngineClick(engineObject, settings)
 	};
 }
 
-function onMouseDown(e)
+function onMouseDown(ev)
 {
-	if (e.button !== 1) {
+	if (ev.button !== 1) {
 		return;
 	}
 
@@ -495,7 +538,7 @@ function onMouseDown(e)
 		let elem = document.activeElement;
 
 		if (elem.tagName === "TEXTAREA" || (elem.tagName === "INPUT" && elem.type !== "password")) {
-			if (forceSelectionIfWithinRect(e, elem.getBoundingClientRect())) {
+			if (forceSelectionIfWithinRect(ev, elem.getBoundingClientRect())) {
 				canMiddleClickEngine = false;
 				return false;
 			}
@@ -507,28 +550,30 @@ function onMouseDown(e)
 	for (let i = 0; i < selection.rangeCount; ++i)
 	{
 		let range = selection.getRangeAt(i); // get the text range
-		if (forceSelectionIfWithinRect(e, range.getBoundingClientRect())) {
+		if (forceSelectionIfWithinRect(ev, range.getBoundingClientRect())) {
 			canMiddleClickEngine = false;
 			return false;
 		}
 	}
 }
 
-function onMouseUp(e)
+function onMouseUp(ev)
 {
-	if (e.button === 1) {
+	if (ev.button === 1) {
 		canMiddleClickEngine = true;
 	}
 }
 
-function forceSelectionIfWithinRect(e, rect)
+function forceSelectionIfWithinRect(ev, rect)
 {
-	if (e.clientX > rect.left - middleMouseSelectionClickMargin && e.clientX < rect.right + middleMouseSelectionClickMargin
-	 && e.clientY > rect.top - middleMouseSelectionClickMargin  && e.clientY < rect.bottom + middleMouseSelectionClickMargin)
+	let margin = activationSettings.middleMouseSelectionClickMargin;
+
+	if (ev.clientX > rect.left - margin && ev.clientX < rect.right + margin
+	 && ev.clientY > rect.top - margin  && ev.clientY < rect.bottom + margin)
 	{
-		e.preventDefault();
-		e.stopPropagation();
-		onSelectionChange(e, false);
+		ev.preventDefault();
+		ev.stopPropagation();
+		onSelectionChange(ev);
 		return true;
 	}
 	return false;

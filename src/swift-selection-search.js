@@ -143,9 +143,12 @@ const defaultSettings = {
 	}
 };
 
+let isFirstLoad = true;
+let browserVersion = 0;
+const sss = {};
+
 // show message related to update to WebExtensions
-browser.runtime.onInstalled.addListener(function(details)
-{
+browser.runtime.onInstalled.addListener(details => {
 	if (details.reason == "install"
 	|| (details.reason == "update" && !details.previousVersion.startsWith("3.")))
 	{
@@ -153,11 +156,7 @@ browser.runtime.onInstalled.addListener(function(details)
 	}
 });
 
-let isFirstLoad = true;
-let browserVersion = 0;
-const sss = {};
-
-browser.runtime.getBrowserInfo().then((browserInfo) => {
+browser.runtime.getBrowserInfo().then(browserInfo => {
 	browserVersion = parseInt(browserInfo.version.split(".")[0]);
 	if (DEBUG) { log("Firefox is version " + browserVersion); }
 
@@ -165,7 +164,7 @@ browser.runtime.getBrowserInfo().then((browserInfo) => {
 	// browser.storage.local.clear();
 	// browser.storage.sync.clear();
 
-	// register with worker messages and changes to settings
+	// register with content script messages and changes to settings
 	browser.runtime.onMessage.addListener(onContentScriptMessage);
 	browser.storage.onChanged.addListener(onSettingsChanged);
 
@@ -180,19 +179,26 @@ browser.runtime.getBrowserInfo().then((browserInfo) => {
 // Main SSS setup. Called when settings are acquired. Prepares everything.
 function onSettingsAcquired(settings)
 {
+	let doSaveSettings;
+
 	// if settings object is empty, use defaults
-	if (settings === undefined || Object.keys(settings).length === 0) {
+	if (settings === undefined || isObjectEmpty(settings)) {
 		if (DEBUG) { log("Empty settings! Using defaults."); }
-		settings = Object.assign({}, defaultSettings);
-		browser.storage.local.set(settings);
+		settings = defaultSettings;
+		doSaveSettings = true;
 	} else {
-		if (isFirstLoad && runBackwardsCompatibilityUpdates(settings)) {
-			browser.storage.local.set(settings);
-			return;	// calling "set" will trigger this whole function again, so quit before wasting time
-		}
+		doSaveSettings = isFirstLoad && runBackwardsCompatibilityUpdates(settings);
 	}
 
+	if (doSaveSettings) {
+		browser.storage.local.set(settings);
+		return;	// calling "set" will trigger this whole function again, so quit before wasting time
+	}
+
+	// save settings and also keep subsets of it for content-script-related purposes
 	sss.settings = settings;
+	sss.settingsForContentScript = getPopupSettingsForContentScript(settings);
+	sss.activationSettingsForContentScript = getActivationSettingsForContentScript(settings);
 
 	if (isFirstLoad) {
 		if (DEBUG) { log("loading ", settings); }
@@ -209,46 +215,47 @@ function onSettingsAcquired(settings)
 	isFirstLoad = false;
 }
 
-// Called from settings.
+function getActivationSettingsForContentScript(settings)
+{
+	let activationSettings = {
+		popupLocation: settings.popupLocation,
+		popupOpenBehaviour: settings.popupOpenBehaviour,
+		middleMouseSelectionClickMargin: settings.middleMouseSelectionClickMargin
+	};
+	return activationSettings;
+}
+
+function getPopupSettingsForContentScript(settings)
+{
+	let popupSettings = Object.assign({}, settings);	// shallow copy
+	popupSettings.searchEngines = settings.searchEngines.filter(engine => engine.isEnabled);	// keep only enabled engines
+	popupSettings.searchEnginesCache = {};
+
+	// get icon cache for enabled engines only
+	for (const engine of popupSettings.searchEngines)
+	{
+		if (engine.iconUrl) {
+			let iconCache = settings.searchEnginesCache[engine.iconUrl];
+			if (iconCache) {
+				popupSettings.searchEnginesCache[engine.iconUrl] = iconCache;
+			}
+		}
+	}
+	return popupSettings;
+}
+
+// Also called from settings.
 function runBackwardsCompatibilityUpdates(settings)
 {
 	// add settings that were not available in older versions
 	let shouldSave = false;
-
-	if (settings.popupItemVerticalPadding === undefined) {
-		settings.popupItemVerticalPadding = defaultSettings.popupItemVerticalPadding;
-		shouldSave = true;
-	}
-
-	if (settings.allowPopupOnEditableFields === undefined) {
-		settings.allowPopupOnEditableFields = defaultSettings.allowPopupOnEditableFields;
-		shouldSave = true;
-	}
-
-	if (settings.popupBorderRadius === undefined) {
-		settings.popupBorderRadius = defaultSettings.popupBorderRadius;
-		shouldSave = true;
-	}
-
-	if (settings.popupItemBorderRadius === undefined) {
-		settings.popupItemBorderRadius = defaultSettings.popupItemBorderRadius;
-		shouldSave = true;
-	}
-
-	if (settings.minSelectedCharacters === undefined) {
-		settings.minSelectedCharacters = defaultSettings.minSelectedCharacters;
-		shouldSave = true;
-	}
-
-	if (settings.middleMouseSelectionClickMargin === undefined) {
-		settings.middleMouseSelectionClickMargin = defaultSettings.middleMouseSelectionClickMargin;
-		shouldSave = true;
-	}
-
-	if (settings.hidePopupOnRightClick === undefined) {
-		settings.hidePopupOnRightClick = defaultSettings.hidePopupOnRightClick;
-		shouldSave = true;
-	}
+	shouldSave |= createSettingIfNonExistent(settings, "popupItemVerticalPadding");
+	shouldSave |= createSettingIfNonExistent(settings, "allowPopupOnEditableFields");
+	shouldSave |= createSettingIfNonExistent(settings, "popupBorderRadius");
+	shouldSave |= createSettingIfNonExistent(settings, "popupItemBorderRadius");
+	shouldSave |= createSettingIfNonExistent(settings, "minSelectedCharacters");
+	shouldSave |= createSettingIfNonExistent(settings, "middleMouseSelectionClickMargin");
+	shouldSave |= createSettingIfNonExistent(settings, "hidePopupOnRightClick");
 
 	for (let engine of settings.searchEngines)
 	{
@@ -263,33 +270,24 @@ function runBackwardsCompatibilityUpdates(settings)
 	return shouldSave;
 }
 
-// Called from settings.
-function getDefaultSettings()
+function createSettingIfNonExistent(settings, settingName)
 {
-	return defaultSettings;
+	if (settings[settingName] === undefined) {
+		settings[settingName] = defaultSettings[settingName];
+		return true;
+	}
+	return false;
 }
 
 // Called from settings.
-function getSssIcon(id)
-{
-	return consts.sssIcons[id];
-}
-
-// Called from settings.
-function isDebugModeActive()
-{
-	return DEBUG;
-}
-
-// Called from settings.
-function getBrowserVersion()
-{
-	return browserVersion;
-}
+function getDefaultSettings() { return defaultSettings; }
+function getConsts() { return consts; }
+function isDebugModeActive() { return DEBUG; }
+function getBrowserVersion() { return browserVersion; }
 
 function onSettingsChanged(changes, area)
 {
-	if (area !== "local" || Object.keys(changes).length === 0) {
+	if (area !== "local" || isObjectEmpty(changes)) {
 		return;
 	}
 
@@ -301,25 +299,46 @@ function onSettingsChanged(changes, area)
 
 function getErrorHandler(text)
 {
-	return error => { if (DEBUG) { log(`${text} (${error})`) } };
+	if (DEBUG) {
+		return error => { log(`${text} (${error})`); };
+	} else {
+		return undefined;
+	}
 }
 
-function onContentScriptMessage(msg, sender, sendResponse)
+function isObjectEmpty(obj)
+{
+	for (const key in obj) {
+		return false;	// has at least one element
+	}
+	return false;
+}
+
+function onContentScriptMessage(msg, sender, callbackFunc)
 {
 	if (msg.type !== "log") {
 		if (DEBUG) { log("msg.type: " + msg.type); }
 	}
 
-	if (msg.type === "activationRequest") {
-		sendResponse({
-			popupLocation: sss.settings.popupLocation,
-			popupOpenBehaviour: sss.settings.popupOpenBehaviour,
-			middleMouseSelectionClickMargin: sss.settings.middleMouseSelectionClickMargin
-		});
-	} else if (msg.type === "engineClick") {
-		onSearchEngineClick(msg.engine, msg.clickType, msg.selection, msg.hostname);
-	} else if (msg.type === "log") {
-		if (DEBUG) { log("[content script log]", msg.log); }
+	switch (msg.type)
+	{
+		case "getActivationSettings":
+			callbackFunc(sss.activationSettingsForContentScript);
+			break;
+
+		case "getPopupSettings":
+			callbackFunc(sss.settingsForContentScript);
+			break;
+
+		case "engineClick":
+			onSearchEngineClick(msg.engine, msg.clickType, msg.selection, msg.hostname);
+			break;
+
+		case "log":
+			if (DEBUG) { log("[content script log]", msg.log); }
+			break;
+
+		default: break;
 	}
 }
 
@@ -350,7 +369,7 @@ function setup_ContextMenu()
 	});
 
 	// define submenu (one per engine)
-	for (let engine of engines)
+	for (const engine of engines)
 	{
 		let contextMenuOption = {
 			parentId: "sss",
@@ -442,14 +461,14 @@ function setup_Popup()
 
 function onDOMContentLoaded(details)
 {
-	injectPageWorker(details.tabId, details.frameId);
+	injectContentScript(details.tabId, details.frameId);
 }
 
 function installOnOpenTabs(tabs)
 {
 	// if (DEBUG) { log("installOnOpenTabs"); }
-	for (let tab of tabs) {
-		injectPageWorkerIfNeeded(tab.id, undefined, true);	// inject on all frames if possible
+	for (const tab of tabs) {
+		injectContentScriptIfNeeded(tab.id, undefined, true);	// inject on all frames if possible
 	}
 }
 
@@ -457,30 +476,30 @@ function installOnOpenTabs(tabs)
 // {
 // 	// if (DEBUG) { log("onTabUpdated " + changeInfo.status + " "+ tabId); }
 // 	if (changeInfo.status === "loading") {
-// 		injectPageWorkerIfNeeded(tabId);
+// 		injectContentScriptIfNeeded(tabId);
 // 	}
 // }
 
-function injectPageWorkerIfNeeded(tabId, frameId, allFrames)
+function injectContentScriptIfNeeded(tabId, frameId, allFrames)
 {
 	// if (DEBUG) { log("injecting on "+ tabId); }
 
-	// try sending message to see if worker exists. if it errors then inject it
+	// try sending message to see if content script exists. if it errors then inject it
 	browser.tabs.sendMessage(tabId, { type: "isAlive" }).then(
 		msg => {
 			if (msg === undefined) {
-				injectPageWorker(tabId, frameId, allFrames);
+				injectContentScript(tabId, frameId, allFrames);
 			}
 		},
-		_ => injectPageWorker(tabId, frameId, allFrames)
+		_ => injectContentScript(tabId, frameId, allFrames)
 	);
 }
 
-function injectPageWorker(tabId, frameId, allFrames)
+function injectContentScript(tabId, frameId, allFrames)
 {
-	if (DEBUG) { log("injectPageWorker " + tabId + " frameId: " + frameId + " allFrames: " + allFrames); }
+	if (DEBUG) { log("injectContentScript " + tabId + " frameId: " + frameId + " allFrames: " + allFrames); }
 
-	let errorHandler = getErrorHandler(`Error injecting page worker in tab ${tabId}.`);
+	let errorHandler = getErrorHandler(`Error injecting page content script in tab ${tabId}.`);
 	browser.tabs.executeScript(tabId, { runAt: "document_start", frameId: frameId, allFrames: allFrames, code: "const DEBUG = " + DEBUG + ";"        }).then(result =>
 	browser.tabs.executeScript(tabId, { runAt: "document_start", frameId: frameId, allFrames: allFrames, file: "/content-scripts/selectionchange.js" }).then(result =>
 	browser.tabs.executeScript(tabId, { runAt: "document_start", frameId: frameId, allFrames: allFrames, file: "/content-scripts/page-script.js"     }).then(null
