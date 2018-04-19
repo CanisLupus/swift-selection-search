@@ -25,8 +25,8 @@ let selection = {};
 let mousePositionX = 0;
 let mousePositionY = 0;
 let canMiddleClickEngine = true;
-let activationSettings;
-let settings;
+let activationSettings = null;
+let settings = null;
 
 // be prepared for messages from background (main) script
 browser.runtime.onMessage.addListener(onMessageReceived);
