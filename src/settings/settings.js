@@ -178,20 +178,20 @@ function getDataUriFromImgUrl(url, callback)
 
 		// scale image to smaller icon if needed
 		// (we don't want stored SSS icons to take a lot of space)
-		if (this.width > this.height) {
-			width = Math.min(maxSize, this.width);
-			height = width * this.height / this.width;
+		if (img.width > img.height) {
+			width = Math.min(maxSize, img.width);
+			height = width * img.height / img.width;
 			yPos = (width - height) / 2;
-		} else if (this.height > this.width) {
-			height = Math.min(maxSize, this.height);
-			width = height * this.width / this.height;
+		} else if (img.height > img.width) {
+			height = Math.min(maxSize, img.height);
+			width = height * img.width / img.height;
 			xPos = (height - width) / 2;
 		} else {
-			width = Math.min(maxSize, this.width);
+			width = Math.min(maxSize, img.width);
 			height = width;
 		}
 
-		if (DEBUG) { log(this.width + "x" + this.height + " became " + width + "x" + height); }
+		if (DEBUG) { log(img.width + "x" + img.height + " became " + width + "x" + height); }
 
 		// canvas is always a square (using larger dimension)
 		let canvas = document.createElement('canvas');
@@ -199,7 +199,7 @@ function getDataUriFromImgUrl(url, callback)
 
 		// draw image with size and position defined above
 		let ctx = canvas.getContext('2d');
-		ctx.drawImage(this, xPos, yPos, width, height);
+		ctx.drawImage(img, xPos, yPos, width, height);
 
 		let dataURL = canvas.toDataURL();
 		if (DEBUG) { log(dataURL.length); }
