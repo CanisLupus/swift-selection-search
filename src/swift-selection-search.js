@@ -150,10 +150,8 @@ const sss = {};
 
 // show message related to update to WebExtensions
 browser.runtime.onInstalled.addListener(details => {
-	if (details.reason == "install"
-	|| (details.reason == "update" && details.previousVersion && !details.previousVersion.startsWith("3.")))
-	{
-		browser.tabs.create({ url : "/res/msg-pages/update-to-webextensions.html" });
+	if (details.reason == "install") {
+		browser.tabs.create({ url : "/res/msg-pages/sss-intro.html" });
 	}
 });
 
@@ -313,7 +311,7 @@ function isObjectEmpty(obj)
 	for (const key in obj) {
 		return false;	// has at least one element
 	}
-	return false;
+	return true;
 }
 
 function onContentScriptMessage(msg, sender, callbackFunc)

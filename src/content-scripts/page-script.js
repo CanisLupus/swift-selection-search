@@ -83,7 +83,7 @@ function isObjectEmpty(object)
 	for (const key in object) {
 		return false;	// has at least one element
 	}
-	return false;
+	return true;
 }
 
 function getErrorHandler(text)
