@@ -77,7 +77,7 @@ const defaultSettings = {
 	popupDisableHotkey: "accel-shift-x",
 	mouseLeftButtonBehaviour: consts.MouseButtonBehaviour_ThisTab,
 	mouseMiddleButtonBehaviour: consts.MouseButtonBehaviour_NewBgTab,
-	popupAnimationDuration: 200,
+	popupAnimationDuration: 100,
 	autoCopyToClipboard: consts.AutoCopyToClipboard_Off,
 	useSingleRow: true,
 	nPopupIconsPerRow: 4,
@@ -158,7 +158,7 @@ const sss = {};
 // show message related to update to WebExtensions
 browser.runtime.onInstalled.addListener(details => {
 	if (details.reason == "install"
-	|| (details.reason == "update" && !details.previousVersion.startsWith("3.")))
+	|| (details.reason == "update" && details.previousVersion && !details.previousVersion.startsWith("3.")))
 	{
 		browser.tabs.create({ url : "/res/msg-pages/update-to-webextensions.html" });
 	}

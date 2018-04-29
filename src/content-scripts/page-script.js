@@ -120,6 +120,10 @@ function activate(_activationSettings)
 
 function deactivate()
 {
+	if (activationSettings === null) {
+		return;
+	}
+
 	// unregister with all events
 
 	if (activationSettings.popupLocation === consts.PopupLocation_Cursor) {
@@ -233,7 +237,7 @@ function tryShowPopup(ev, isForced)
 		document.execCommand("copy");
 	}
 
-	if (DEBUG) { log("showing popup: " + popup); }
+	if (DEBUG) { log("showing popup, previous value was: " + popup); }
 
 	if (popup === null) {
 		createPopup(settings);
