@@ -318,17 +318,13 @@ padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}
 		let engine = settings.searchEngines[i];
 
 		if (engine.type === "sss") {
-			// TODO: icon paths should not be hardcoded here, but getting them from bg script is cumbersome
-			if (engine.id === "copyToClipboard") {
-				let iconImgSource = browser.extension.getURL("res/sss-engine-icons/copy.svg");
-				setupEngineIcon(engine, iconImgSource, "Copy to clipboard", iconCssText, settings);
-			}
-			else if (engine.id === "openAsLink") {
-				let iconImgSource = browser.extension.getURL("res/sss-engine-icons/open-link.svg");
-				setupEngineIcon(engine, iconImgSource, "Open as link", iconCssText, settings);
-			}
-			else if (engine.id === "separator") {
-				setupSeparatorIcon(settings);
+			let sssIcon = settings.sssIcons[engine.id];
+
+			if (sssIcon.iconPath !== undefined) {
+				let iconImgSource = browser.extension.getURL(sssIcon.iconPath);
+				setupEngineIcon(engine, iconImgSource, sssIcon.name, iconCssText, popup, settings);
+			} else if (sssIcon.iconCss !== undefined) {
+				setupEngineCss(sssIcon, popup, settings);
 			}
 		} else {
 			let iconImgSource;
@@ -340,7 +336,7 @@ padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}
 				iconImgSource = cachedIcon ? cachedIcon : engine.iconUrl;	// should have cached icon, but if not (for some reason) fall back to URL
 			}
 
-			setupEngineIcon(engine, iconImgSource, engine.name, iconCssText, settings);
+			setupEngineIcon(engine, iconImgSource, engine.name, iconCssText, popup, settings);
 		}
 	}
 
@@ -356,10 +352,10 @@ padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}
 	}
 }
 
-function setupEngineIcon(engine, iconImgSource, iconTitle, iconCssText, settings)
+function setupEngineIcon(engine, iconImgSource, iconTitle, iconCssText, parent, settings)
 {
 	let icon = document.createElement("img");
-	icon.setAttribute("src", iconImgSource);
+	icon.src = iconImgSource;
 	icon.title = iconTitle;
 	icon.style.cssText = iconCssText;
 
@@ -396,24 +392,18 @@ function setupEngineIcon(engine, iconImgSource, iconTitle, iconCssText, settings
 	});
 	icon.ondragstart = () => false;	// disable dragging popup images
 
-	popup.appendChild(icon);
+	parent.appendChild(icon);
 }
 
-function setupSeparatorIcon(settings)
+function setupEngineCss(sssIcon, parent, settings)
 {
 	let div = document.createElement("div");
 
-	div.style.cssText =
-`border-left: rgb(228, 227, 227) 1px solid;
-width: 1px;
-height: 24px;
-position: relative;
-display: inline-block;
-vertical-align: unset;
-box-shadow: rgb(250, 250, 250) -1px 0px 0px 0px;
-margin: ${3 + settings.popupItemVerticalPadding}px 10px;`;
+	div.style.cssText = sssIcon.iconCss;
+	div.style.marginBottom = (3 + settings.popupItemVerticalPadding) + "px";
+	div.style.marginTop = (3 + settings.popupItemVerticalPadding) + "px";
 
-	popup.appendChild(div);
+	parent.appendChild(div);
 }
 
 function setPopupPositionAndSize(popup, nEngines, settings)

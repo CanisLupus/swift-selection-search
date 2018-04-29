@@ -678,23 +678,22 @@ function addSearchEngine(engine, i)
 
 	cell = document.createElement("td");
 	cell.className = "engine-icon-img";
-	let icon = document.createElement("img");
+	let icon;
 
-	if (engine.type === "sss") {
-		icon.src = browser.extension.getURL(consts.sssIcons[engine.id].iconPath);
-	} else if (engine.iconUrl.startsWith("data:")) {
-		icon.src = engine.iconUrl;
-	} else if (settings.searchEnginesCache[engine.iconUrl] === undefined && engine.iconUrl) {
-		icon.src = engine.iconUrl;
-		getDataUriFromImgUrl(engine.iconUrl, base64Img => {
-			icon.src = base64Img;
-			settings.searchEnginesCache[engine.iconUrl] = base64Img;
-			saveSettings({ searchEnginesCache: settings.searchEnginesCache });
-		});
+	if (engine.type === "sss")
+	{
+		let sssIcon = consts.sssIcons[engine.id];
+
+		if (sssIcon.iconPath !== undefined) {
+			let iconImgSource = browser.extension.getURL(sssIcon.iconPath);
+			icon = setupEngineIcon(iconImgSource, cell, settings);
+		} else if (sssIcon.iconCss !== undefined) {
+			icon = setupEngineCss(sssIcon, cell, settings);
+		}
 	} else {
-		icon.src = settings.searchEnginesCache[engine.iconUrl];
+		icon = setupEngineIcon(engine.iconUrl, cell, settings);
 	}
-	cell.appendChild(icon);
+
 	row.appendChild(cell);
 
 	if (engine.type === "sss")
@@ -729,6 +728,39 @@ function addSearchEngine(engine, i)
 	}
 
 	page.engines.appendChild(row);
+}
+
+function setupEngineIcon(iconImgSource, parent, settings)
+{
+	let icon = document.createElement("img");
+
+	if (iconImgSource.startsWith("data:")) {
+		icon.src = iconImgSource;
+	} else if (settings.searchEnginesCache[iconImgSource] === undefined && iconImgSource) {
+		icon.src = iconImgSource;
+		getDataUriFromImgUrl(iconImgSource, function(base64Img) {
+			icon.src = base64Img;
+			settings.searchEnginesCache[iconImgSource] = base64Img;
+			saveSettings({ searchEnginesCache: settings.searchEnginesCache });
+		});
+	} else {
+		icon.src = settings.searchEnginesCache[iconImgSource];
+	}
+
+	parent.appendChild(icon);
+	return icon;
+}
+
+function setupEngineCss(sssIcon, parent, settings)
+{
+	let div = document.createElement("div");
+
+	div.style.cssText = sssIcon.iconCss;
+	div.style.marginBottom = "0px";
+	div.style.marginTop = "0px";
+
+	parent.appendChild(div);
+	return div;
 }
 
 function createEngineName(engine)
