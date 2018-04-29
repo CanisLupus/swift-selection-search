@@ -687,9 +687,10 @@ function addSearchEngine(engine, i)
 		if (sssIcon.iconPath !== undefined) {
 			let iconImgSource = browser.extension.getURL(sssIcon.iconPath);
 			icon = setupEngineIcon(iconImgSource, cell, settings);
-		} else if (sssIcon.iconCss !== undefined) {
-			icon = setupEngineCss(sssIcon, cell, settings);
 		}
+		// else if (sssIcon.iconCss !== undefined) {
+		// 	icon = setupEngineCss(sssIcon, cell, settings);
+		// }
 	} else {
 		icon = setupEngineIcon(engine.iconUrl, cell, settings);
 	}
@@ -751,17 +752,18 @@ function setupEngineIcon(iconImgSource, parent, settings)
 	return icon;
 }
 
-function setupEngineCss(sssIcon, parent, settings)
-{
-	let div = document.createElement("div");
+// function setupEngineCss(sssIcon, parent, settings)
+// {
+// 	let div = document.createElement("div");
 
-	div.style.cssText = sssIcon.iconCss;
-	div.style.marginBottom = "0px";
-	div.style.marginTop = "0px";
+// 	// div.style.cssText = sssIcon.iconCss;
+// 	div.style.cssText = iconCssText;//`border-left: rgb(227, 227, 227) 1px solid; margin: 0px 10px;`;
+// 	div.style.marginBottom = "0px";
+// 	div.style.marginTop = "0px";
 
-	parent.appendChild(div);
-	return div;
-}
+// 	parent.appendChild(div);
+// 	return div;
+// }
 
 function createEngineName(engine)
 {

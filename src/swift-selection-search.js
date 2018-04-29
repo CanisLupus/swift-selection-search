@@ -41,25 +41,18 @@ const consts = {
 		copyToClipboard: {
 			name: "Copy to clipboard",
 			description: '[SSS] Adds a "Copy selection to clipboard" icon to the popup.',
-			iconPath: "res/sss-engine-icons/copy.svg",
+			iconPath: "res/sss-engine-icons/copy.png",
 		},
 		openAsLink: {
 			name: "Open as link",
 			description: '[SSS] Adds an "Open selection as link" icon to the popup.',
-			iconPath: "res/sss-engine-icons/open-link.svg",
+			iconPath: "res/sss-engine-icons/open-link.png",
 		},
 		separator: {
 			name: "Separator",
 			description: '[SSS] Adds a separator.',
-			iconCss:
-`border-left: rgb(228, 227, 227) 1px solid;
-width: 1px;
-height: 24px;
-margin: 10px;
-position: relative;
-display: inline-block;
-vertical-align: unset;
-box-shadow: rgb(250, 250, 250) -1px 0px 0px 0px;`,
+			iconPath: "res/sss-engine-icons/separator.png",
+			isInteractive: false,
 		}
 	}
 };

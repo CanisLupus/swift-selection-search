@@ -311,8 +311,6 @@ display: initial !important;
 box-sizing: initial !important;
 fontSize: 0 !important;
 border-radius: ${settings.popupItemBorderRadius}px !important;
-cursor: pointer !important;
-pointer-events: auto !important;
 height: ${settings.popupItemSize}px !important;
 width: ${settings.popupItemSize}px !important;
 padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}px !important`;
@@ -326,10 +324,13 @@ padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}
 
 			if (sssIcon.iconPath !== undefined) {
 				let iconImgSource = browser.extension.getURL(sssIcon.iconPath);
-				setupEngineIcon(engine, iconImgSource, sssIcon.name, iconCssText, popup, settings);
-			} else if (sssIcon.iconCss !== undefined) {
-				setupEngineCss(sssIcon, popup, settings);
+				let isInteractive = sssIcon.isInteractive !== false;	// undefined or true means it's interactive
+				let icon = setupEngineIcon(engine, iconImgSource, sssIcon.name, isInteractive, iconCssText, popup, settings);
+				icon.style.setProperty("transform", "rotate(360deg)");
 			}
+			// else if (sssIcon.iconCss !== undefined) {
+			// 	setupEngineCss(sssIcon, iconCssText, popup, settings);
+			// }
 		} else {
 			let iconImgSource;
 
@@ -340,7 +341,7 @@ padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}
 				iconImgSource = cachedIcon ? cachedIcon : engine.iconUrl;	// should have cached icon, but if not (for some reason) fall back to URL
 			}
 
-			setupEngineIcon(engine, iconImgSource, engine.name, iconCssText, popup, settings);
+			setupEngineIcon(engine, iconImgSource, engine.name, true, iconCssText, popup, settings);
 		}
 	}
 
@@ -356,59 +357,69 @@ padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}
 	}
 }
 
-function setupEngineIcon(engine, iconImgSource, iconTitle, iconCssText, parent, settings)
+function setupEngineIcon(engine, iconImgSource, iconTitle, isInteractive, iconCssText, parent, settings)
 {
 	let icon = document.createElement("img");
 	icon.src = iconImgSource;
 	icon.title = iconTitle;
 	icon.style.cssText = iconCssText;
 
-	if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight || settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_HighlightAndMove)
+	if (isInteractive)
 	{
-		icon.onmouseover = () => {
-			icon.style.borderBottom = `2px ${settings.popupHighlightColor} solid`;
-			if (settings.popupItemBorderRadius == 0) {
-				icon.style.borderRadius = "2px";
-			}
-			if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight) {
-				// remove 2 pixels to counter the added border of 2px
-				icon.style.paddingBottom = (3 + settings.popupItemVerticalPadding - 2) + "px";
-			} else {
-				// remove 2 pixels of top padding to cause icon to move up
-				icon.style.paddingTop = (3 + settings.popupItemVerticalPadding - 2) + "px";
-			}
-		};
-		icon.onmouseout = () => {
-			let verticalPaddingStr = (3 + settings.popupItemVerticalPadding) + "px";
-			icon.style.borderBottom = "";
-			if (settings.popupItemBorderRadius == 0) {
-				icon.style.borderRadius = "";
-			}
-			icon.style.paddingTop = verticalPaddingStr;
-			icon.style.paddingBottom = verticalPaddingStr;
-		};
+		if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight || settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_HighlightAndMove)
+		{
+			icon.onmouseover = () => {
+				icon.style.borderBottom = `2px ${settings.popupHighlightColor} solid`;
+				if (settings.popupItemBorderRadius == 0) {
+					icon.style.borderRadius = "2px";
+				}
+				if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight) {
+					// remove 2 pixels to counter the added border of 2px
+					icon.style.paddingBottom = (3 + settings.popupItemVerticalPadding - 2) + "px";
+				} else {
+					// remove 2 pixels of top padding to cause icon to move up
+					icon.style.paddingTop = (3 + settings.popupItemVerticalPadding - 2) + "px";
+				}
+			};
+			icon.onmouseout = () => {
+				let verticalPaddingStr = (3 + settings.popupItemVerticalPadding) + "px";
+				icon.style.borderBottom = "";
+				if (settings.popupItemBorderRadius == 0) {
+					icon.style.borderRadius = "";
+				}
+				icon.style.paddingTop = verticalPaddingStr;
+				icon.style.paddingBottom = verticalPaddingStr;
+			};
+		}
+
+		icon.addEventListener("mouseup", onSearchEngineClick(engine, settings)); // "mouse up" instead of "click" to support middle click
+
+		icon.style.setProperty("cursor", "pointer", "important");
+		icon.style.setProperty("pointer-events", "auto", "important");
 	}
 
-	icon.addEventListener("mouseup", onSearchEngineClick(engine, settings)); // "mouse up" instead of "click" to support middle click
 	icon.addEventListener("mousedown", ev => {
 		// prevents focus from changing to icon and breaking copy from input fields
 		ev.preventDefault();
 	});
+
 	icon.ondragstart = () => false;	// disable dragging popup images
 
 	parent.appendChild(icon);
+	return icon;
 }
 
-function setupEngineCss(sssIcon, parent, settings)
-{
-	let div = document.createElement("div");
+// function setupEngineCss(sssIcon, iconCssText, parent, settings)
+// {
+// 	let div = document.createElement("div");
 
-	div.style.cssText = sssIcon.iconCss;
-	div.style.marginBottom = (3 + settings.popupItemVerticalPadding) + "px";
-	div.style.marginTop = (3 + settings.popupItemVerticalPadding) + "px";
+// 	div.style.cssText = sssIcon.iconCss;
+// 	div.style.marginBottom = (3 + settings.popupItemVerticalPadding) + "px";
+// 	div.style.marginTop = (3 + settings.popupItemVerticalPadding) + "px";
 
-	parent.appendChild(div);
-}
+// 	parent.appendChild(div);
+// 	return div;
+// }
 
 function setPopupPositionAndSize(popup, nEngines, settings)
 {
