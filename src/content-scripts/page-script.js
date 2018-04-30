@@ -325,8 +325,7 @@ padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}
 			if (sssIcon.iconPath !== undefined) {
 				let iconImgSource = browser.extension.getURL(sssIcon.iconPath);
 				let isInteractive = sssIcon.isInteractive !== false;	// undefined or true means it's interactive
-				let icon = setupEngineIcon(engine, iconImgSource, sssIcon.name, isInteractive, iconCssText, popup, settings);
-				icon.style.setProperty("transform", "rotate(360deg)");
+				setupEngineIcon(engine, iconImgSource, sssIcon.name, isInteractive, iconCssText, popup, settings);
 			}
 			// else if (sssIcon.iconCss !== undefined) {
 			// 	setupEngineCss(sssIcon, iconCssText, popup, settings);
