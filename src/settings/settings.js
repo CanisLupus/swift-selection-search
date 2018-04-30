@@ -12,7 +12,9 @@ let settings;
 let hasPageLoaded = false;
 let isFocused = true;
 let pendingSettings = false;
-let isSeparateTab = location.search.includes("open_in_tab=true");
+let isSeparateTab = true;
+// for previous behaviour:
+// let isSeparateTab = location.search.includes("open_in_tab=true");
 
 // Load settings. Either the last of both onSettingsAcquired and onPageLoaded will update the UI with the loaded settings.
 browser.storage.local.get().then(onSettingsAcquired, mainScript.getErrorHandler("Error getting settings in settings page."));
