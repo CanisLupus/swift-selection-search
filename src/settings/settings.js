@@ -301,6 +301,31 @@ function onPageLoaded()
 		}
 	}
 
+	// show platform-specific sections
+
+	let platformSpecificElements;
+
+	switch (browser.runtime.PlatformOs)
+	{
+		case "mac":
+			platformSpecificElements = document.getElementsByClassName("os-mac");
+			break;
+		case "android":
+		case "linux":
+		case "openbsd":
+			platformSpecificElements = document.getElementsByClassName("os-linux");
+			break;
+		case "cros":
+		case "win":
+		default:
+			platformSpecificElements = document.getElementsByClassName("os-windows");
+			break;
+	}
+
+	for (let elem of platformSpecificElements) {
+		elem.style.display = "inline";
+	}
+
 	// general layout (changes if page is embedded or separate)
 
 	if (!isSeparateTab) {

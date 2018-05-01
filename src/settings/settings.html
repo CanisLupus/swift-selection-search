@@ -161,6 +161,9 @@
 	.setting.hidden {
 		display: none;
 	}
+	.os-windows, .os-mac, .os-linux {
+		display: none;
+	}
 </style>
 </head>
 
@@ -241,16 +244,13 @@
 					<input name="importBrowserEnginesFileButton_real" type="file" accept=".json.mozlz4" style="display: none"/>
 				</div>
 				<div class="setting-description">
-					Import browser engines. SSS can't do this automatically in WebExtensions! Please select the "search.json.mozlz4" file usually located here:
-					<details>
-						<summary>[Press to view]</summary>
-							(Windows) C:\Users\[user]\AppData\Roaming\Mozilla\Firefox\Profiles\[profile-id]
-						<br>(macOS) Users/[user]/Library/Application Support/Firefox/Profiles/[profile-id]
-						<br>(macOS) Users/[user]/Library/Mozilla/Firefox/Profiles/[profile-id]
-						<br>(Linux) /home/[user]/.mozilla/firefox/[profile-id]
-						<br>NOTE: Some of these folders may be hidden. Please refer to <a href="http://kb.mozillazine.org/Profile_folder_-_Firefox">this page</a>.
-					</details>
-					NOTE: Some icons may not appear if they are "resource://" links.
+					Import browser engines. SSS can't do this automatically in WebExtensions! Please select the "search.json.mozlz4" file usually located here:<br><br>
+					<span class="os-windows">C:\Users\[user]\AppData\Roaming\Mozilla\Firefox\Profiles\[profile-id]<br></span>
+					<span class="os-mac">/Users/[user]/Library/Application Support/Firefox/Profiles/[profile-id]<br></span>
+					<span class="os-mac">/Users/[user]/Library/Mozilla/Firefox/Profiles/[profile-id]<br></span>
+					<span class="os-linux">/home/[user]/.mozilla/firefox/[profile-id]<br></span>
+					<br>NOTE: The folder<span class="os-mac">s</span> may be hidden. Please refer to <a href="http://kb.mozillazine.org/Profile_folder_-_Firefox">this page</a>.
+					<br>NOTE: Some icons may not appear if they are "resource://" links.
 				</div>
 			</div>
 
@@ -283,7 +283,9 @@
 					<select name="popupOpenBehaviour">
 						<option value="off">Off (never)</option>
 						<option value="auto">Auto (opens on text selection)</option>
-						<option value="hold-alt">Hold Alt/Option (hold the alt key [option on Mac] when selecting)</option>
+						<span class="os-windows os-linux">Ctrl+Shift+Space</span>
+					<span class="os-mac">
+						<option value="hold-alt">Hold Alt (hold the Alt key [Option on Mac] when selecting)</option>
 						<option value="keyboard">Keyboard-only (press the keyboard shortcut after text is selected)</option>
 						<option value="middle-mouse">Middle mouse button (press the middle button on the selected text)</option>
 					</select>
@@ -385,8 +387,8 @@
 			<div class="setting disabled">
 				<div class="setting-name">Shortcut to open popup</div>
 				<div class="setting-value">
-					Ctrl+Shift+Space (Windows, Linux)<br>
-					Cmd+Shift+Space (macOS)
+					<span class="os-windows os-linux">Ctrl+Shift+Space</span>
+					<span class="os-mac">Cmd+Shift+Space</span>
 					<!-- <input type="text" name="popupOpenHotkey" value="accel-shift-space"> -->
 				</div>
 				<div class="setting-description">
@@ -403,8 +405,8 @@
 				<div class="setting-name">Shortcut to toggle auto popup opening</div>
 				<div class="setting-value">
 					<!-- <input type="text" name="popupDisableHotkey" value="accel-shift-u"> -->
-					Ctrl+Shift+U (Windows, Linux)<br>
-					Cmd+Shift+U (macOS)
+					<span class="os-windows os-linux">Ctrl+Shift+U</span>
+					<span class="os-mac">Cmd+Shift+U</span>
 				</div>
 				<div class="setting-description">
 					[NOTE: Not configurable in WebExtensions.]
