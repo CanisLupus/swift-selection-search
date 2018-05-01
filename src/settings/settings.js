@@ -306,15 +306,15 @@ function onPageLoaded()
 
 	switch (browser.runtime.PlatformOs)
 	{
-		case "mac":
-			platformSpecificElements = document.getElementsByClassName("os-mac");
-			break;
 		case "android":
+		case "cros":
 		case "linux":
 		case "openbsd":
 			platformSpecificElements = document.getElementsByClassName("os-linux");
 			break;
-		case "cros":
+		case "mac":
+			platformSpecificElements = document.getElementsByClassName("os-mac");
+			break;
 		case "win":
 		default:
 			platformSpecificElements = document.getElementsByClassName("os-windows");
@@ -678,7 +678,7 @@ function setupEngineIcon(iconImgSource, parent, settings)
 {
 	let icon = document.createElement("img");
 
-	if (iconImgSource.startsWith("data:")) {
+	if (iconImgSource.startsWith("data:") || iconImgSource.startsWith("moz-extension:")) {
 		icon.src = iconImgSource;
 	} else if (settings.searchEnginesCache[iconImgSource] === undefined && iconImgSource) {
 		icon.src = iconImgSource;

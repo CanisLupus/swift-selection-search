@@ -184,7 +184,7 @@
 						<li>Add new search engines using the "Add engine" button in the "Search engines" section. You can also load your search bar engines from Firefox. Engines will appear in the SSS popup and context menu when you select text on a page. SSS comes with a few examples!</li>
 						<li>You can change the engine names, search URLs, and icon URLs. When you click a search engine in the popup or context menu, <i>{searchTerms}</i> (in the search URL) will be replaced by the selected text. Additionally (this is a more advanced use), if {hostname} is present, it will be replaced by the website domain you are on.</li>
 						<li>Having trouble finding icons? Maybe try <a href="https://besticon-demo.herokuapp.com/">this link.</a> :)</li>
-						<li>For customizing the popup appearance, context menu, click behaviour, etc, please check the other options in this page.</li>
+						<li>For customizing the popup look, context menu, click behaviour, etc, please check the other options in this page.</li>
 					</ol>
 				</div>
 			</div>
@@ -243,7 +243,7 @@
 					<input name="importBrowserEnginesFileButton_real" type="file" accept=".json.mozlz4" style="display: none"/>
 				</div>
 				<div class="setting-description">
-					Import browser engines. SSS can't do this automatically in WebExtensions! Please select the "search.json.mozlz4" file usually located here:<br><br>
+					Import browser engines. SSS can't do this automatically in WebExtensions! Please select the "search.json.mozlz4" file usually located inside this folder:<br><br>
 					<span class="os-windows">C:\Users\[user]\AppData\Roaming\Mozilla\Firefox\Profiles\[profile-id]<br></span>
 					<span class="os-mac">/Users/[user]/Library/Application Support/Firefox/Profiles/[profile-id]<br></span>
 					<span class="os-mac">/Users/[user]/Library/Mozilla/Firefox/Profiles/[profile-id]<br></span>
@@ -273,7 +273,7 @@
 	</div>
 
 	<div class="section vertically-padded collapsed-section" id="section_popupBehaviour">
-		<div class="section-name">Popup behaviours</div>
+		<div class="section-name">Popup/icons behaviour</div>
 
 		<div class="section-settings">
 			<div class="setting">
@@ -438,49 +438,8 @@
 		</div>
 	</div>
 
-	<div class="section vertically-padded" id="section_contextMenu">
-		<div class="section-name">Context menu</div>
-
-		<div class="section-settings">
-			<div class="setting">
-				<div class="setting-name">Is the context menu enabled?</div>
-				<div class="setting-value">
-					<input type="checkbox" name="enableEnginesInContextMenu" autocomplete="off" checked>
-				</div>
-				<div class="setting-description">Enables a "Search for..." context menu with all search engines. Appears when you right click somewhere with text selected.<br>(default: On)</div>
-			</div>
-
-			<div class="setting">
-				<div class="setting-name">Context menu item click behaviour</div>
-				<div class="setting-value">
-					<select name="contextMenuItemBehaviour">
-						<option value="this-tab">Open in this tab</option>
-						<option value="new-tab">Open in new tab</option>
-						<option value="new-bg-tab">Open in new background tab</option>
-						<option value="new-tab-next">Open in new tab (next to current tab)</option>
-						<option value="new-bg-tab-next">Open in new background tab (next to current tab)</option>
-						<option value="new-window">Open in new window</option>
-						<option value="new-bg-window">(unsupported in Firefox) Open in new background window</option>
-					</select>
-				</div>
-				<div class="setting-description">What to do when a search engine is clicked in the context menu. NOTE: This is NOT for clicking a search engine in the popup, only for the context menu. For the former, please see the "Popup behaviours" section.<br>(default: Open in new background tab)</div>
-			</div>
-
-			<div class="setting">
-				<div class="setting-name">Context menu engines filter</div>
-				<div class="setting-value">
-					<select name="contextMenuEnginesFilter">
-						<option value="all">All</option>
-						<option value="same-as-popup">Same as popup</option>
-					</select>
-				</div>
-				<div class="setting-description">What engines to show on the context menu.<br>(default: Same as popup)</div>
-			</div>
-		</div>
-	</div>
-
 	<div class="section vertically-padded collapsed-section" id="section_popupAppearance">
-		<div class="section-name">Popup appearance</div>
+		<div class="section-name">Popup/icons look</div>
 
 		<div class="section-settings">
 			<div class="setting">
@@ -540,7 +499,7 @@
 				<div class="setting-value">
 					<input type="number" name="popupItemBorderRadius" min="0" value="0">
 				</div>
-				<div class="setting-description">Icon border radius in pixels. Makes icons more or less round. NOTE: on icons without a background this will likely be unnoticeable.<br>(default: 0)</div>
+				<div class="setting-description">Icon border radius in pixels. Makes icons more or less round. NOTE: this will likely be unnoticeable on icons without a background.<br>(default: 0)</div>
 			</div>
 
 			<div class="setting">
@@ -599,6 +558,47 @@
 					<input type="number" name="popupBorderRadius" min="0" value="2">
 				</div>
 				<div class="setting-description">Popup border radius in pixels. Makes popup more or less round.<br>(default: 2)</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="section vertically-padded" id="section_contextMenu">
+		<div class="section-name">Context menu</div>
+
+		<div class="section-settings">
+			<div class="setting">
+				<div class="setting-name">Is the context menu enabled?</div>
+				<div class="setting-value">
+					<input type="checkbox" name="enableEnginesInContextMenu" autocomplete="off" checked>
+				</div>
+				<div class="setting-description">Enables a "Search for..." context menu with all search engines. Appears when you right click somewhere with text selected.<br>(default: On)</div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Context menu item click behaviour</div>
+				<div class="setting-value">
+					<select name="contextMenuItemBehaviour">
+						<option value="this-tab">Open in this tab</option>
+						<option value="new-tab">Open in new tab</option>
+						<option value="new-bg-tab">Open in new background tab</option>
+						<option value="new-tab-next">Open in new tab (next to current tab)</option>
+						<option value="new-bg-tab-next">Open in new background tab (next to current tab)</option>
+						<option value="new-window">Open in new window</option>
+						<option value="new-bg-window">(unsupported in Firefox) Open in new background window</option>
+					</select>
+				</div>
+				<div class="setting-description">What to do when a search engine is clicked in the context menu. NOTE: This is NOT for clicking a search engine in the popup, only in the context menu. For the former, please see the "Popup/icons behaviour" section.<br>(default: Open in new background tab)</div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Context menu engines filter</div>
+				<div class="setting-value">
+					<select name="contextMenuEnginesFilter">
+						<option value="all">All</option>
+						<option value="same-as-popup">Same as popup</option>
+					</select>
+				</div>
+				<div class="setting-description">What engines to show on the context menu.<br>(default: Same as popup)</div>
 			</div>
 		</div>
 	</div>
