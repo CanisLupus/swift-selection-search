@@ -304,26 +304,28 @@ function onPageLoaded()
 
 	let platformSpecificElements;
 
-	switch (browser.runtime.PlatformOs)
-	{
-		case "android":
-		case "cros":
-		case "linux":
-		case "openbsd":
-			platformSpecificElements = document.getElementsByClassName("os-linux");
-			break;
-		case "mac":
-			platformSpecificElements = document.getElementsByClassName("os-mac");
-			break;
-		case "win":
-		default:
-			platformSpecificElements = document.getElementsByClassName("os-windows");
-			break;
-	}
+	browser.runtime.getPlatformInfo().then(info => {
+		switch (info.os)
+		{
+			case "android":
+			case "cros":
+			case "linux":
+			case "openbsd":
+				platformSpecificElements = document.getElementsByClassName("os-linux");
+				break;
+			case "mac":
+				platformSpecificElements = document.getElementsByClassName("os-mac");
+				break;
+			case "win":
+			default:
+				platformSpecificElements = document.getElementsByClassName("os-windows");
+				break;
+		}
 
-	for (let elem of platformSpecificElements) {
-		elem.style.display = "inline";
-	}
+		for (let elem of platformSpecificElements) {
+			elem.style.display = "inline";
+		}
+	})
 
 	// general layout (changes if page is embedded or separate)
 
