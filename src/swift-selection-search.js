@@ -547,6 +547,7 @@ function onSearchEngineClick(engineObject, clickType, searchText, hostname)
 
 function getSearchQuery(engine, searchText, hostname)
 {
+	searchText = searchText.trim();
 	let query = engine.searchUrl;
 	query = query.replace("{searchTerms}", encodeURIComponent(searchText));
 	query = query.replace("{hostname}", hostname);
