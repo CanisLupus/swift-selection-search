@@ -62,6 +62,9 @@
 		color: #222222;
 		border-bottom: 1px #bbb solid;
 	}
+	.section-name {
+		cursor: pointer;
+	}
 	.section-name:hover {
 		color: #3399FF;
 	}
@@ -165,7 +168,7 @@
 <div id="settings">
 	<div class="header">
 		<img src="/icons/icon96.png" alt="">
-		<h1><span style="color: #3399FF">Swift Selection Search</span> (SSS) settings page</h1>
+		<h1><span style="color: #3399FF">Swift Selection Search</span> (SSS) options page</h1>
 	</div>
 
 	<div class="section vertically-padded" id="section_instructions">
@@ -176,9 +179,10 @@
 				<div class="setting-name" style="max-width: 160px;">Quick setup!</div>
 				<div class="setting-description">
 					<ol>
-						<li>Add search engines using the "Add engine" button in the table below, and/or load them from Firefox. They will then appear in the SSS popup and context menu when you select text on a page. SSS comes with a few examples!</li>
+						<li>Add new search engines using the "Add engine" button in the "Search engines" section. You can also load your search bar engines from Firefox. Engines will appear in the SSS popup and context menu when you select text on a page. SSS comes with a few examples!</li>
 						<li>You can change the engine names, search URLs, and icon URLs. When you click a search engine in the popup or context menu, <i>{searchTerms}</i> (in the search URL) will be replaced by the selected text. Additionally (this is a more advanced use), if {hostname} is present, it will be replaced by the website domain you are on.</li>
-						<li>For customization of the popup appearance, context menu, click behaviour, etc, please check the other options in this page.</li>
+						<li>Having trouble finding icons? Maybe try <a href="https://besticon-demo.herokuapp.com/">this link.</a> :)</li>
+						<li>For customizing the popup appearance, context menu, click behaviour, etc, please check the other options in this page.</li>
 					</ol>
 				</div>
 			</div>
@@ -188,8 +192,8 @@
 				<div class="setting-description">
 					Having problems?<br>
 					<ul>
-						<li>Some search engine icons may not appear if they are "resource://" links (some imported engines have those). This is normal, unfortunately. Please try finding another icon for the engine!</li>
 						<li>If an icon does not appear and its URL is correct, please check if that still happens if you disable your ad blocker and add the icon URL again. Some blocking lists in your ad blocker can stop certain images from downloading! (ex.: YouTube may be blocked by "Fanboy's Annoyance List")</li>
+						<li>Some search engine icons may not appear if they are "resource://" links (some imported engines have those). This is normal, unfortunately. Please try finding another icon for the engine <a href="https://besticon-demo.herokuapp.com/">here</a>!</li>
 						<li>Does the popup not appear at all on some websites or frames of a website? It may be a website content policy or an incompatibility with SSS. For example, addons.mozilla.org disables page modifications, and bugzilla.mozilla.org blocks most images. If you find another site, please report it using the issues link below and I'll see what I can do!</li>
 						<li>Is your problem not here? Or maybe you found a bug? Contact me or post an issue <a href="https://github.com/CanisLupus/swift-selection-search/issues">here</a>.</li>
 					</ul>
@@ -198,7 +202,7 @@
 		</div>
 	</div>
 
-	<div class="section vertically-padded" id="section_searchEngines">
+	<div class="section vertically-padded collapsed-section" id="section_searchEngines">
 		<div class="section-name">Search engines</div>
 
 		<div class="section-settings">
@@ -269,49 +273,8 @@
 		</div>
 	</div>
 
-	<div class="section vertically-padded" id="section_contextMenu">
-		<div class="section-name">Context menu</div>
-
-		<div class="section-settings">
-			<div class="setting">
-				<div class="setting-name">Is the context menu enabled?</div>
-				<div class="setting-value">
-					<input type="checkbox" name="enableEnginesInContextMenu" autocomplete="off" checked>
-				</div>
-				<div class="setting-description">Enables a context menu with all search engines. Appears when you right click somewhere with text selected.<br>(default: On)</div>
-			</div>
-
-			<div class="setting">
-				<div class="setting-name">Context menu item click behaviour</div>
-				<div class="setting-value">
-					<select name="contextMenuItemBehaviour">
-						<option value="this-tab">Open in this tab</option>
-						<option value="new-tab">Open in new tab</option>
-						<option value="new-bg-tab">Open in new background tab</option>
-						<option value="new-tab-next">Open in new tab (next to current tab)</option>
-						<option value="new-bg-tab-next">Open in new background tab (next to current tab)</option>
-						<option value="new-window">Open in new window</option>
-						<option value="new-bg-window">(unsupported by Firefox) Open in new background window</option>
-					</select>
-				</div>
-				<div class="setting-description">What to do when a search engine is clicked in the context menu.<br>(default: Open in new background tab)</div>
-			</div>
-
-			<div class="setting">
-				<div class="setting-name">Context menu engines filter</div>
-				<div class="setting-value">
-					<select name="contextMenuEnginesFilter">
-						<option value="all">All</option>
-						<option value="same-as-popup">Same as popup</option>
-					</select>
-				</div>
-				<div class="setting-description">What engines to show on the context menu.<br>(default: Same as popup)</div>
-			</div>
-		</div>
-	</div>
-
 	<div class="section vertically-padded collapsed-section" id="section_popupBehaviour">
-		<div class="section-name">Popup behaviour</div>
+		<div class="section-name">Popup behaviours</div>
 
 		<div class="section-settings">
 			<div class="setting">
@@ -345,6 +308,38 @@
 					</select>
 				</div>
 				<div class="setting-description">Where the popup should appear after selecting text.<br>(default: At cursor location)</div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Left mouse button click</div>
+				<div class="setting-value">
+					<select name="mouseLeftButtonBehaviour">
+						<option value="this-tab">Open in this tab</option>
+						<option value="new-tab">Open in new tab</option>
+						<option value="new-bg-tab">Open in new background tab</option>
+						<option value="new-tab-next">Open in new tab (next to current tab)</option>
+						<option value="new-bg-tab-next">Open in new background tab (next to current tab)</option>
+						<option value="new-window">Open in new window</option>
+						<option value="new-bg-window">(unsupported in Firefox) Open in new background window</option>
+					</select>
+				</div>
+				<div class="setting-description">What to do when a search engine is clicked with the left mouse button.<br>(default: Open in this tab)</div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Middle mouse button click</div>
+				<div class="setting-value">
+					<select name="mouseMiddleButtonBehaviour">
+						<option value="this-tab">Open in this tab</option>
+						<option value="new-tab">Open in new tab</option>
+						<option value="new-bg-tab">Open in new background tab</option>
+						<option value="new-tab-next">Open in new tab (next to current tab)</option>
+						<option value="new-bg-tab-next">Open in new background tab (next to current tab)</option>
+						<option value="new-window">Open in new window</option>
+						<option value="new-bg-window">(unsupported in Firefox) Open in new background window</option>
+					</select>
+				</div>
+				<div class="setting-description">What to do when a search engine is clicked with the middle mouse button.<br>(default: Open in new background tab)</div>
 			</div>
 
 			<div class="setting">
@@ -422,38 +417,6 @@
 			</div>
 
 			<div class="setting">
-				<div class="setting-name">Left mouse button behaviour</div>
-				<div class="setting-value">
-					<select name="mouseLeftButtonBehaviour">
-						<option value="this-tab">Open in this tab</option>
-						<option value="new-tab">Open in new tab</option>
-						<option value="new-bg-tab">Open in new background tab</option>
-						<option value="new-tab-next">Open in new tab (next to current tab)</option>
-						<option value="new-bg-tab-next">Open in new background tab (next to current tab)</option>
-						<option value="new-window">Open in new window</option>
-						<option value="new-bg-window">(unsupported by Firefox) Open in new background window</option>
-					</select>
-				</div>
-				<div class="setting-description">What to do when a search engine is clicked with the left mouse button.<br>(default: Open in this tab)</div>
-			</div>
-
-			<div class="setting">
-				<div class="setting-name">Middle mouse button behaviour</div>
-				<div class="setting-value">
-					<select name="mouseMiddleButtonBehaviour">
-						<option value="this-tab">Open in this tab</option>
-						<option value="new-tab">Open in new tab</option>
-						<option value="new-bg-tab">Open in new background tab</option>
-						<option value="new-tab-next">Open in new tab (next to current tab)</option>
-						<option value="new-bg-tab-next">Open in new background tab (next to current tab)</option>
-						<option value="new-window">Open in new window</option>
-						<option value="new-bg-window">(unsupported by Firefox) Open in new background window</option>
-					</select>
-				</div>
-				<div class="setting-description">What to do when a search engine is clicked with the middle mouse button.<br>(default: Open in new background tab)</div>
-			</div>
-
-			<div class="setting">
 				<div class="setting-name">Popup animation duration</div>
 				<div class="setting-value">
 					<input type="number" name="popupAnimationDuration" min="0" value="100">
@@ -470,6 +433,47 @@
 					</select>
 				</div>
 				<div class="setting-description">Automatically copy selected text to clipboard when popup opens.<br>(default: Off)</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="section vertically-padded" id="section_contextMenu">
+		<div class="section-name">Context menu</div>
+
+		<div class="section-settings">
+			<div class="setting">
+				<div class="setting-name">Is the context menu enabled?</div>
+				<div class="setting-value">
+					<input type="checkbox" name="enableEnginesInContextMenu" autocomplete="off" checked>
+				</div>
+				<div class="setting-description">Enables a "Search for..." context menu with all search engines. Appears when you right click somewhere with text selected.<br>(default: On)</div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Context menu item click behaviour</div>
+				<div class="setting-value">
+					<select name="contextMenuItemBehaviour">
+						<option value="this-tab">Open in this tab</option>
+						<option value="new-tab">Open in new tab</option>
+						<option value="new-bg-tab">Open in new background tab</option>
+						<option value="new-tab-next">Open in new tab (next to current tab)</option>
+						<option value="new-bg-tab-next">Open in new background tab (next to current tab)</option>
+						<option value="new-window">Open in new window</option>
+						<option value="new-bg-window">(unsupported in Firefox) Open in new background window</option>
+					</select>
+				</div>
+				<div class="setting-description">What to do when a search engine is clicked in the context menu. NOTE: This is NOT for clicking a search engine in the popup, only for the context menu. For the former, please see the "Popup behaviours" section.<br>(default: Open in new background tab)</div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Context menu engines filter</div>
+				<div class="setting-value">
+					<select name="contextMenuEnginesFilter">
+						<option value="all">All</option>
+						<option value="same-as-popup">Same as popup</option>
+					</select>
+				</div>
+				<div class="setting-description">What engines to show on the context menu.<br>(default: Same as popup)</div>
 			</div>
 		</div>
 	</div>
