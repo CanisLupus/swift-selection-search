@@ -253,7 +253,7 @@ function showPopup(settings)
 		popup.style.display = "inline-block";
 		setPopupPositionAndSize(popup, settings.searchEngines.length, settings);
 
-		if (settings.popupAnimationDuration > 0) {
+		if (settings.popupAnimationDuration > 0 && typeof cloneInto === "function") {
 			// cloneInto fixes a Firefox bug that causes animations to not work in the settings page
 			popup.animate(cloneInto({ transform: ["scale(0.8)", "scale(1)"] }, window), settings.popupAnimationDuration);
 			popup.animate(cloneInto({ opacity: [0, 1] }, window), settings.popupAnimationDuration * 0.5);

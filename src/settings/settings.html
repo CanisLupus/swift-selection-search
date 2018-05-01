@@ -14,23 +14,20 @@
 	body {
 		background-color: #F9F9FA;
 	}
-	body.embedded .header {
-		display: none;
-	}
-	body:not(.embedded) {
+	body {
 		max-width: 1200px;
 		padding: 50px 30px;
 		margin: 0 auto;
 	}
-	body:not(.embedded) .header {
+	body .header {
 		display: flex;
 		align-items: center;
 	}
-	body:not(.embedded) .header img {
+	body .header img {
 		object-fit: contain;
 	}
-	body:not(.embedded) .header h1,
-	body:not(.embedded) .header span {
+	body .header h1,
+	body .header span {
 		padding-left: 20px;
 		font-size: 2rem;
 	}
@@ -165,6 +162,8 @@
 		display: none;
 	}
 </style>
+<title>SSS Options</title>
+<link rel="shortcut icon" type="image/png" href="/icons/icon48.png"/>
 </head>
 
 <body>
@@ -485,14 +484,14 @@
 
 		<div class="section-settings">
 			<div class="setting">
-				<div class="setting-name">Use single row</div>
+				<div class="setting-name">Display in a single row</div>
 				<div class="setting-value">
 					<input type="checkbox" name="useSingleRow" autocomplete="off" checked>
 				</div>
 				<div class="setting-description">Places all search engines in a single row, instead of a grid.<br>(default: On)</div>
 			</div>
 
-			<div class="setting">
+			<div class="setting hidden">
 				<div class="setting-name">Number of icons per row in grid</div>
 				<div class="setting-value">
 					<input type="number" name="nPopupIconsPerRow" min="1" value="4">

@@ -12,9 +12,6 @@ let settings;
 let hasPageLoaded = false;
 let isFocused = true;
 let pendingSettings = false;
-let isSeparateTab = true;
-// for previous behaviour:
-// let isSeparateTab = location.search.includes("open_in_tab=true");
 
 // Load settings. Either the last of both onSettingsAcquired and onPageLoaded will update the UI with the loaded settings.
 browser.storage.local.get().then(onSettingsAcquired, mainScript.getErrorHandler("Error getting settings in settings page."));
@@ -252,6 +249,8 @@ function onPageLoaded()
 		} else if (item.name in settings) {
 			if (item.name === "popupOpenBehaviour") {
 				updateMiddleMouseSelectionClickMarginSetting(item.value);
+			} else if (item.name === "useSingleRow") {
+				updateNPopupIconsPerRowSetting(item.checked);
 			}
 
 			let value;
@@ -328,10 +327,6 @@ function onPageLoaded()
 
 	// general layout (changes if page is embedded or separate)
 
-	if (!isSeparateTab) {
-		document.body.className = "embedded";
-	}
-
 	window.onfocus = ev => {
 		// if settings changed while page was not focused, reload settings and UI
 		if (pendingSettings) {
@@ -346,7 +341,7 @@ function onPageLoaded()
 
 	// engines footnote
 
-	if (!isDragSupported())
+	if (mainScript.getBrowserVersion() < 58)
 	{
 		let enginesFootnoteElem = document.getElementById("engines-footnote");
 
@@ -366,14 +361,8 @@ function onPageLoaded()
 			}
 		};
 
-		addToFootnote("* My apologies for using ↑/↓ buttons to reorder the engines. Dragging is much better but it doesn't work in this page due to a ",
-			["https://bugzilla.mozilla.org/show_bug.cgi?id=1408756", "Firefox bug", ". It should work on a separate tab, however, so I've enabled it for ",
-			"/settings/settings.html?open_in_tab=true", "this link", " if you wish to try!"]);
-
-		if (mainScript.getBrowserVersion() < 58) {
-			addToFootnote(" If you click a dropdown and it appears far from where it should, that is also a ",
-				["https://bugzilla.mozilla.org/show_bug.cgi?id=1390445", "Firefox bug", " (fixed in Firefox 58)."]);
-		}
+		addToFootnote("* If you click a dropdown and it appears far from where it should, that is a ",
+			["https://bugzilla.mozilla.org/show_bug.cgi?id=1390445", "Firefox bug", " (fixed in Firefox 58)."]);
 	}
 
 	// register events for button clicks
@@ -523,6 +512,7 @@ function updateUIWithSettings()
 	updatePickerColor(page.popupHighlightColorPicker, page.popupHighlightColor.value);
 
 	updateMiddleMouseSelectionClickMarginSetting(settings.popupOpenBehaviour);	// margin option only appears if using middle click for opening behaviour
+	updateNPopupIconsPerRowSetting(settings.useSingleRow);	// nPopupIconsPerRow option only appears if not using a single row of icons
 
 	// calculate storage size
 
@@ -544,33 +534,22 @@ function updateUIWithSettings()
 			addSearchEngine(engine, i);
 		}
 
-		let useDrag = isDragSupported();
-
-		// if using drag we have only 3 columns before each engine because the dragger replaces the up/down buttons
-		let colSpan = useDrag ? 3 : 4;
-		for (let column of document.getElementsByClassName("variable-colspan")) {
-			column.colSpan = colSpan;
-		}
-
-		if (useDrag)
-		{
-			Sortable.create(page.engines, {
-				handle: ".engine-dragger",
-				onStart: ev => {
-					if (DEBUG) { log("start drag", ev.oldIndex); }
-				},
-				onUpdate: ev => {
-					var item = ev.item; // the current dragged HTMLElement
-					if (DEBUG) { log("onUpdate", item); }
-				},
-				onEnd: ev => {
-					if (DEBUG) { log("onEnd", settings); }
-					settings.searchEngines.splice(ev.newIndex, 0, settings.searchEngines.splice(ev.oldIndex, 1)[0]);
-					updateUIWithSettings();
-					saveSettings({ searchEngines: settings.searchEngines });
-				},
-			});
-		}
+		Sortable.create(page.engines, {
+			handle: ".engine-dragger",
+			onStart: ev => {
+				if (DEBUG) { log("start drag", ev.oldIndex); }
+			},
+			onUpdate: ev => {
+				var item = ev.item; // the current dragged HTMLElement
+				if (DEBUG) { log("onUpdate", item); }
+			},
+			onEnd: ev => {
+				if (DEBUG) { log("onEnd", settings); }
+				settings.searchEngines.splice(ev.newIndex, 0, settings.searchEngines.splice(ev.oldIndex, 1)[0]);
+				updateUIWithSettings();
+				saveSettings({ searchEngines: settings.searchEngines });
+			},
+		});
 	}
 
 	// collapse or expand sections
@@ -584,16 +563,6 @@ function updateUIWithSettings()
 			classList.toggle("collapsed-section", !isExpanded);
 		}
 	}
-}
-
-function isDragSupported()
-{
-	// check if we are on a version where drag is supported in the settings page
-	if (mainScript.getBrowserVersion() <= 55) {
-		return true;
-	}
-	// otherwise check if we are on a separate tab and use drag anyway if that's the case
-	return isSeparateTab;
 }
 
 function calculateAndShowSettingsSize()
@@ -624,66 +593,13 @@ function addSearchEngine(engine, i)
 
 	// dragger element
 
-	if (isDragSupported())
-	{
-		cell = document.createElement("td");
-		cell.className = "engine-dragger";
-		let div = document.createElement("div");
-		div.textContent = "☰";
-		div.style.cursor = "move";
-		cell.appendChild(div);
-		row.appendChild(cell);
-	}
-	else
-	{
-		// move up button
-
-		cell = document.createElement("td");
-		cell.className = "engine-move-up";
-		let moveUpButton = document.createElement("input");
-		moveUpButton.type = "button";
-		moveUpButton.value = "↑";
-		if (i > 0) {
-			moveUpButton.onclick = ev => {
-				if (i <= 0) {
-					return;
-				}
-				let tmp = settings.searchEngines[i];
-				settings.searchEngines[i] = settings.searchEngines[i-1];
-				settings.searchEngines[i-1] = tmp;
-				updateUIWithSettings();
-				saveSettings({ searchEngines: settings.searchEngines });
-			};
-		} else {
-			moveUpButton.style.opacity = 0.5;
-		}
-		cell.appendChild(moveUpButton);
-		row.appendChild(cell);
-
-		// move down button
-
-		cell = document.createElement("td");
-		cell.className = "engine-move-down";
-		let moveDownButton = document.createElement("input");
-		moveDownButton.type = "button";
-		moveDownButton.value = "↓";
-		if (i < settings.searchEngines.length-1) {
-			moveDownButton.onclick = ev => {
-				if (i >= settings.searchEngines.length-1) {
-					return;
-				}
-				let tmp = settings.searchEngines[i];
-				settings.searchEngines[i] = settings.searchEngines[i+1];
-				settings.searchEngines[i+1] = tmp;
-				updateUIWithSettings();
-				saveSettings({ searchEngines: settings.searchEngines });
-			};
-		} else {
-			moveDownButton.style.opacity = 0.5;
-		}
-		cell.appendChild(moveDownButton);
-		row.appendChild(cell);
-	}
+	cell = document.createElement("td");
+	cell.className = "engine-dragger";
+	let div = document.createElement("div");
+	div.textContent = "☰";
+	div.style.cursor = "move";
+	cell.appendChild(div);
+	row.appendChild(cell);
 
 	// "is enabled" checkbox
 
@@ -697,7 +613,7 @@ function addSearchEngine(engine, i)
 		engine.isEnabled = isEnabledInput.checked;
 		saveSettings({ searchEngines: settings.searchEngines });
 	};
-	cell.style.paddingLeft = "6px";	// remove this when drag works again in add-on pages
+	cell.style.paddingLeft = "6px";
 	cell.appendChild(isEnabledInput);
 	row.appendChild(cell);
 
@@ -947,6 +863,16 @@ function updateMiddleMouseSelectionClickMarginSetting(popupOpenBehaviour)
 		middleMouseSelectionClickMarginSetting.classList.remove("hidden");
 	} else {
 		middleMouseSelectionClickMarginSetting.classList.add("hidden");
+	}
+}
+
+function updateNPopupIconsPerRowSetting(useSingleRow)
+{
+	let nPopupIconsPerRowSetting = page["nPopupIconsPerRow"].closest(".setting");
+	if (useSingleRow === true) {
+		nPopupIconsPerRowSetting.classList.add("hidden");
+	} else {
+		nPopupIconsPerRowSetting.classList.remove("hidden");
 	}
 }
 
