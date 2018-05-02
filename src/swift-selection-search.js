@@ -57,6 +57,7 @@ const consts = {
 	}
 };
 
+// default state of all configurable options
 const defaultSettings = {
 	popupOpenBehaviour: consts.PopupOpenBehaviour_Auto,
 	middleMouseSelectionClickMargin: 14,
@@ -171,13 +172,14 @@ let isFirstLoad = true;
 let browserVersion = 0;
 const sss = {};
 
-// show message related to update to WebExtensions
+// show message on installation
 browser.runtime.onInstalled.addListener(details => {
 	if (details.reason == "install") {
 		browser.tabs.create({ url : "/res/msg-pages/sss-intro.html" });
 	}
 });
 
+// get browser version and then startup
 browser.runtime.getBrowserInfo().then(browserInfo => {
 	browserVersion = parseInt(browserInfo.version.split(".")[0]);
 	if (DEBUG) { log("Firefox is version " + browserVersion); }
@@ -201,15 +203,15 @@ browser.runtime.getBrowserInfo().then(browserInfo => {
 // Main SSS setup. Called when settings are acquired. Prepares everything.
 function onSettingsAcquired(settings)
 {
-	let doSaveSettings;
+	let doSaveSettings = false;
 
-	// if settings object is empty, use defaults
+	// If settings object is empty, use defaults.
 	if (settings === undefined || isObjectEmpty(settings)) {
 		if (DEBUG) { log("Empty settings! Using defaults."); }
 		settings = defaultSettings;
 		doSaveSettings = true;
-	} else {
-		doSaveSettings = isFirstLoad && runBackwardsCompatibilityUpdates(settings);
+	} else if (isFirstLoad) {
+		doSaveSettings = runBackwardsCompatibilityUpdates(settings);
 	}
 
 	if (doSaveSettings) {
@@ -217,10 +219,10 @@ function onSettingsAcquired(settings)
 		return;	// calling "set" will trigger this whole function again, so quit before wasting time
 	}
 
-	// save settings and also keep subsets of it for content-script-related purposes
+	// save settings and also keep subsets of them for content-script-related purposes
 	sss.settings = settings;
-	sss.settingsForContentScript = getPopupSettingsForContentScript(settings);
 	sss.activationSettingsForContentScript = getActivationSettingsForContentScript(settings);
+	sss.settingsForContentScript = getPopupSettingsForContentScript(settings);
 
 	if (isFirstLoad) {
 		if (DEBUG) { log("loading ", settings); }
@@ -232,11 +234,11 @@ function onSettingsAcquired(settings)
 
 	if (isFirstLoad) {
 		if (DEBUG) { log("Swift Selection Search has started!"); }
+		isFirstLoad = false;
 	}
-
-	isFirstLoad = false;
 }
 
+// small subset of settings needed for activating content scripts (no need to pass everything if the popup isn't ever called)
 function getActivationSettingsForContentScript(settings)
 {
 	let activationSettings = {
@@ -247,14 +249,15 @@ function getActivationSettingsForContentScript(settings)
 	return activationSettings;
 }
 
+// settings for when a content script needs to show the popup
 function getPopupSettingsForContentScript(settings)
 {
 	let popupSettings = Object.assign({}, settings);	// shallow copy
-	popupSettings.searchEngines = settings.searchEngines.filter(engine => engine.isEnabled);	// keep only enabled engines
+	popupSettings.searchEngines = settings.searchEngines.filter(engine => engine.isEnabled);	// pass only enabled engines
 	popupSettings.searchEnginesCache = {};
-	popupSettings.sssIcons = consts.sssIcons;
+	popupSettings.sssIcons = consts.sssIcons;	// add information about special SSS icons (normally not in settings because it doesn't change)
 
-	// get icon cache for enabled engines only
+	// get icon cache for enabled engines
 	for (const engine of popupSettings.searchEngines)
 	{
 		if (engine.iconUrl) {
@@ -267,10 +270,10 @@ function getPopupSettingsForContentScript(settings)
 	return popupSettings;
 }
 
-// Also called from settings.
+// (also called from settings.js)
 function runBackwardsCompatibilityUpdates(settings)
 {
-	// add settings that were not available in older versions
+	// add settings that were not available in older versions of SSS
 	let shouldSave = false;
 	shouldSave |= createSettingIfNonExistent(settings, "popupItemVerticalPadding");
 	shouldSave |= createSettingIfNonExistent(settings, "allowPopupOnEditableFields");
@@ -280,6 +283,7 @@ function runBackwardsCompatibilityUpdates(settings)
 	shouldSave |= createSettingIfNonExistent(settings, "middleMouseSelectionClickMargin");
 	shouldSave |= createSettingIfNonExistent(settings, "hidePopupOnRightClick");
 
+	// convert old unchangeable browser-imported engines to normal "custom" ones
 	for (let engine of settings.searchEngines)
 	{
 		if (engine.iconUrl === undefined && engine.type === "browser") {
@@ -302,12 +306,14 @@ function createSettingIfNonExistent(settings, settingName)
 	return false;
 }
 
-// Called from settings.
+// (all these are called from settings.js)
 function getDefaultSettings() { return defaultSettings; }
 function getConsts() { return consts; }
 function isDebugModeActive() { return DEBUG; }
 function getBrowserVersion() { return browserVersion; }
 
+// whenever settings change, we re-aquire all settings and setup everything again as if just starting
+// (definitely not performant, but very robust)
 function onSettingsChanged(changes, area)
 {
 	if (area !== "local" || isObjectEmpty(changes)) {
@@ -320,6 +326,8 @@ function onSettingsChanged(changes, area)
 	browser.storage.local.get().then(onSettingsAcquired, getErrorHandler("Error getting settings after onSettingsChanged."));
 }
 
+// (also called from settings.js)
+// default error handler for promises
 function getErrorHandler(text)
 {
 	if (DEBUG) {
@@ -337,6 +345,7 @@ function isObjectEmpty(obj)
 	return true;
 }
 
+// act when a content script requests something from this script
 function onContentScriptMessage(msg, sender, callbackFunc)
 {
 	if (msg.type !== "log") {
@@ -371,6 +380,7 @@ function onContentScriptMessage(msg, sender, callbackFunc)
 
 function setup_ContextMenu()
 {
+	// cleanup first
 	browser.contextMenus.onClicked.removeListener(onContextMenuItemClicked);
 	browser.contextMenus.removeAll();
 
@@ -378,6 +388,7 @@ function setup_ContextMenu()
 		return;
 	}
 
+	// get only the needed engines (don't show special SSS engines in the context menu)
 	let engines = sss.settings.searchEngines.filter(engine => engine.type !== "sss");
 
 	if (sss.settings.contextMenuEnginesFilter === consts.ContextMenuEnginesFilter_SameAsPopup) {
@@ -391,7 +402,7 @@ function setup_ContextMenu()
 		contexts: ["selection"],
 	});
 
-	// define submenu (one per engine)
+	// define sub options (one per engine)
 	for (const engine of engines)
 	{
 		let contextMenuOption = {
@@ -401,7 +412,7 @@ function setup_ContextMenu()
 			contexts: ["selection"],
 		};
 
-		// icons unsupported on 55 and below
+		// icons are unsupported on Firefox 55 and below
 		if (browserVersion >= 56) {
 			let icon;
 			if (engine.iconUrl.startsWith("data:")) {
@@ -428,6 +439,7 @@ function onContextMenuItemClicked(info, tab)
 {
 	let engine = sss.settings.searchEngines.find(engine => engine.searchUrl === info.menuItemId);
 	if (engine !== undefined) {
+		// search using the engine
 		let hostname = new URL(info.pageUrl).hostname;
 		let searchUrl = getSearchQuery(engine, info.selectionText, hostname);
 		openUrl(searchUrl, sss.settings.contextMenuItemBehaviour);
@@ -445,6 +457,7 @@ function setup_PopupHotkeys()
 		browser.commands.onCommand.removeListener(onHotkey);
 	}
 
+	// register keyboard shortcuts
 	if (sss.settings.popupOpenBehaviour !== consts.PopupOpenBehaviour_Off) {
 		browser.commands.onCommand.addListener(onHotkey);
 	}
@@ -472,11 +485,11 @@ function onHotkey(command)
 
 function setup_Popup()
 {
-	// browser.tabs.onUpdated.removeListener(onTabUpdated);
+	// remove eventual previous registrations
 	browser.webNavigation.onDOMContentLoaded.removeListener(onDOMContentLoaded);
 
 	if (sss.settings.popupOpenBehaviour !== consts.PopupOpenBehaviour_Off) {
-		// browser.tabs.onUpdated.addListener(onTabUpdated);
+		// register page load event and try to add the content script to all open pages
 		browser.webNavigation.onDOMContentLoaded.addListener(onDOMContentLoaded);
 		browser.tabs.query({}).then(installOnOpenTabs, getErrorHandler("Error querying tabs."));
 	}
@@ -489,24 +502,15 @@ function onDOMContentLoaded(details)
 
 function installOnOpenTabs(tabs)
 {
-	// if (DEBUG) { log("installOnOpenTabs"); }
+	if (DEBUG) { log("installOnOpenTabs"); }
+
 	for (const tab of tabs) {
 		injectContentScriptIfNeeded(tab.id, undefined, true);	// inject on all frames if possible
 	}
 }
 
-// function onTabUpdated(tabId, changeInfo, tab)
-// {
-// 	// if (DEBUG) { log("onTabUpdated " + changeInfo.status + " "+ tabId); }
-// 	if (changeInfo.status === "loading") {
-// 		injectContentScriptIfNeeded(tabId);
-// 	}
-// }
-
 function injectContentScriptIfNeeded(tabId, frameId, allFrames)
 {
-	// if (DEBUG) { log("injecting on "+ tabId); }
-
 	// try sending message to see if content script exists. if it errors then inject it
 	browser.tabs.sendMessage(tabId, { type: "isAlive" }).then(
 		msg => {
@@ -523,6 +527,9 @@ function injectContentScript(tabId, frameId, allFrames)
 	if (DEBUG) { log("injectContentScript " + tabId + " frameId: " + frameId + " allFrames: " + allFrames); }
 
 	let errorHandler = getErrorHandler(`Error injecting page content script in tab ${tabId}.`);
+
+	// We need to run several scripts, but the main one is page-script.js.
+	// The DEBUG variable is also passed, so we only have to declare debug mode once: here at the top of this background script.
 	browser.tabs.executeScript(tabId, { runAt: "document_start", frameId: frameId, allFrames: allFrames, code: "const DEBUG = " + DEBUG + ";"        }).then(result =>
 	browser.tabs.executeScript(tabId, { runAt: "document_start", frameId: frameId, allFrames: allFrames, file: "/content-scripts/selectionchange.js" }).then(result =>
 	browser.tabs.executeScript(tabId, { runAt: "document_start", frameId: frameId, allFrames: allFrames, file: "/content-scripts/page-script.js"     }).then(null
@@ -533,17 +540,20 @@ function injectContentScript(tabId, frameId, allFrames)
 
 function onSearchEngineClick(engineObject, clickType, searchText, hostname)
 {
-	if (engineObject.type === "sss") {
+	// check if it's a special SSS engine
+	if (engineObject.type === "sss")
+	{
 		if (engineObject.id === "copyToClipboard") {
 			getCurrentTab(tab => browser.tabs.sendMessage(tab.id, { type: "copyToClipboard" }));
-		} else if (engineObject.id === "openAsLink") {
-			// trim text and add http protocol as default if text doesn't have it
+		}
+		else if (engineObject.id === "openAsLink") {
+			// trim text and add http protocol as default if selected text doesn't have it
 			searchText = searchText.trim();
 			if (!searchText.includes("://") && !searchText.startsWith("about:")) {
 				searchText = "http://" + searchText;
 			}
 
-			searchText = encodeURI(searchText);
+			searchText = encodeURI(searchText);	// encode any weird chars to not break URL
 
 			if (DEBUG) { log("open as link: " + searchText); }
 
@@ -555,7 +565,10 @@ function onSearchEngineClick(engineObject, clickType, searchText, hostname)
 				openUrl(searchText, consts.MouseButtonBehaviour_NewBgTab);
 			}
 		}
-	} else {
+	}
+	// here we know it's a normal search engine, so run the search
+	else
+	{
 		let engine = sss.settings.searchEngines.find(engine => engine.searchUrl === engineObject.searchUrl);
 
 		if (clickType === "leftClick") {
@@ -568,6 +581,7 @@ function onSearchEngineClick(engineObject, clickType, searchText, hostname)
 	}
 }
 
+// gets the complete search URL by applying the selected text to the engine's own searchUrl
 function getSearchQuery(engine, searchText, hostname)
 {
 	searchText = searchText.trim();
@@ -581,8 +595,10 @@ function openUrl(urlToOpen, openingBehaviour)
 {
 	getCurrentTab(tab =>
 	{
-		const lastTabIndex = 9999;
+		const lastTabIndex = 9999;	// "guarantees" tab opens as last for some behaviours
 		let options = { url: urlToOpen };
+
+		// "openerTabId" does not exist before Firefox 57
 		if (browserVersion >= 57 && openingBehaviour !== consts.MouseButtonBehaviour_NewWindow && openingBehaviour !== consts.MouseButtonBehaviour_NewBgWindow) {
 			options["openerTabId"] = tab.id;
 		}
@@ -623,6 +639,7 @@ function openUrl(urlToOpen, openingBehaviour)
 
 function getCurrentTab(callback)
 {
+	// get the active tab and run a function on it
 	browser.tabs.query({currentWindow: true, active: true}).then(
 		tabs => callback(tabs[0]),
 		getErrorHandler("Error getting current tab.")
