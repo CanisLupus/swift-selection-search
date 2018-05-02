@@ -302,9 +302,9 @@ function onPageLoaded()
 
 	// show platform-specific sections
 
-	let platformSpecificElements;
-
 	browser.runtime.getPlatformInfo().then(info => {
+		let platformSpecificElements;
+
 		switch (info.os)
 		{
 			case "android":
@@ -325,7 +325,7 @@ function onPageLoaded()
 		for (let elem of platformSpecificElements) {
 			elem.style.display = "inline";
 		}
-	})
+	});
 
 	// general layout (changes if page is embedded or separate)
 
