@@ -1,10 +1,12 @@
 "use strict";
 
 if (DEBUG) {
+	// To have all log messages in the same console, we always request the background to log.
+	// Otherwise content script messages are in the Web Console instead of the Dev Tools Console.
 	var log = msg => browser.runtime.sendMessage({ type: "log", log: msg });
 }
 
-// Subset of consts present in background script (avoids having to ask for them).
+// Subset of needed consts from the background script (avoids having to ask for them).
 const consts = {
 	PopupOpenBehaviour_Auto: "auto",
 	PopupOpenBehaviour_HoldAlt: "hold-alt",
@@ -28,33 +30,35 @@ let canMiddleClickEngine = true;
 let activationSettings = null;
 let settings = null;
 
-// be prepared for messages from background (main) script
+// be prepared for messages from background script
 browser.runtime.onMessage.addListener(onMessageReceived);
+// be prepared for settings changing at any time from now
 browser.storage.onChanged.addListener(onSettingsChanged);
 
 if (DEBUG) { log("content script has started!"); }
 
 requestActivation();
 
+// asks the background script for activation settings to setup this content script
 function requestActivation()
 {
-	// ask the main script to activate this content script
 	browser.runtime.sendMessage({ type: "getActivationSettings" }).then(
-		activationSettings => activate(activationSettings),	// main script passes a few settings needed for setup
+		activationSettings => activate(activationSettings),	// background script passes a few settings needed for setup
 		getErrorHandler("Error sending getActivationSettings message from content script.")
 	);
 }
 
+// act when the background script requests something from this script
 function onMessageReceived(msg, sender, callbackFunc)
 {
 	switch (msg.type)
 	{
 		case "isAlive":
-			callbackFunc(true);
+			callbackFunc(true);	// simply return true to say "I'm alive!""
 			break;
 
 		case "showPopup":
-			onSelectionChange(null, true);
+			showPopupForSelection(null, true);
 			break;
 
 		case "copyToClipboard":
@@ -73,9 +77,19 @@ function onSettingsChanged(changes, area)
 
 	if (DEBUG) { log("onSettingsChanged"); }
 
-	// restart content script
+	// settings changed, so reset everything and request activation with new settings
 	deactivate();
 	requestActivation();
+}
+
+// default error handler for promises
+function getErrorHandler(text)
+{
+	if (DEBUG) {
+		return error => { log(`${text} (${error})`); };
+	} else {
+		return undefined;
+	}
 }
 
 function isObjectEmpty(object)
@@ -86,20 +100,11 @@ function isObjectEmpty(object)
 	return true;
 }
 
-function getErrorHandler(text)
-{
-	if (DEBUG) {
-		return error => { log(`${text} (${error})`); };
-	} else {
-		return undefined;
-	}
-}
-
 function activate(_activationSettings)
 {
 	activationSettings = _activationSettings;
 
-	// register with events based on user settings
+	// now register with events based on user settings
 
 	if (activationSettings.popupLocation === consts.PopupLocation_Cursor) {
 		document.addEventListener("mousemove", onMouseUpdate);
@@ -108,7 +113,7 @@ function activate(_activationSettings)
 
 	if (activationSettings.popupOpenBehaviour === consts.PopupOpenBehaviour_Auto || activationSettings.popupOpenBehaviour === consts.PopupOpenBehaviour_HoldAlt) {
 		selectionchange.start();
-		document.addEventListener("customselectionchange", onSelectionChange);
+		document.addEventListener("customselectionchange", showPopupForSelection);
 	}
 	else if (activationSettings.popupOpenBehaviour === consts.PopupOpenBehaviour_MiddleMouse) {
 		document.addEventListener("mousedown", onMouseDown);
@@ -124,7 +129,7 @@ function deactivate()
 		return;
 	}
 
-	// unregister with all events
+	// unregister with all events (use last activation settings to figure out what registrations were made)
 
 	if (activationSettings.popupLocation === consts.PopupLocation_Cursor) {
 		document.removeEventListener("mousemove", onMouseUpdate);
@@ -132,7 +137,7 @@ function deactivate()
 	}
 
 	if (activationSettings.popupOpenBehaviour === consts.PopupOpenBehaviour_Auto || activationSettings.popupOpenBehaviour === consts.PopupOpenBehaviour_HoldAlt) {
-		document.removeEventListener("customselectionchange", onSelectionChange);
+		document.removeEventListener("customselectionchange", showPopupForSelection);
 		selectionchange.stop();
 	}
 	else if (activationSettings.popupOpenBehaviour === consts.PopupOpenBehaviour_MiddleMouse) {
@@ -142,28 +147,32 @@ function deactivate()
 
 	if (popup !== null)
 	{
+		// unregister popup events and remove the popup from the page
+
 		document.documentElement.removeEventListener("keypress", hidePopup);
 		document.documentElement.removeEventListener("mousedown", hidePopup);
 		if (settings.hidePopupOnPageScroll) {
 			window.removeEventListener("scroll", hidePopup);
 		}
 
-		// clean page
 		document.documentElement.removeChild(popup);
 		popup = null;
+
+		// other listeners in the popup are destroyed along with their objects
 	}
 
+	// also clear any previously saved settings
 	activationSettings = null;
 	settings = null;
-
-	// other listeners are destroyed along with their popup objects
 
 	if (DEBUG) { log("content script deactivated"); }
 }
 
-function onSelectionChange(ev, isForced)
+// called whenever selection changes or when we want to force the popup to appear for the current selection
+function showPopupForSelection(ev, isForced)
 {
-	if (!saveCurrentSelection()) {
+	let hasSelection = saveCurrentSelection();
+	if (!hasSelection) {
 		return;
 	}
 
@@ -171,7 +180,7 @@ function onSelectionChange(ev, isForced)
 		// if we have settings already, use them...
 		tryShowPopup(ev, isForced);
 	} else {
-		// ...otherwise ask the main script for all needed settings, store them, and try to show the popup
+		// ...otherwise ask the background script for all needed settings, store them, and THEN try to show the popup
 		browser.runtime.sendMessage({ type: "getPopupSettings" }).then(
 			popupSettings => {
 				settings = popupSettings;
@@ -189,6 +198,7 @@ function saveCurrentSelection()
 	selection.isInEditableField = (elem.tagName === "TEXTAREA" || (elem.tagName === "INPUT" && elem.type !== "password"));
 
 	if (selection.isInEditableField) {
+		// for editable fields, getting the selected text is different
 		selection.text = elem.value.substring(elem.selectionStart, elem.selectionEnd);
 		selection.element = elem;
 	} else {
@@ -204,6 +214,7 @@ function saveCurrentSelection()
 	return selection.text.length > 0;
 }
 
+// shows the popup if the conditions are proper, according to settings
 function tryShowPopup(ev, isForced)
 {
 	if (settings.popupOpenBehaviour === consts.PopupOpenBehaviour_HoldAlt && !ev.altKey) {
@@ -214,6 +225,7 @@ function tryShowPopup(ev, isForced)
 		return;
 	}
 
+	// Checks for showing popup in editable fields. If this is a forced selection or editable fields are allowed, always show.
 	if (!isForced && !settings.allowPopupOnEditableFields)
 	{
 		if (selection.isInEditableField) {
@@ -248,16 +260,18 @@ function tryShowPopup(ev, isForced)
 
 function showPopup(settings)
 {
-	if (popup !== null)
-	{
-		popup.style.display = "inline-block";
-		setPopupPositionAndSize(popup, settings.searchEngines.length, settings);
+	if (popup === null) {
+		return;
+	}
 
-		if (settings.popupAnimationDuration > 0 && typeof cloneInto === "function") {
-			// cloneInto fixes a Firefox bug that causes animations to not work in the settings page
-			popup.animate(cloneInto({ transform: ["scale(0.8)", "scale(1)"] }, window), settings.popupAnimationDuration);
-			popup.animate(cloneInto({ opacity: [0, 1] }, window), settings.popupAnimationDuration * 0.5);
-		}
+	popup.style.display = "inline-block";
+	setPopupPositionAndSize(popup, settings.searchEngines.length, settings);
+
+	// Animate popup (only if cloneInto exists, which it doesn't in add-on resource pages).
+	// cloneInto fixes a Firefox bug that causes animations to not work (pre-Firefox 60?).
+	if (settings.popupAnimationDuration > 0 && typeof cloneInto === "function") {
+		popup.animate(cloneInto({ transform: ["scale(0.8)", "scale(1)"] }, window), settings.popupAnimationDuration);
+		popup.animate(cloneInto({ opacity: [0, 1] }, window), settings.popupAnimationDuration * 0.5);
 	}
 }
 
@@ -267,6 +281,7 @@ function hidePopup(ev)
 		return;
 	}
 
+	// if we pressed with right mouse button and that isn't supposed to hide the popup, don't hide
 	if (settings && settings.hidePopupOnRightClick === false && ev && ev.button === 2) {
 		return;
 	}
@@ -279,7 +294,7 @@ function createPopup(settings)
 	// create popup parent (will contain all icons)
 	popup = document.createElement("swift-selection-search-popup");
 
-	// format popup, resetting all to initial and including values that will be changed later (set those to "initial" explicitly)
+	// format popup, resetting all values to initial and then including attributes that actually need to be a certain value
 	let popupCssText =
 `all: initial;
 box-sizing: initial !important;
@@ -302,8 +317,7 @@ top: initial !important;`;
 
 	popup.style.cssText = popupCssText;
 
-	// create all engine icons
-
+	// format all engine icons, using a strategy similar to the popup's above
 	let sizeText = settings.popupItemSize + "px";
 	let iconCssText =
 `all: initial;
@@ -315,10 +329,12 @@ height: ${settings.popupItemSize}px !important;
 width: ${settings.popupItemSize}px !important;
 padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}px !important`;
 
+	// add each engine to the popup
 	for (let i = 0; i < settings.searchEngines.length; i++)
 	{
 		let engine = settings.searchEngines[i];
 
+		// special SSS icons with special functions
 		if (engine.type === "sss") {
 			let sssIcon = settings.sssIcons[engine.id];
 
@@ -330,11 +346,13 @@ padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}
 			// else if (sssIcon.iconCss !== undefined) {
 			// 	setupEngineCss(sssIcon, iconCssText, popup, settings);
 			// }
-		} else {
+		}
+		// "normal" custom search engines
+		else {
 			let iconImgSource;
 
 			if (engine.iconUrl.startsWith("data:")) {
-				iconImgSource = engine.iconUrl;
+				iconImgSource = engine.iconUrl;	// use "URL" directly, as it's pure image data
 			} else {
 				let cachedIcon = settings.searchEnginesCache[engine.iconUrl];
 				iconImgSource = cachedIcon ? cachedIcon : engine.iconUrl;	// should have cached icon, but if not (for some reason) fall back to URL
@@ -347,6 +365,7 @@ padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}
 	// add popup to page
 	document.documentElement.appendChild(popup);
 
+	// register popup events
 	document.documentElement.addEventListener("keypress", hidePopup);
 	document.documentElement.addEventListener("mousedown", hidePopup);	// hide popup from a press down anywhere...
 	popup.addEventListener("mousedown", ev => ev.stopPropagation());	// ...except on the popup itself
@@ -363,8 +382,10 @@ function setupEngineIcon(engine, iconImgSource, iconTitle, isInteractive, iconCs
 	icon.title = iconTitle;
 	icon.style.cssText = iconCssText;
 
+	// if icon responds to mouse interaction, it needs events!
 	if (isInteractive)
 	{
+		// set hover behaviour based on settings
 		if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight || settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_HighlightAndMove)
 		{
 			icon.onmouseover = () => {
@@ -391,8 +412,10 @@ function setupEngineIcon(engine, iconImgSource, iconTitle, isInteractive, iconCs
 			};
 		}
 
+		// essential event for clicking the engines
 		icon.addEventListener("mouseup", onSearchEngineClick(engine, settings)); // "mouse up" instead of "click" to support middle click
 
+		// these would be in the CSS format block for the icons, but only interactive icons can have them
 		icon.style.setProperty("cursor", "pointer", "important");
 		icon.style.setProperty("pointer-events", "auto", "important");
 	}
@@ -422,6 +445,7 @@ function setupEngineIcon(engine, iconImgSource, iconTitle, isInteractive, iconCs
 
 function setPopupPositionAndSize(popup, nEngines, settings)
 {
+	// all engine icons have the same width and height
 	let itemWidth = settings.popupItemSize + settings.popupItemPadding * 2;
 	let itemHeight = settings.popupItemSize + (3 + settings.popupItemVerticalPadding) * 2;
 
@@ -429,12 +453,15 @@ function setPopupPositionAndSize(popup, nEngines, settings)
 	if (!settings.useSingleRow && settings.nPopupIconsPerRow < nPopupIconsPerRow) {
 		nPopupIconsPerRow = settings.nPopupIconsPerRow > 0 ? settings.nPopupIconsPerRow : 1;
 	}
+
+	// total width and height of the popup
 	let width = itemWidth * nPopupIconsPerRow;
 	let height = itemHeight * Math.ceil(nEngines / nPopupIconsPerRow);
 
 	let positionLeft;
 	let positionTop;
 
+	// decide popup position based on settings
 	if (settings.popupLocation === consts.PopupLocation_Selection) {
 		let rect;
 		if (selection.isInEditableField) {
@@ -443,9 +470,12 @@ function setPopupPositionAndSize(popup, nEngines, settings)
 			let range = selection.selection.getRangeAt(0); // get the text range
 			rect = range.getBoundingClientRect();
 		}
+		// lower right corner of selected text's "bounds"
 		positionLeft = rect.right + window.pageXOffset;
 		positionTop = rect.bottom + window.pageYOffset;
-	} else if (settings.popupLocation === consts.PopupLocation_Cursor) {
+	}
+	else if (settings.popupLocation === consts.PopupLocation_Cursor) {
+		// right above the mouse position
 		positionLeft = mousePositionX;
 		positionTop = mousePositionY - height - 10;	// 10 is forced padding to avoid popup being too close to cursor
 	}
@@ -453,38 +483,36 @@ function setPopupPositionAndSize(popup, nEngines, settings)
 	// center horizontally
 	positionLeft -= width / 2;
 
-	let popupOffsetX = settings.popupOffsetX;
-	if (settings.negatePopupOffsetX) {
-		popupOffsetX = -popupOffsetX;
-	}
-	let popupOffsetY = settings.popupOffsetY;
-	if (settings.negatePopupOffsetY) {
-		popupOffsetY = -popupOffsetY;
-	}
+	// apply user offsets from settings
+	positionLeft += settings.popupOffsetX;
+	positionTop -= settings.popupOffsetY;	// invert sign because y is 0 at the top
 
-	positionLeft += popupOffsetX;
-	positionTop -= popupOffsetY;	// invert sign because y is 0 at the top
+	// don't leave the page or be excessively close to leaving it
 
-	let pageWidth = document.documentElement.offsetWidth + window.pageXOffset;
-	let pageHeight = document.documentElement.scrollHeight;
-
-	// don't leave the page
+	// left/right checks
 	if (positionLeft < 5) {
 		positionLeft = 5;
-	} else if (positionLeft + width + 10 > pageWidth) {
-		positionLeft = pageWidth - width - 10;
-	}
-
-	if (positionTop < 5) {
-		positionTop = 5;
-	} else if (positionTop + height + 10 > pageHeight) {
-		let newPositionTop = pageHeight - height - 10;
-		if (newPositionTop >= 0) {	// just to be sure, since some websites can have pageHeight = 0
-			positionTop = pageHeight - height - 10;
+	} else {
+		let pageWidth = document.documentElement.offsetWidth + window.pageXOffset;
+		if (positionLeft + width + 10 > pageWidth) {
+			positionLeft = pageWidth - width - 10;
 		}
 	}
 
-	// set values
+	// top/bottom checks
+	if (positionTop < 5) {
+		positionTop = 5;
+	} else {
+		let pageHeight = document.documentElement.scrollHeight;
+		if (positionTop + height + 10 > pageHeight) {
+			let newPositionTop = pageHeight - height - 10;
+			if (newPositionTop >= 0) {	// just to be sure, since some websites can have pageHeight = 0
+				positionTop = pageHeight - height - 10;
+			}
+		}
+	}
+
+	// finally set the size and position values
 	popup.style.width = width + "px";
 	popup.style.height = height + "px";
 	popup.style.left = positionLeft + "px";
@@ -500,8 +528,9 @@ function onMouseUpdate(ev)
 function onSearchEngineClick(engineObject, settings)
 {
 	return ev => {
+		// if using middle mouse and can't, early out so we don't hide popup
 		if (ev.button === 1 && !canMiddleClickEngine) {
-			return;	// early out and don't hide popup
+			return;
 		}
 
 		if (settings.hidePopupOnSearch) {
@@ -538,26 +567,26 @@ function onMouseDown(ev)
 
 	let selection = window.getSelection();
 
+	// for selections inside editable elements
 	if (selection.rangeCount <= 0)
 	{
 		let elem = document.activeElement;
 
 		if (elem.tagName === "TEXTAREA" || (elem.tagName === "INPUT" && elem.type !== "password")) {
 			if (forceSelectionIfWithinRect(ev, elem.getBoundingClientRect())) {
-				canMiddleClickEngine = false;
 				return false;
 			}
 		}
-
-		return;
 	}
-
-	for (let i = 0; i < selection.rangeCount; ++i)
+	// for normal text selections
+	else
 	{
-		let range = selection.getRangeAt(i); // get the text range
-		if (forceSelectionIfWithinRect(ev, range.getBoundingClientRect())) {
-			canMiddleClickEngine = false;
-			return false;
+		for (let i = 0; i < selection.rangeCount; ++i)
+		{
+			let range = selection.getRangeAt(i); // get the text range
+			if (forceSelectionIfWithinRect(ev, range.getBoundingClientRect())) {
+				return false;
+			}
 		}
 	}
 }
@@ -565,10 +594,12 @@ function onMouseDown(ev)
 function onMouseUp(ev)
 {
 	if (ev.button === 1) {
+		// return value to normal to allow clicking engines again with middle mouse
 		canMiddleClickEngine = true;
 	}
 }
 
+// if ev position is within the given rect plus margin, try to show popup for the selection
 function forceSelectionIfWithinRect(ev, rect)
 {
 	let margin = activationSettings.middleMouseSelectionClickMargin;
@@ -576,9 +607,13 @@ function forceSelectionIfWithinRect(ev, rect)
 	if (ev.clientX > rect.left - margin && ev.clientX < rect.right + margin
 	 && ev.clientY > rect.top - margin  && ev.clientY < rect.bottom + margin)
 	{
+		// We got it! Event shouldn't do anything else.
 		ev.preventDefault();
 		ev.stopPropagation();
-		onSelectionChange(ev);
+		showPopupForSelection(ev);
+
+		// blocks same middle click from triggering popup on down and then a search on up (on an engine icon)
+		canMiddleClickEngine = false;
 		return true;
 	}
 	return false;
