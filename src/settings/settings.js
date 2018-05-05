@@ -13,7 +13,7 @@ let hasPageLoaded = false;
 let isFocused = true;
 let pendingSettings = false;
 
-// Load settings. Either the last of both onSettingsAcquired and onPageLoaded will update the UI with the loaded settings.
+// Load settings. The last of either onSettingsAcquired and onPageLoaded will update the UI with the loaded settings.
 browser.storage.local.get().then(onSettingsAcquired, mainScript.getErrorHandler("Error getting settings in settings page."));
 browser.storage.onChanged.addListener(onSettingsChanged);
 
@@ -81,14 +81,16 @@ function decodeLz4Block(input, output, sIdx, eIdx)
 	return j;
 }
 
+// reads a .mozlz4 compressed file and returns its bytes
 function readMozlz4File(file, onRead, onError)
 {
 	let reader = new FileReader();
 
+	// prepare onload function before actually trying to read the file
 	reader.onload = () => {
 		let input = new Uint8Array(reader.result);
 		let output;
-		let uncompressedSize = input.length*3;	// size estimate for uncompressed data!
+		let uncompressedSize = input.length*3;	// size _estimate_ for uncompressed data!
 
 		// Decode whole file.
 		do {
@@ -110,8 +112,10 @@ function readMozlz4File(file, onRead, onError)
 	reader.readAsArrayBuffer(file);	// read as bytes
 };
 
+// adds to SSS all engines from the browser's search engines file
 function updateBrowserEnginesFromSearchJson(browserSearchEngines)
 {
+	// "hash set" of search URLs (will help avoiding duplicates of previously imported browser engines)
 	let searchUrls = {};
 	for (let engine of settings.searchEngines) {
 		if (engine.type === "browser") {
@@ -119,13 +123,15 @@ function updateBrowserEnginesFromSearchJson(browserSearchEngines)
 		}
 	}
 
-	// add all current browser engines
+	// add all given search engines
 	for (let engine of browserSearchEngines.engines)
 	{
+		// don't add hidden engines
 		if (engine._metaData.hidden) {
 			continue;
 		}
 
+		// browser engines can have several URLs, but we want only certain kinds
 		for (let urlObj of engine._urls)
 		{
 			if (urlObj.type !== undefined && urlObj.type !== "text/html") {
@@ -142,14 +148,17 @@ function updateBrowserEnginesFromSearchJson(browserSearchEngines)
 					.join("&");
 			} else {
 				// template has no params, so template is the full query URL
-				url = url.replace("{searchTerms}", "[sss-searchTerms]");	// easy way to "save" {searchTerms} from regex replace...
+				url = url.replace("{searchTerms}", "[sss-searchTerms]");	// easy way to "protect" {searchTerms} from regex replace...
 				url = url.replace(/{(.*)}/g, "");
 				url = url.replace("[sss-searchTerms]", "{searchTerms}");	// ...and add it back afterwards
 			}
 
+			// avoid duplicates if this URL is already in the "hash set"
 			if (searchUrls.hasOwnProperty(url)) {
 				continue;
 			}
+
+			// finally add the engine to the user's engines
 
 			let sssBrowserEngine = {
 				type: "browser",
@@ -164,7 +173,9 @@ function updateBrowserEnginesFromSearchJson(browserSearchEngines)
 	}
 }
 
-function getDataUriFromImgUrl(url, callback)
+// Hackish way to get the image data (base64 data:image) from the URL of an image.
+// Sets the URL as img source, waits for download, then scales it down if needed, draws to a canvas and gets the resulting pixel data.
+function getDataUriFromImgUrl(imageUrl, callback)
 {
 	var img = new Image();
 	img.crossOrigin = 'Anonymous';
@@ -175,8 +186,8 @@ function getDataUriFromImgUrl(url, callback)
 		let xPos = 0;
 		let yPos = 0;
 
-		// scale image to smaller icon if needed
-		// (we don't want stored SSS icons to take a lot of space)
+		// Scale image to smaller icon if needed (always keep aspect ratio).
+		// We don't want stored SSS icons to take a lot of space.
 		if (img.width > img.height) {
 			width = Math.min(maxSize, img.width);
 			height = width * img.height / img.width;
@@ -200,19 +211,23 @@ function getDataUriFromImgUrl(url, callback)
 		let ctx = canvas.getContext('2d');
 		ctx.drawImage(img, xPos, yPos, width, height);
 
+		// finally get the image data (base64 data:image)
 		let dataURL = canvas.toDataURL();
 		if (DEBUG) { log(dataURL.length); }
-		if (DEBUG) { log(url); }
+		if (DEBUG) { log(imageUrl); }
 		if (DEBUG) { log(dataURL); }
 		callback(dataURL);
 		canvas = null;
 	};
-	img.src = url;
+
+	img.src = imageUrl;	// starts the download and will call onload eventually
 }
 
+// main setup for settings page, called when page loads
 function onPageLoaded()
 {
 	// save all form elements for easy access
+
 	page.container = document.getElementById("settings");
 	page.engines = document.getElementById("engines");
 	page.inputs = document.querySelectorAll("input, select");
@@ -222,14 +237,20 @@ function onPageLoaded()
 	}
 
 	// register change event for anything in the form
+
 	page.container.onchange = ev => {
 		let item = ev.target;
+		// skip changes to color fields, since we have hexadecimal text fields for them, and they also change
 		if (item.type === "color") {
 			return;
 		}
+
 		if (DEBUG) { log("onFormChanged target: " + item.name + ", value: " + item.value); }
 
-		if (item.name === "importBrowserEnginesFileButton_real") {
+		// special things in the options page need special code
+
+		if (item.name === "importBrowserEnginesFileButton_real")
+		{
 			readMozlz4File(ev.target.files[0], json => {
 				let browserSearchEngines = JSON.parse(json);
 				if (DEBUG) { log(browserSearchEngines); }
@@ -238,7 +259,9 @@ function onPageLoaded()
 				saveSettings({ searchEngines: settings.searchEngines });
 				// alert("Your browser's search engines were imported!");
 			});
-		} else if (item.name === "importSettingsFromFileButton_real") {
+		}
+		else if (item.name === "importSettingsFromFileButton_real")
+		{
 			let reader = new FileReader();
 			reader.onload = () => {
 				let importedSettings = JSON.parse(reader.result);
@@ -246,13 +269,18 @@ function onPageLoaded()
 				// alert("All settings were imported!");
 			};
 			reader.readAsText(ev.target.files[0]);
-		} else if (item.name in settings) {
+		}
+		// otherwise, if not a "special thing", this is a field
+		else if (item.name in settings)
+		{
+			// certain fields cause other fields to show/hide when changed, so check those
 			if (item.name === "popupOpenBehaviour") {
 				updateMiddleMouseSelectionClickMarginSetting(item.value);
 			} else if (item.name === "useSingleRow") {
 				updateNPopupIconsPerRowSetting(item.checked);
 			}
 
+			// different fields have different ways to get their value
 			let value;
 			if (item.type === "checkbox") {
 				value = item.checked;
@@ -261,16 +289,22 @@ function onPageLoaded()
 			} else {
 				value = item.value;
 			}
+
+			// register the change and save in storage
 			settings[item.name] = value;
 			saveSettings({ [item.name]: value });
 		}
 	};
 
+	// there are two elements for some buttons: a button for display and the actual "real" button that does the work
 	page.importBrowserEnginesFileButton.onclick = ev => page.importBrowserEnginesFileButton_real.click();
 	page.exportSettingsToFileButton.onclick = ev => {
+		// remove useless stuff that doesn't need to be stored
 		var blob = runActionOnDietSettings(settings, settings => new Blob([JSON.stringify(settings)]));
+		// save with current date and time
 		let filename = "SSS settings backup (" + new Date(Date.now()).toJSON().replace(/:/g, ".") + ").json";
-		browser.downloads.download({
+
+		browser.downloads.download({	// NOTE: to save as a file we need the "downloads permission"
 			"saveAs": true,
 			"url": URL.createObjectURL(blob),
 			"filename": filename,
@@ -278,7 +312,7 @@ function onPageLoaded()
 	};
 	page.importSettingsFromFileButton.onclick = ev => page.importSettingsFromFileButton_real.click();
 
-	// register events for specific behaviour when certain fields change
+	// register events for specific behaviour when certain fields change (color pickers change their text and vice versa)
 	page.popupBackgroundColorPicker.oninput = ev => updateColorText  (page.popupBackgroundColor,       page.popupBackgroundColorPicker.value);
 	page.popupBackgroundColor.oninput       = ev => updatePickerColor(page.popupBackgroundColorPicker, page.popupBackgroundColor.value);
 	page.popupHighlightColorPicker.oninput  = ev => updateColorText  (page.popupHighlightColor,        page.popupHighlightColorPicker.value);
@@ -290,6 +324,7 @@ function onPageLoaded()
 
 	for (let sectionNameElement of sectionNameElements)
 	{
+		// toggle entire section on clicking the title, and save in settings the resulting state (open/closed)
 		sectionNameElement.onclick = () => {
 			if (settings.sectionsExpansionState === undefined) {
 				settings.sectionsExpansionState = {};
@@ -300,7 +335,7 @@ function onPageLoaded()
 		}
 	}
 
-	// show platform-specific sections
+	// show platform-specific sections (some info on the page is related to a specific OS and should only appear in that OS)
 
 	browser.runtime.getPlatformInfo().then(info => {
 		let platformSpecificElements;
@@ -327,7 +362,7 @@ function onPageLoaded()
 		}
 	});
 
-	// general layout (changes if page is embedded or separate)
+	// entering/leaving settings page
 
 	window.onfocus = ev => {
 		// if settings changed while page was not focused, reload settings and UI
@@ -341,12 +376,14 @@ function onPageLoaded()
 		isFocused = false;
 	};
 
-	// engines footnote
+	// engines footnote (small warnings related to bugs and similar stuff)
+	// TODO: move them to somewhere else in the page?
 
 	if (mainScript.getBrowserVersion() < 58)
 	{
 		let enginesFootnoteElem = document.getElementById("engines-footnote");
 
+		// generic function to add a footnote with eventual linked text
 		let addToFootnote = (text, linkParams) => {
 			enginesFootnoteElem.appendChild(document.createTextNode(text));
 
@@ -367,12 +404,13 @@ function onPageLoaded()
 			["https://bugzilla.mozilla.org/show_bug.cgi?id=1390445", "Firefox bug", " (fixed in Firefox 58)."]);
 	}
 
-	// register events for button clicks
+	// register events for more button clicks
 
 	let defaultSettings = mainScript.getDefaultSettings();
 
 	page.addEngineButton.onclick = ev => {
-		let templateEngine = defaultSettings.searchEngines.find(engine => engine.type === "custom");	// first one that is not a special SSS icon
+		// duplicates the first default SSS engine that is not a special SSS icon (whatever it is, but always the same)
+		let templateEngine = defaultSettings.searchEngines.find(engine => engine.type === "custom");
 		let newSearchEngine = JSON.parse(JSON.stringify(templateEngine));
 		settings.searchEngines.push(newSearchEngine);
 
@@ -391,8 +429,10 @@ function onPageLoaded()
 		updateUIWithSettings();
 	};
 
+	// saves settings to Firefox Sync
 	page.saveSettingsToSyncButton.onclick = ev => {
 		if (DEBUG) { log("saving!"); }
+		// remove useless stuff that doesn't need to be stored
 		let settingsStr = runActionOnDietSettings(settings, settings => JSON.stringify(settings));
 
 		// divide into different fields so as not to trigger Firefox's "Maximum bytes per object exceeded ([number of bytes] > 16384 Bytes.)"
@@ -409,9 +449,10 @@ function onPageLoaded()
 		if (DEBUG) { log("saved in sync!", chunks); }
 	};
 
-	// confirmation buttons
+	// confirmation buttons (some buttons make another button show for the actual action and change their own text to "Cancel")
 
 	let setupConfirmationProcessForButton = (mainButton, confirmationButton, originalMainButtonValue, onConfirm) => {
+		// the clicked button becomes a "Cancel" button
 		mainButton.onclick = ev => {
 			if (mainButton.value === "Cancel") {
 				mainButton.value = originalMainButtonValue;
@@ -422,6 +463,7 @@ function onPageLoaded()
 			}
 		};
 
+		// the other button appears and does the actual action
 		confirmationButton.onclick = ev => {
 			mainButton.value = originalMainButtonValue;
 			confirmationButton.style.display = "none";
@@ -442,7 +484,7 @@ function onPageLoaded()
 
 	setupConfirmationProcessForButton(page.resetSettingsButton, page.resetSettingsButton_real, page.resetSettingsButton.value,
 		() => {
-			let searchEngines = settings.searchEngines;	// save engines
+			let searchEngines = settings.searchEngines;	// stash engines
 			settings = JSON.parse(JSON.stringify(defaultSettings));	// copy default settings
 			settings.searchEngines = searchEngines;	// restore engines
 			updateUIWithSettings();
@@ -453,12 +495,16 @@ function onPageLoaded()
 	setupConfirmationProcessForButton(page.loadSettingsFromSyncButton, page.loadSettingsFromSyncButton_real, page.loadSettingsFromSyncButton.value,
 		() => browser.storage.sync.get().then(chunks => {
 			if (DEBUG) { log(chunks); }
+
+			// join all chunks of data we uploaded to sync
 			let chunksList = [];
 			let p;
 			for (let i = 0; (p = chunks["p"+i]) !== undefined; i++) {
 				chunksList.push(p);
 			}
 			let settingsStr = chunksList.join("");
+
+			// now parse and import the settings
 			importSettings(JSON.parse(settingsStr));
 		}, mainScript.getErrorHandler("Error getting settings from sync.")));
 
@@ -495,10 +541,12 @@ function updateUIWithSettings()
 
 	for (let item of page.inputs)
 	{
+		// all settings are saved with the same name as the input elements in the page
 		if (!(item.name in settings)) {
 			continue;
 		}
 
+		// each kind of input element has a different value to set
 		if (item.type === "select-one") {
 			item.value = settings[item.name];
 		} else if (item.type !== "color" && item.type !== "button" && item.type !== "reset" && item.type !== "file") {
@@ -510,13 +558,14 @@ function updateUIWithSettings()
 		}
 	}
 
+	// update color pickers from their hexadecimal text
 	updatePickerColor(page.popupBackgroundColorPicker, page.popupBackgroundColor.value);
 	updatePickerColor(page.popupHighlightColorPicker, page.popupHighlightColor.value);
 
 	updateMiddleMouseSelectionClickMarginSetting(settings.popupOpenBehaviour);	// margin option only appears if using middle click for opening behaviour
 	updateNPopupIconsPerRowSetting(settings.useSingleRow);	// nPopupIconsPerRow option only appears if not using a single row of icons
 
-	// calculate storage size
+	// calculate storage size (helpful for Firefox Sync)
 
 	calculateAndShowSettingsSize();
 
@@ -524,7 +573,7 @@ function updateUIWithSettings()
 
 	if (settings.searchEngines !== undefined)
 	{
-		// delete existing engine HTML elements
+		// delete existing engine HTML elements for engines
 		let engineParent = page.engines;
 		while (engineParent.firstChild) {
 			engineParent.removeChild(engineParent.firstChild);
@@ -536,6 +585,7 @@ function updateUIWithSettings()
 			addSearchEngine(engine, i);
 		}
 
+		// setup draggable elements to be able to sort engines
 		Sortable.create(page.engines, {
 			handle: ".engine-dragger",
 			onStart: ev => {
@@ -567,12 +617,13 @@ function updateUIWithSettings()
 	}
 }
 
+// estimates size of settings in bytes and shows warning messages if this is a problem when using Firefox Sync
 function calculateAndShowSettingsSize()
 {
 	if (true) return;	// we don't care about this code until Sync is bug-free
 
 	// let storageSize = runActionOnDietSettings(settings, settings => roughSizeOfObject(settings));
-	let storageSize = runActionOnDietSettings(settings, settings => JSON.stringify(settings).length * 2);
+	let storageSize = runActionOnDietSettings(settings, settings => JSON.stringify(settings).length * 2);	// times 2 because each char has size 2 bytes
 	if (storageSize > 100 * 1024) {
 		for (let elem of document.getElementsByClassName("warn-when-over-storage-limit")) {
 			elem.style.color = "red";
@@ -586,6 +637,7 @@ function calculateAndShowSettingsSize()
 	storageSizeElement.textContent = getSizeWithUnit(storageSize);
 }
 
+// creates and adds a search engine to the engines table (each in a different row)
 function addSearchEngine(engine, i)
 {
 	let row = document.createElement("tr");
@@ -627,6 +679,7 @@ function addSearchEngine(engine, i)
 
 	if (engine.type === "sss")
 	{
+		// special SSS icons have data that never changes, so just get it from constants
 		let sssIcon = consts.sssIcons[engine.id];
 
 		if (sssIcon.iconPath !== undefined) {
@@ -636,7 +689,8 @@ function addSearchEngine(engine, i)
 		// else if (sssIcon.iconCss !== undefined) {
 		// 	icon = setupEngineCss(sssIcon, cell, settings);
 		// }
-	} else {
+	}
+	else {
 		icon = setupEngineIcon(engine.iconUrl, cell, settings);
 	}
 
@@ -644,6 +698,8 @@ function addSearchEngine(engine, i)
 
 	if (engine.type === "sss")
 	{
+		// create columns for this row, most disabled because special SSS icons can't be edited
+
 		let sssIcon = consts.sssIcons[engine.id];
 
 		// name
@@ -667,6 +723,7 @@ function addSearchEngine(engine, i)
 	}
 	else
 	{
+		// create columns for normal icons
 		row.appendChild(createEngineName(engine));
 		row.appendChild(createEngineSearchLink(engine));
 		row.appendChild(createEngineIconLink(engine, icon));
@@ -676,6 +733,8 @@ function addSearchEngine(engine, i)
 	page.engines.appendChild(row);
 }
 
+// Sets the icon for a search engine in the engines table.
+// "data:" links are data, URLs are cached as data too.
 function setupEngineIcon(iconImgSource, parent, settings)
 {
 	let icon = document.createElement("img");
@@ -710,6 +769,7 @@ function setupEngineIcon(iconImgSource, parent, settings)
 // 	return div;
 // }
 
+// sets the name field for a search engine in the engines table
 function createEngineName(engine)
 {
 	let cell = document.createElement("td");
@@ -727,6 +787,7 @@ function createEngineName(engine)
 	return cell;
 }
 
+// sets the search URL field for a search engine in the engines table
 function createEngineSearchLink(engine)
 {
 	let cell = document.createElement("td");
@@ -744,6 +805,7 @@ function createEngineSearchLink(engine)
 	return cell;
 }
 
+// sets the icon URL field for a search engine in the engines table
 function createEngineIconLink(engine, icon)
 {
 	let cell = document.createElement("td");
@@ -756,6 +818,7 @@ function createEngineIconLink(engine, icon)
 		engine.iconUrl = iconLinkInput.value.trim();
 		icon.src = engine.iconUrl;
 
+		// if not a data link already, try downloading the image and cache it as one
 		if (!engine.iconUrl.startsWith("data:")) {
 			getDataUriFromImgUrl(engine.iconUrl, base64Img => {
 				icon.src = base64Img;
@@ -773,6 +836,7 @@ function createEngineIconLink(engine, icon)
 	return cell;
 }
 
+// sets the delete button for a search engine in the engines table
 function createDeleteButton(i)
 {
 	let cell = document.createElement("td");
@@ -791,6 +855,7 @@ function createDeleteButton(i)
 	return cell;
 }
 
+// removes all non-existent engines from the icon cache
 function trimSearchEnginesCache(settings)
 {
 	let newCache = {};
@@ -821,6 +886,7 @@ function runActionOnDietSettings(settings, onCleaned)
 	return result;
 }
 
+// applies a set of settings to the options page (reloads everything as if getting the user settings for the first time)
 function importSettings(importedSettings)
 {
 	if (importedSettings.searchEngines === undefined) {
@@ -831,6 +897,7 @@ function importSettings(importedSettings)
 	settings = importedSettings;
 	settings.searchEnginesCache = {};
 
+	// run compatibility updates in case this is a backup made in an old version of SSS
 	mainScript.runBackwardsCompatibilityUpdates(settings);
 
 	if (DEBUG) { log("imported settings!", settings); }
@@ -851,6 +918,7 @@ function updateColorText(text, value)
 
 function updatePickerColor(picker, value)
 {
+	// when selecting a color using the picker, disregard alpha (last two chars)
 	value = value.substring(0, 7);
 
 	if (picker.value !== value) {
@@ -912,6 +980,7 @@ function roughSizeOfObject(object)
 	return bytes;
 }
 
+// gets a much more readable string for a size in bytes (ex.: 25690112 bytes is "24.5MB")
 function getSizeWithUnit(size)
 {
 	let unit = 0;
@@ -933,6 +1002,7 @@ function getSizeWithUnit(size)
 	}
 }
 
+// just a wrapper for saving the settings to storage and logging info
 function saveSettings(obj)
 {
 	browser.storage.local.set(obj);
