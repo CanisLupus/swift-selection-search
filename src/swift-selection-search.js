@@ -75,6 +75,7 @@ const defaultSettings = {
 	useSingleRow: true,
 	nPopupIconsPerRow: 4,
 	popupItemSize: 24,
+	popupSeparatorWidth: 60,
 	popupItemPadding: 2,
 	popupItemVerticalPadding: 1,
 	popupItemHoverBehaviour: consts.ItemHoverBehaviour_HighlightAndMove,
@@ -279,6 +280,7 @@ function runBackwardsCompatibilityUpdates(settings)
 	shouldSave |= createSettingIfNonExistent(settings, "minSelectedCharacters");
 	shouldSave |= createSettingIfNonExistent(settings, "middleMouseSelectionClickMargin");
 	shouldSave |= createSettingIfNonExistent(settings, "hidePopupOnRightClick");
+	shouldSave |= createSettingIfNonExistent(settings, "popupSeparatorWidth");
 
 	for (let engine of settings.searchEngines)
 	{

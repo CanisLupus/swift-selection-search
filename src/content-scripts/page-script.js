@@ -251,7 +251,7 @@ function showPopup(settings)
 	if (popup !== null)
 	{
 		popup.style.display = "inline-block";
-		setPopupPositionAndSize(popup, settings.searchEngines.length, settings);
+		setPopupPositionAndSize(popup, settings.searchEngines, settings);
 
 		if (settings.popupAnimationDuration > 0 && typeof cloneInto === "function") {
 			// cloneInto fixes a Firefox bug that causes animations to not work in the settings page
@@ -303,7 +303,6 @@ top: initial !important;`;
 	popup.style.cssText = popupCssText;
 
 	// create all engine icons
-
 	let sizeText = settings.popupItemSize + "px";
 	let iconCssText =
 `all: initial;
@@ -312,24 +311,29 @@ box-sizing: initial !important;
 fontSize: 0 !important;
 border-radius: ${settings.popupItemBorderRadius}px !important;
 height: ${settings.popupItemSize}px !important;
-width: ${settings.popupItemSize}px !important;
 padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}px !important`;
 
 	for (let i = 0; i < settings.searchEngines.length; i++)
 	{
 		let engine = settings.searchEngines[i];
+		let iconWidth = settings.popupItemSize;
+		let icon;
 
 		if (engine.type === "sss") {
 			let sssIcon = settings.sssIcons[engine.id];
 
-			if (sssIcon.iconPath !== undefined) {
+			// if (sssIcon.iconPath !== undefined) {
 				let iconImgSource = browser.extension.getURL(sssIcon.iconPath);
 				let isInteractive = sssIcon.isInteractive !== false;	// undefined or true means it's interactive
-				setupEngineIcon(engine, iconImgSource, sssIcon.name, isInteractive, iconCssText, popup, settings);
-			}
+				icon = setupEngineIcon(engine, iconImgSource, sssIcon.name, isInteractive, iconCssText, popup, settings);
+			// }
 			// else if (sssIcon.iconCss !== undefined) {
 			// 	setupEngineCss(sssIcon, iconCssText, popup, settings);
 			// }
+
+			if (engine.id === "separator") {
+				iconWidth *= settings.popupSeparatorWidth / 100;
+			}
 		} else {
 			let iconImgSource;
 
@@ -340,8 +344,10 @@ padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}
 				iconImgSource = cachedIcon ? cachedIcon : engine.iconUrl;	// should have cached icon, but if not (for some reason) fall back to URL
 			}
 
-			setupEngineIcon(engine, iconImgSource, engine.name, true, iconCssText, popup, settings);
+			icon = setupEngineIcon(engine, iconImgSource, engine.name, true, iconCssText, popup, settings);
 		}
+
+		icon.style.setProperty("width", iconWidth + "px", "important");
 	}
 
 	// add popup to page
@@ -420,17 +426,38 @@ function setupEngineIcon(engine, iconImgSource, iconTitle, isInteractive, iconCs
 // 	return div;
 // }
 
-function setPopupPositionAndSize(popup, nEngines, settings)
+function setPopupPositionAndSize(popup, searchEngines, settings)
 {
-	let itemWidth = settings.popupItemSize + settings.popupItemPadding * 2;
-	let itemHeight = settings.popupItemSize + (3 + settings.popupItemVerticalPadding) * 2;
-
-	let nPopupIconsPerRow = nEngines;
-	if (!settings.useSingleRow && settings.nPopupIconsPerRow < nPopupIconsPerRow) {
+	let nPopupIconsPerRow;
+	if (!settings.useSingleRow && settings.nPopupIconsPerRow < searchEngines.length) {
 		nPopupIconsPerRow = settings.nPopupIconsPerRow > 0 ? settings.nPopupIconsPerRow : 1;
+	} else {
+		nPopupIconsPerRow = searchEngines.length;
 	}
-	let width = itemWidth * nPopupIconsPerRow;
-	let height = itemHeight * Math.ceil(nEngines / nPopupIconsPerRow);
+
+	let itemHeight = settings.popupItemSize + (3 + settings.popupItemVerticalPadding) * 2;
+	let popupHeight = itemHeight * Math.ceil(searchEngines.length / nPopupIconsPerRow);
+	let popupWidth = 0;
+
+	// Calculate popup width (not all icons have the same width).
+	// This deals with both single row and grid layouts.
+	for (let i = 0; i < searchEngines.length; i += nPopupIconsPerRow)
+	{
+		let width = 0;
+		let limit = Math.min(i + nPopupIconsPerRow, searchEngines.length);
+		for (let j = i; j < limit; j++) {
+			let engine = searchEngines[j];
+			if (engine.type === "sss" && engine.id === "separator") {
+				width += settings.popupItemSize * settings.popupSeparatorWidth / 100;
+			} else {
+				width += settings.popupItemSize;
+			}
+			width += settings.popupItemPadding * 2;
+		}
+		if (popupWidth < width) {
+			popupWidth = width;
+		}
+	}
 
 	let positionLeft;
 	let positionTop;
@@ -447,11 +474,11 @@ function setPopupPositionAndSize(popup, nEngines, settings)
 		positionTop = rect.bottom + window.pageYOffset;
 	} else if (settings.popupLocation === consts.PopupLocation_Cursor) {
 		positionLeft = mousePositionX;
-		positionTop = mousePositionY - height - 10;	// 10 is forced padding to avoid popup being too close to cursor
+		positionTop = mousePositionY - popupHeight - 10;	// 10 is forced padding to avoid popup being too close to cursor
 	}
 
 	// center horizontally
-	positionLeft -= width / 2;
+	positionLeft -= popupWidth / 2;
 
 	let popupOffsetX = settings.popupOffsetX;
 	if (settings.negatePopupOffsetX) {
@@ -471,22 +498,22 @@ function setPopupPositionAndSize(popup, nEngines, settings)
 	// don't leave the page
 	if (positionLeft < 5) {
 		positionLeft = 5;
-	} else if (positionLeft + width + 10 > pageWidth) {
-		positionLeft = pageWidth - width - 10;
+	} else if (positionLeft + popupWidth + 10 > pageWidth) {
+		positionLeft = pageWidth - popupWidth - 10;
 	}
 
 	if (positionTop < 5) {
 		positionTop = 5;
-	} else if (positionTop + height + 10 > pageHeight) {
-		let newPositionTop = pageHeight - height - 10;
+	} else if (positionTop + popupHeight + 10 > pageHeight) {
+		let newPositionTop = pageHeight - popupHeight - 10;
 		if (newPositionTop >= 0) {	// just to be sure, since some websites can have pageHeight = 0
-			positionTop = pageHeight - height - 10;
+			positionTop = pageHeight - popupHeight - 10;
 		}
 	}
 
 	// set values
-	popup.style.width = width + "px";
-	popup.style.height = height + "px";
+	popup.style.width = popupWidth + "px";
+	popup.style.height = popupHeight + "px";
 	popup.style.left = positionLeft + "px";
 	popup.style.top = positionTop + "px";
 }
