@@ -250,7 +250,7 @@ function showPopup(settings)
 {
 	if (popup !== null)
 	{
-		popup.style.display = "inline-block";
+		setProperty(popup, "display", "inline-block");
 		setPopupPositionAndSize(popup, settings.searchEngines, settings);
 
 		if (settings.popupAnimationDuration > 0 && typeof cloneInto === "function") {
@@ -271,17 +271,14 @@ function hidePopup(ev)
 		return;
 	}
 
-	popup.style.display = "none";
+	setProperty(popup, "display", "none");
 }
 
 function createPopup(settings)
 {
-	// create popup parent (will contain all icons)
-	popup = document.createElement("swift-selection-search-popup");
-
-	// format popup, resetting all to initial and including values that will be changed later (set those to "initial" explicitly)
-	let popupCssText =
-`all: initial;
+	// base popup format, resetting every property to initial first (a few are defined explicitely because of websites overriding with "important")
+	let popupCssText = `
+all: initial;
 box-sizing: initial !important;
 font-size: 0 !important;
 position: absolute !important;
@@ -290,28 +287,31 @@ text-align: center !important;
 overflow: hidden !important;
 -moz-user-select: none !important;
 user-select: none !important;
-background-color: ${settings.popupBackgroundColor} !important;
 box-shadow: 0px 0px 3px rgba(0,0,0,.5) !important;
-border-radius: ${settings.popupBorderRadius}px !important;
 direction: ltr !important;
-padding: ${settings.popupPaddingY}px ${settings.popupPaddingX}px !important;
-width: initial !important;
-height: initial !important;
-left: initial !important;
-top: initial !important;`;
+`;
 
-	popup.style.cssText = popupCssText;
+	// base format for each icon wrapper
+	let iconWrapperCssText = `
+all: initial;
+display: inline-block !important;
+box-sizing: initial !important;
+`;
 
-	// create all engine icons
-	let sizeText = settings.popupItemSize + "px";
-	let iconCssText =
-`all: initial;
+	// base format for each icon (image)
+	let iconCssText = `
+all: initial;
 display: initial !important;
 box-sizing: initial !important;
 fontSize: 0 !important;
-border-radius: ${settings.popupItemBorderRadius}px !important;
-height: ${settings.popupItemSize}px !important;
-padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}px !important`;
+`;
+
+	// create popup parent (will contain all icons)
+	popup = document.createElement("swift-selection-search-popup");
+	popup.style.cssText = popupCssText;
+	setProperty(popup, "background-color", settings.popupBackgroundColor);
+	setProperty(popup, "border-radius", settings.popupBorderRadius + "px");
+	setProperty(popup, "padding", `${settings.popupPaddingY}px ${settings.popupPaddingX}px`);
 
 	for (let i = 0; i < settings.searchEngines.length; i++)
 	{
@@ -319,22 +319,34 @@ padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}
 		let iconWidth = settings.popupItemSize;
 		let icon;
 
-		if (engine.type === "sss") {
+		let wrapper = setupEngineIconWrapper(iconWrapperCssText, popup, settings);
+
+		if (engine.type === "sss")
+		{
 			let sssIcon = settings.sssIcons[engine.id];
+
+			if (engine.id === "separator") {
+				iconWidth *= settings.popupSeparatorWidth / 100;
+				setProperty(wrapper, "width", iconWidth + "px");
+			}
 
 			// if (sssIcon.iconPath !== undefined) {
 				let iconImgSource = browser.extension.getURL(sssIcon.iconPath);
 				let isInteractive = sssIcon.isInteractive !== false;	// undefined or true means it's interactive
-				icon = setupEngineIcon(engine, iconImgSource, sssIcon.name, isInteractive, iconCssText, popup, settings);
+				icon = setupEngineIcon(engine, iconImgSource, sssIcon.name, isInteractive, iconCssText, wrapper, settings);
 			// }
 			// else if (sssIcon.iconCss !== undefined) {
-			// 	setupEngineCss(sssIcon, iconCssText, popup, settings);
+			// 	setupEngineCss(sssIcon, iconCssText, wrapper, settings);
 			// }
 
 			if (engine.id === "separator") {
-				iconWidth *= settings.popupSeparatorWidth / 100;
+				setProperty(icon, "transform", "translateX(-50%)");
+				setProperty(icon, "margin-left", "50%");
+				setProperty(icon, "pointer-events", "none");
 			}
-		} else {
+		}
+		else
+		{
 			let iconImgSource;
 
 			if (engine.iconUrl.startsWith("data:")) {
@@ -344,10 +356,10 @@ padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}
 				iconImgSource = cachedIcon ? cachedIcon : engine.iconUrl;	// should have cached icon, but if not (for some reason) fall back to URL
 			}
 
-			icon = setupEngineIcon(engine, iconImgSource, engine.name, true, iconCssText, popup, settings);
+			icon = setupEngineIcon(engine, iconImgSource, engine.name, true, iconCssText, wrapper, settings);
 		}
 
-		icon.style.setProperty("width", iconWidth + "px", "important");
+		setProperty(icon, "width", settings.popupItemSize + "px");
 	}
 
 	// add popup to page
@@ -362,45 +374,61 @@ padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}
 	}
 }
 
+function setupEngineIconWrapper(cssString, parent, settings)
+{
+	let elem = document.createElement("sss-icon");
+	elem.style.cssText = cssString;
+	setProperty(elem, "height", settings.popupItemSize + "px");
+	parent.appendChild(elem);
+	return elem;
+}
+
 function setupEngineIcon(engine, iconImgSource, iconTitle, isInteractive, iconCssText, parent, settings)
 {
 	let icon = document.createElement("img");
 	icon.src = iconImgSource;
 	icon.title = iconTitle;
 	icon.style.cssText = iconCssText;
+	setProperty(icon, "border-radius", settings.popupItemBorderRadius + "px");
+	setProperty(icon, "height", settings.popupItemSize + "px");
+	setProperty(icon, "padding", `${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}px`);
 
 	if (isInteractive)
 	{
 		if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight || settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_HighlightAndMove)
 		{
 			icon.onmouseover = () => {
-				icon.style.borderBottom = `2px ${settings.popupHighlightColor} solid`;
+				setProperty(icon, "border-bottom", `2px ${settings.popupHighlightColor} solid`);
 				if (settings.popupItemBorderRadius == 0) {
-					icon.style.borderRadius = "2px";
+					setProperty(icon, "border-radius", "2px");
 				}
+
+				let verticalPaddingStr = (3 + settings.popupItemVerticalPadding - 2) + "px";
 				if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight) {
 					// remove 2 pixels to counter the added border of 2px
-					icon.style.paddingBottom = (3 + settings.popupItemVerticalPadding - 2) + "px";
+					setProperty(icon, "padding-bottom", verticalPaddingStr);
 				} else {
 					// remove 2 pixels of top padding to cause icon to move up
-					icon.style.paddingTop = (3 + settings.popupItemVerticalPadding - 2) + "px";
+					setProperty(icon, "padding-top", verticalPaddingStr);
 				}
 			};
+
 			icon.onmouseout = () => {
-				let verticalPaddingStr = (3 + settings.popupItemVerticalPadding) + "px";
-				icon.style.borderBottom = "";
+				removeProperty(icon, "border-bottom");
 				if (settings.popupItemBorderRadius == 0) {
-					icon.style.borderRadius = "";
+					removeProperty(icon, "border-radius");
 				}
-				icon.style.paddingTop = verticalPaddingStr;
-				icon.style.paddingBottom = verticalPaddingStr;
+
+				let verticalPaddingStr = (3 + settings.popupItemVerticalPadding) + "px";
+				setProperty(icon, "padding-top", verticalPaddingStr);
+				setProperty(icon, "padding-bottom", verticalPaddingStr);
 			};
 		}
 
 		icon.addEventListener("mouseup", onSearchEngineClick(engine, settings)); // "mouse up" instead of "click" to support middle click
 
-		icon.style.setProperty("cursor", "pointer", "important");
-		icon.style.setProperty("pointer-events", "auto", "important");
+		setProperty(icon, "cursor", "pointer");
+		setProperty(icon, "pointer-events", "auto");
 	}
 
 	icon.addEventListener("mousedown", ev => {
@@ -512,10 +540,10 @@ function setPopupPositionAndSize(popup, searchEngines, settings)
 	}
 
 	// set values
-	popup.style.width = popupWidth + "px";
-	popup.style.height = popupHeight + "px";
-	popup.style.left = positionLeft + "px";
-	popup.style.top = positionTop + "px";
+	setProperty(popup, "width",  popupWidth + "px");
+	setProperty(popup, "height", popupHeight + "px");
+	setProperty(popup, "left",   positionLeft + "px");
+	setProperty(popup, "top",    positionTop + "px");
 }
 
 function onMouseUpdate(ev)
@@ -609,4 +637,14 @@ function forceSelectionIfWithinRect(ev, rect)
 		return true;
 	}
 	return false;
+}
+
+function setProperty(elem, property, value)
+{
+	elem.style.setProperty(property, value, "important");
+}
+
+function removeProperty(elem, property)
+{
+	elem.style.removeProperty(property);
 }
