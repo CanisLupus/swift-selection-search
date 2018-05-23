@@ -54,7 +54,7 @@ function onMessageReceived(msg, sender, callbackFunc)
 	switch (msg.type)
 	{
 		case "isAlive":
-			callbackFunc(true);	// simply return true to say "I'm alive!""
+			callbackFunc(true);	// simply return true to say "I'm alive!"
 			break;
 
 		case "showPopup":
@@ -264,8 +264,8 @@ function showPopup(settings)
 		return;
 	}
 
-	popup.style.display = "inline-block";
-	setPopupPositionAndSize(popup, settings.searchEngines.length, settings);
+	setProperty(popup, "display", "inline-block");
+	setPopupPositionAndSize(popup, settings.searchEngines, settings);
 
 	// Animate popup (only if cloneInto exists, which it doesn't in add-on resource pages).
 	// cloneInto fixes a Firefox bug that causes animations to not work (pre-Firefox 60?).
@@ -286,17 +286,14 @@ function hidePopup(ev)
 		return;
 	}
 
-	popup.style.display = "none";
+	setProperty(popup, "display", "none");
 }
 
 function createPopup(settings)
 {
-	// create popup parent (will contain all icons)
-	popup = document.createElement("swift-selection-search-popup");
-
-	// format popup, resetting all values to initial and then including attributes that actually need to be a certain value
-	let popupCssText =
-`all: initial;
+	// base popup format, resetting every property to initial first (a few are defined explicitely because of websites overriding with "important")
+	let popupCssText = `
+all: initial;
 box-sizing: initial !important;
 font-size: 0 !important;
 position: absolute !important;
@@ -305,50 +302,69 @@ text-align: center !important;
 overflow: hidden !important;
 -moz-user-select: none !important;
 user-select: none !important;
-background-color: ${settings.popupBackgroundColor} !important;
 box-shadow: 0px 0px 3px rgba(0,0,0,.5) !important;
-border-radius: ${settings.popupBorderRadius}px !important;
 direction: ltr !important;
-padding: ${settings.popupPaddingY}px ${settings.popupPaddingX}px !important;
-width: initial !important;
-height: initial !important;
-left: initial !important;
-top: initial !important;`;
+`;
 
-	popup.style.cssText = popupCssText;
+	// base format for each icon wrapper
+	let iconWrapperCssText = `
+all: initial;
+display: inline-block !important;
+box-sizing: initial !important;
+`;
 
-	// format all engine icons, using a strategy similar to the popup's above
-	let sizeText = settings.popupItemSize + "px";
-	let iconCssText =
-`all: initial;
+	// base format for each icon (image)
+	let iconCssText = `
+all: initial;
 display: initial !important;
 box-sizing: initial !important;
 fontSize: 0 !important;
-border-radius: ${settings.popupItemBorderRadius}px !important;
-height: ${settings.popupItemSize}px !important;
-width: ${settings.popupItemSize}px !important;
-padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}px !important`;
+`;
+
+	// create popup parent (will contain all icons)
+	popup = document.createElement("swift-selection-search-popup");
+	popup.style.cssText = popupCssText;
+	setProperty(popup, "background-color", settings.popupBackgroundColor);
+	setProperty(popup, "border-radius", settings.popupBorderRadius + "px");
+	setProperty(popup, "padding", `${settings.popupPaddingY}px ${settings.popupPaddingX}px`);
 
 	// add each engine to the popup
 	for (let i = 0; i < settings.searchEngines.length; i++)
 	{
 		let engine = settings.searchEngines[i];
+		let iconWidth = settings.popupItemSize;
+		let icon;
+
+		let wrapper = setupEngineIconWrapper(iconWrapperCssText, popup, settings);
 
 		// special SSS icons with special functions
-		if (engine.type === "sss") {
+		if (engine.type === "sss")
+		{
 			let sssIcon = settings.sssIcons[engine.id];
 
-			if (sssIcon.iconPath !== undefined) {
+			if (engine.id === "separator") {
+				iconWidth *= settings.popupSeparatorWidth / 100;
+				setProperty(wrapper, "width", iconWidth + "px");
+			}
+
+			// if (sssIcon.iconPath !== undefined) {
 				let iconImgSource = browser.extension.getURL(sssIcon.iconPath);
 				let isInteractive = sssIcon.isInteractive !== false;	// undefined or true means it's interactive
-				setupEngineIcon(engine, iconImgSource, sssIcon.name, isInteractive, iconCssText, popup, settings);
-			}
-			// else if (sssIcon.iconCss !== undefined) {
-			// 	setupEngineCss(sssIcon, iconCssText, popup, settings);
+				icon = setupEngineIcon(engine, iconImgSource, sssIcon.name, isInteractive, iconCssText, wrapper, settings);
 			// }
+			// else if (sssIcon.iconCss !== undefined) {
+			// 	setupEngineCss(sssIcon, iconCssText, wrapper, settings);
+			// }
+
+			if (engine.id === "separator") {
+				setProperty(icon, "transform", "translateX(-50%)");
+				setProperty(icon, "margin-left", "50%");
+				setProperty(icon, "pointer-events", "none");
+			}
 		}
 		// "normal" custom search engines
-		else {
+		else
+		{
 			let iconImgSource;
 
 			if (engine.iconUrl.startsWith("data:")) {
@@ -358,8 +374,10 @@ padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}
 				iconImgSource = cachedIcon ? cachedIcon : engine.iconUrl;	// should have cached icon, but if not (for some reason) fall back to URL
 			}
 
-			setupEngineIcon(engine, iconImgSource, engine.name, true, iconCssText, popup, settings);
+			icon = setupEngineIcon(engine, iconImgSource, engine.name, true, iconCssText, wrapper, settings);
 		}
+
+		setProperty(icon, "width", settings.popupItemSize + "px");
 	}
 
 	// add popup to page
@@ -375,12 +393,24 @@ padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}
 	}
 }
 
+function setupEngineIconWrapper(cssString, parent, settings)
+{
+	let elem = document.createElement("sss-icon");
+	elem.style.cssText = cssString;
+	setProperty(elem, "height", settings.popupItemSize + "px");
+	parent.appendChild(elem);
+	return elem;
+}
+
 function setupEngineIcon(engine, iconImgSource, iconTitle, isInteractive, iconCssText, parent, settings)
 {
 	let icon = document.createElement("img");
 	icon.src = iconImgSource;
 	icon.title = iconTitle;
 	icon.style.cssText = iconCssText;
+	setProperty(icon, "border-radius", settings.popupItemBorderRadius + "px");
+	setProperty(icon, "height", settings.popupItemSize + "px");
+	setProperty(icon, "padding", `${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}px`);
 
 	// if icon responds to mouse interaction, it needs events!
 	if (isInteractive)
@@ -389,26 +419,30 @@ function setupEngineIcon(engine, iconImgSource, iconTitle, isInteractive, iconCs
 		if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight || settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_HighlightAndMove)
 		{
 			icon.onmouseover = () => {
-				icon.style.borderBottom = `2px ${settings.popupHighlightColor} solid`;
+				setProperty(icon, "border-bottom", `2px ${settings.popupHighlightColor} solid`);
 				if (settings.popupItemBorderRadius == 0) {
-					icon.style.borderRadius = "2px";
+					setProperty(icon, "border-radius", "2px");
 				}
+
+				let verticalPaddingStr = (3 + settings.popupItemVerticalPadding - 2) + "px";
 				if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight) {
 					// remove 2 pixels to counter the added border of 2px
-					icon.style.paddingBottom = (3 + settings.popupItemVerticalPadding - 2) + "px";
+					setProperty(icon, "padding-bottom", verticalPaddingStr);
 				} else {
 					// remove 2 pixels of top padding to cause icon to move up
-					icon.style.paddingTop = (3 + settings.popupItemVerticalPadding - 2) + "px";
+					setProperty(icon, "padding-top", verticalPaddingStr);
 				}
 			};
+
 			icon.onmouseout = () => {
-				let verticalPaddingStr = (3 + settings.popupItemVerticalPadding) + "px";
-				icon.style.borderBottom = "";
+				removeProperty(icon, "border-bottom");
 				if (settings.popupItemBorderRadius == 0) {
-					icon.style.borderRadius = "";
+					removeProperty(icon, "border-radius");
 				}
-				icon.style.paddingTop = verticalPaddingStr;
-				icon.style.paddingBottom = verticalPaddingStr;
+
+				let verticalPaddingStr = (3 + settings.popupItemVerticalPadding) + "px";
+				setProperty(icon, "padding-top", verticalPaddingStr);
+				setProperty(icon, "padding-bottom", verticalPaddingStr);
 			};
 		}
 
@@ -416,8 +450,8 @@ function setupEngineIcon(engine, iconImgSource, iconTitle, isInteractive, iconCs
 		icon.addEventListener("mouseup", onSearchEngineClick(engine, settings)); // "mouse up" instead of "click" to support middle click
 
 		// these would be in the CSS format block for the icons, but only interactive icons can have them
-		icon.style.setProperty("cursor", "pointer", "important");
-		icon.style.setProperty("pointer-events", "auto", "important");
+		setProperty(icon, "cursor", "pointer");
+		setProperty(icon, "pointer-events", "auto");
 	}
 
 	icon.addEventListener("mousedown", ev => {
@@ -443,20 +477,40 @@ function setupEngineIcon(engine, iconImgSource, iconTitle, isInteractive, iconCs
 // 	return div;
 // }
 
-function setPopupPositionAndSize(popup, nEngines, settings)
+function setPopupPositionAndSize(popup, searchEngines, settings)
 {
-	// all engine icons have the same width and height
-	let itemWidth = settings.popupItemSize + settings.popupItemPadding * 2;
-	let itemHeight = settings.popupItemSize + (3 + settings.popupItemVerticalPadding) * 2;
-
-	let nPopupIconsPerRow = nEngines;
-	if (!settings.useSingleRow && settings.nPopupIconsPerRow < nPopupIconsPerRow) {
+	let nPopupIconsPerRow;
+	if (!settings.useSingleRow && settings.nPopupIconsPerRow < searchEngines.length) {
 		nPopupIconsPerRow = settings.nPopupIconsPerRow > 0 ? settings.nPopupIconsPerRow : 1;
+	} else {
+		nPopupIconsPerRow = searchEngines.length;
 	}
 
-	// total width and height of the popup
-	let width = itemWidth * nPopupIconsPerRow;
-	let height = itemHeight * Math.ceil(nEngines / nPopupIconsPerRow);
+	// all engine icons have the same height
+	let itemHeight = settings.popupItemSize + (3 + settings.popupItemVerticalPadding) * 2;
+	let popupHeight = itemHeight * Math.ceil(searchEngines.length / nPopupIconsPerRow);
+	let popupWidth = 0;
+
+	// Calculate popup width (not all icons have the same width).
+	// This deals with both single row and grid layouts.
+	for (let i = 0; i < searchEngines.length; i += nPopupIconsPerRow)
+	{
+		let width = 0;
+		let limit = Math.min(i + nPopupIconsPerRow, searchEngines.length);
+		for (let j = i; j < limit; j++) {
+			let engine = searchEngines[j];
+			if (engine.type === "sss" && engine.id === "separator") {
+				width += settings.popupItemSize * settings.popupSeparatorWidth / 100;
+			} else {
+				width += settings.popupItemSize;
+			}
+			width += settings.popupItemPadding * 2;
+		}
+
+		if (popupWidth < width) {
+			popupWidth = width;
+		}
+	}
 
 	let positionLeft;
 	let positionTop;
@@ -477,11 +531,11 @@ function setPopupPositionAndSize(popup, nEngines, settings)
 	else if (settings.popupLocation === consts.PopupLocation_Cursor) {
 		// right above the mouse position
 		positionLeft = mousePositionX;
-		positionTop = mousePositionY - height - 10;	// 10 is forced padding to avoid popup being too close to cursor
+		positionTop = mousePositionY - popupHeight - 10;	// 10 is forced padding to avoid popup being too close to cursor
 	}
 
 	// center horizontally
-	positionLeft -= width / 2;
+	positionLeft -= popupWidth / 2;
 
 	// apply user offsets from settings
 	positionLeft += settings.popupOffsetX;
@@ -494,8 +548,8 @@ function setPopupPositionAndSize(popup, nEngines, settings)
 		positionLeft = 5;
 	} else {
 		let pageWidth = document.documentElement.offsetWidth + window.pageXOffset;
-		if (positionLeft + width + 10 > pageWidth) {
-			positionLeft = pageWidth - width - 10;
+		if (positionLeft + popupWidth + 10 > pageWidth) {
+			positionLeft = pageWidth - popupWidth - 10;
 		}
 	}
 
@@ -504,19 +558,19 @@ function setPopupPositionAndSize(popup, nEngines, settings)
 		positionTop = 5;
 	} else {
 		let pageHeight = document.documentElement.scrollHeight;
-		if (positionTop + height + 10 > pageHeight) {
-			let newPositionTop = pageHeight - height - 10;
+		if (positionTop + popupHeight + 10 > pageHeight) {
+			let newPositionTop = pageHeight - popupHeight - 10;
 			if (newPositionTop >= 0) {	// just to be sure, since some websites can have pageHeight = 0
-				positionTop = pageHeight - height - 10;
+				positionTop = pageHeight - popupHeight - 10;
 			}
 		}
 	}
 
 	// finally set the size and position values
-	popup.style.width = width + "px";
-	popup.style.height = height + "px";
-	popup.style.left = positionLeft + "px";
-	popup.style.top = positionTop + "px";
+	setProperty(popup, "width",  popupWidth + "px");
+	setProperty(popup, "height", popupHeight + "px");
+	setProperty(popup, "left",   positionLeft + "px");
+	setProperty(popup, "top",    positionTop + "px");
 }
 
 function onMouseUpdate(ev)
@@ -617,4 +671,14 @@ function forceSelectionIfWithinRect(ev, rect)
 		return true;
 	}
 	return false;
+}
+
+function setProperty(elem, property, value)
+{
+	elem.style.setProperty(property, value, "important");
+}
+
+function removeProperty(elem, property)
+{
+	elem.style.removeProperty(property);
 }
