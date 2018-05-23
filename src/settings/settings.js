@@ -761,7 +761,7 @@ function setupEngineIcon(iconImgSource, parent, settings)
 // 	let div = document.createElement("div");
 
 // 	// div.style.cssText = sssIcon.iconCss;
-// 	div.style.cssText = iconCssText;//`border-left: rgb(227, 227, 227) 1px solid; margin: 0px 10px;`;
+// 	div.style.cssText = iconCssText;
 // 	div.style.marginBottom = "0px";
 // 	div.style.marginTop = "0px";
 
