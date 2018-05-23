@@ -311,6 +311,7 @@ direction: ltr !important;
 all: initial;
 display: inline-block !important;
 box-sizing: initial !important;
+fontSize: 0 !important;
 `;
 
 	// base format for each icon (image)
@@ -495,20 +496,21 @@ function setPopupPositionAndSize(popup, searchEngines, settings)
 	// This deals with both single row and grid layouts.
 	for (let i = 0; i < searchEngines.length; i += nPopupIconsPerRow)
 	{
-		let width = 0;
+		let lineWidth = 0;
 		let limit = Math.min(i + nPopupIconsPerRow, searchEngines.length);
+
 		for (let j = i; j < limit; j++) {
 			let engine = searchEngines[j];
 			if (engine.type === "sss" && engine.id === "separator") {
-				width += settings.popupItemSize * settings.popupSeparatorWidth / 100;
+				lineWidth += settings.popupItemSize * settings.popupSeparatorWidth / 100;
 			} else {
-				width += settings.popupItemSize;
+				lineWidth += settings.popupItemSize;
+				lineWidth += settings.popupItemPadding * 2;
 			}
-			width += settings.popupItemPadding * 2;
 		}
 
-		if (popupWidth < width) {
-			popupWidth = width;
+		if (popupWidth < lineWidth) {
+			popupWidth = lineWidth;
 		}
 	}
 
