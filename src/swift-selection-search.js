@@ -67,8 +67,8 @@ const defaultSettings = {
 	hidePopupOnPageScroll: true,
 	hidePopupOnRightClick: true,
 	hidePopupOnSearch: true,
-	popupOpenHotkey: "accel-shift-space",
-	popupDisableHotkey: "accel-shift-x",
+	popupOpenCommand: "Ctrl+Shift+Space",
+	popupDisableCommand: "Ctrl+Shift+U",
 	mouseLeftButtonBehaviour: consts.MouseButtonBehaviour_ThisTab,
 	mouseMiddleButtonBehaviour: consts.MouseButtonBehaviour_NewBgTab,
 	popupAnimationDuration: 100,
@@ -230,7 +230,7 @@ function onSettingsAcquired(settings)
 	}
 
 	setup_ContextMenu();
-	setup_PopupHotkeys();
+	setup_Commands();
 	setup_Popup();
 
 	if (isFirstLoad) {
@@ -284,6 +284,8 @@ function runBackwardsCompatibilityUpdates(settings)
 	shouldSave |= createSettingIfNonExistent(settings, "middleMouseSelectionClickMargin");
 	shouldSave |= createSettingIfNonExistent(settings, "hidePopupOnRightClick");
 	shouldSave |= createSettingIfNonExistent(settings, "popupSeparatorWidth");
+	shouldSave |= createSettingIfNonExistent(settings, "popupOpenCommand");
+	shouldSave |= createSettingIfNonExistent(settings, "popupDisableCommand");
 
 	// convert old unchangeable browser-imported engines to normal "custom" ones
 	for (let engine of settings.searchEngines)
@@ -452,32 +454,48 @@ function onContextMenuItemClicked(info, tab)
 /* ------------ SHORTCUTS ------------- */
 /* ------------------------------------ */
 
-function setup_PopupHotkeys()
+function setup_Commands()
 {
 	// clear any old registrations
-	if (browser.commands.onCommand.hasListener(onHotkey)) {
-		browser.commands.onCommand.removeListener(onHotkey);
+	if (browser.commands.onCommand.hasListener(onCommand)) {
+		browser.commands.onCommand.removeListener(onCommand);
 	}
 
 	// register keyboard shortcuts
 	if (sss.settings.popupOpenBehaviour !== consts.PopupOpenBehaviour_Off) {
-		browser.commands.onCommand.addListener(onHotkey);
+		browser.commands.onCommand.addListener(onCommand);
+	}
+
+	if (browserVersion >= 60) {
+		browser.commands.update({ name: "open-popup",        shortcut: sss.settings.popupOpenCommand });
+		browser.commands.update({ name: "toggle-auto-popup", shortcut: sss.settings.popupDisableCommand });
 	}
 }
 
-function onHotkey(command)
+function onCommand(command)
 {
-	if (command === "open-popup") {
-		if (DEBUG) { log("open-popup"); }
-		getCurrentTab(tab => browser.tabs.sendMessage(tab.id, { type: "showPopup" }));
-	} else if (command === "toggle-auto-popup") {
-		if (DEBUG) { log("toggle-auto-popup, sss.settings.popupOpenBehaviour: " + sss.settings.popupOpenBehaviour); }
-		// toggles value between Auto and Keyboard
-		if (sss.settings.popupOpenBehaviour === consts.PopupOpenBehaviour_Auto) {
-			browser.storage.local.set({ popupOpenBehaviour: consts.PopupOpenBehaviour_Keyboard });
-		} else if (sss.settings.popupOpenBehaviour === consts.PopupOpenBehaviour_Keyboard) {
-			browser.storage.local.set({ popupOpenBehaviour: consts.PopupOpenBehaviour_Auto });
-		}
+	switch (command)
+	{
+		case "open-popup":        onOpenPopupCommand(); break;
+		case "toggle-auto-popup": onToggleAutoPopupCommand(); break;
+	}
+}
+
+function onOpenPopupCommand()
+{
+	if (DEBUG) { log("open-popup"); }
+	getCurrentTab(tab => browser.tabs.sendMessage(tab.id, { type: "showPopup" }));
+}
+
+function onToggleAutoPopupCommand()
+{
+	if (DEBUG) { log("toggle-auto-popup, sss.settings.popupOpenBehaviour: " + sss.settings.popupOpenBehaviour); }
+
+	// toggles value between Auto and Keyboard
+	if (sss.settings.popupOpenBehaviour === consts.PopupOpenBehaviour_Auto) {
+		browser.storage.local.set({ popupOpenBehaviour: consts.PopupOpenBehaviour_Keyboard });
+	} else if (sss.settings.popupOpenBehaviour === consts.PopupOpenBehaviour_Keyboard) {
+		browser.storage.local.set({ popupOpenBehaviour: consts.PopupOpenBehaviour_Auto });
 	}
 }
 

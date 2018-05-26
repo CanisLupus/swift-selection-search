@@ -362,6 +362,23 @@ function onPageLoaded()
 		}
 	});
 
+	// show/hide Firefox version-specific sections
+
+	if (mainScript.getBrowserVersion() < 60)
+	{
+		for (let elem of document.getElementsByClassName("command")) {
+			elem.classList.add("disabled", true);
+		}
+
+		for (let elem of document.getElementsByClassName("pre-ff-60")) {
+			elem.style.display = "initial";
+		}
+
+		for (let elem of document.getElementsByClassName("post-ff-60")) {
+			elem.style.display = "none";
+		}
+	}
+
 	// entering/leaving settings page
 
 	window.onfocus = ev => {

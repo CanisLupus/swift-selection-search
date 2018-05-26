@@ -145,6 +145,7 @@
 	}
 	.setting-description summary:hover {
 		color: #3399FF;
+		cursor: pointer;
 	}
 	.setting.disabled .setting-value {
 		font-size: 0.8rem;
@@ -159,6 +160,9 @@
 		display: none;
 	}
 	.os-windows, .os-mac, .os-linux {
+		display: none;
+	}
+	.pre-ff-60 {
 		display: none;
 	}
 </style>
@@ -381,37 +385,51 @@
 				<div class="setting-description">Hides the popup when a search engine is clicked.<br>(default: On)</div>
 			</div>
 
-			<div class="setting disabled">
+			<div class="setting command">
 				<div class="setting-name">Shortcut to open popup</div>
 				<div class="setting-value">
-					<span class="os-windows os-linux">Ctrl+Shift+Space</span>
-					<span class="os-mac">Cmd+Shift+Space</span>
-					<!-- <input type="text" name="popupOpenHotkey" value="accel-shift-space"> -->
+					<span class="pre-ff-60">
+						<span class="os-windows os-linux">Ctrl+Shift+Space</span>
+						<span class="os-mac">Cmd+Shift+Space</span>
+					</span>
+					<span class="post-ff-60">
+						<input type="text" name="popupOpenCommand" value="Ctrl+Shift+Space">
+					</span>
 				</div>
 				<div class="setting-description">
-					[NOTE: Not configurable in WebExtensions.]
-					<br>Opens the popup if you have text selected. Works for editable fields even if "Allow popup on editable fields" is Off. Useful if "Opening behaviour" is set to Keyboard-only.
-					<!-- <details>
-						<summary>[Press for details]</summary>
-						Use at least one: shift, control, alt, meta (Mac Command), accel (Control on Windows/Linux, Command on Mac). Clear the box to disable the hotkey.<br>(default: accel-shift-space, which is Ctrl/Cmd+Shift+Spacebar)
-					</details> -->
+					<span class="pre-ff-60">[NOTE: Only configurable in Firefox 60+]<br></span>
+					Opens the popup if you have text selected. Works for editable fields even if "Allow popup on editable fields" is Off. Useful if "Opening behaviour" is set to Keyboard-only.
+					<span class="post-ff-60">
+						<details>
+							<summary>[Press for details on how to write the shortcut]</summary>
+							Ctrl (it means Command on Mac), Alt, <span class="os-mac">MacCtrl (actual Control key on Mac), </span>Shift. Clear the box to disable the hotkey.
+						</details>
+						(default: Ctrl+Shift+Space)
+					</span>
 				</div>
 			</div>
 
-			<div class="setting disabled">
+			<div class="setting command">
 				<div class="setting-name">Shortcut to toggle auto popup opening</div>
 				<div class="setting-value">
-					<!-- <input type="text" name="popupDisableHotkey" value="accel-shift-u"> -->
-					<span class="os-windows os-linux">Ctrl+Shift+U</span>
-					<span class="os-mac">Cmd+Shift+U</span>
+					<span class="pre-ff-60">
+						<span class="os-windows os-linux">Ctrl+Shift+U</span>
+						<span class="os-mac">Cmd+Shift+U</span>
+					</span>
+					<span class="post-ff-60">
+						<input type="text" name="popupDisableCommand" value="Ctrl+Shift+U">
+					</span>
 				</div>
 				<div class="setting-description">
-					[NOTE: Not configurable in WebExtensions.]
-					<br>Toggles "Opening behaviour" setting between Auto and Keyboard-only modes (if not Off). Use this when the popup is getting in the way of your browsing or text writing.
-					<!-- <details>
-						<summary>[Press for details]</summary>
-						<br>(default: accel-shift-u)
-					</details> -->
+					<span class="pre-ff-60">[NOTE: Only configurable in Firefox 60+]<br></span>
+					Toggles "Opening behaviour" setting between Auto and Keyboard-only modes (if not Off). Use this when the popup is getting in your way.
+					<span class="post-ff-60">
+						<details>
+							<summary>[Press for details on how to write the shortcut]</summary>
+							Ctrl (it means Command on Mac), Alt, <span class="os-mac">MacCtrl (actual Control key on Mac), </span>Shift. Clear the box to disable the hotkey.
+						</details>
+						(default: Ctrl+Shift+U)
+					</span>
 				</div>
 			</div>
 
