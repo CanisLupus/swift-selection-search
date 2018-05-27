@@ -487,32 +487,55 @@ function setPopupPositionAndSize(popup, searchEngines, settings)
 		nPopupIconsPerRow = searchEngines.length;
 	}
 
-	// all engine icons have the same height
-	let itemHeight = settings.popupItemSize + (3 + settings.popupItemVerticalPadding) * 2;
-	let popupHeight = itemHeight * Math.ceil(searchEngines.length / nPopupIconsPerRow);
-	let popupWidth = 0;
-
 	// Calculate popup width (not all icons have the same width).
 	// This deals with both single row and grid layouts.
+
+	var iconWidths = [];
+	let popupWidth = 0;
+
 	for (let i = 0; i < searchEngines.length; i += nPopupIconsPerRow)
 	{
 		let lineWidth = 0;
 		let limit = Math.min(i + nPopupIconsPerRow, searchEngines.length);
 
-		for (let j = i; j < limit; j++) {
+		for (let j = i; j < limit; j++)
+		{
 			let engine = searchEngines[j];
+			let iconWidth;
 			if (engine.type === "sss" && engine.id === "separator") {
-				lineWidth += settings.popupItemSize * settings.popupSeparatorWidth / 100;
+				iconWidth = settings.popupItemSize * settings.popupSeparatorWidth / 100;
 			} else {
-				lineWidth += settings.popupItemSize;
-				lineWidth += settings.popupItemPadding * 2;
+				iconWidth = settings.popupItemSize + settings.popupItemPadding * 2;
 			}
+
+			iconWidths.push(iconWidth);
+			lineWidth += iconWidth;
 		}
 
 		if (popupWidth < lineWidth) {
 			popupWidth = lineWidth;
 		}
 	}
+
+	// Calculate popup height (number of "rows" iterated through above might not be the real number)
+
+	// all engine icons have the same height
+	let itemHeight = settings.popupItemSize + (3 + settings.popupItemVerticalPadding) * 2;
+	let popupHeight = 0;
+
+	for (let i = 0; i < iconWidths.length;)
+	{
+		let lineWidth = 0;
+
+		do {
+			lineWidth += iconWidths[i];
+			i++;
+		} while (lineWidth < popupWidth);
+
+		popupHeight += itemHeight;
+	}
+
+	// position popup
 
 	let positionLeft;
 	let positionTop;
