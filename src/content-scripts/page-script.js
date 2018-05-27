@@ -521,18 +521,18 @@ function setPopupPositionAndSize(popup, searchEngines, settings)
 
 	// all engine icons have the same height
 	let itemHeight = settings.popupItemSize + (3 + settings.popupItemVerticalPadding) * 2;
-	let popupHeight = 0;
+	let popupHeight = itemHeight;
 
-	for (let i = 0; i < iconWidths.length;)
+	let lineWidth = 0;
+
+	for (let i = 0; i < iconWidths.length; i++)
 	{
-		let lineWidth = 0;
+		lineWidth += iconWidths[i];
 
-		do {
-			lineWidth += iconWidths[i];
-			i++;
-		} while (lineWidth < popupWidth);
-
-		popupHeight += itemHeight;
+		if (lineWidth > popupWidth + 0.001) {	// 0.001 is just to avoid floating point errors causing problems
+			popupHeight += itemHeight;
+			lineWidth = iconWidths[i];
+		}
 	}
 
 	// position popup
