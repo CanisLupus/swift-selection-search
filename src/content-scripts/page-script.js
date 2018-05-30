@@ -407,7 +407,6 @@ function setupEngineIcon(engine, iconImgSource, iconTitle, isInteractive, iconCs
 {
 	let icon = document.createElement("img");
 	icon.src = iconImgSource;
-	icon.title = iconTitle;
 	icon.style.cssText = iconCssText;
 	setProperty(icon, "border-radius", settings.popupItemBorderRadius + "px");
 	setProperty(icon, "height", settings.popupItemSize + "px");
@@ -416,6 +415,8 @@ function setupEngineIcon(engine, iconImgSource, iconTitle, isInteractive, iconCs
 	// if icon responds to mouse interaction, it needs events!
 	if (isInteractive)
 	{
+		icon.title = iconTitle;	// only interactive icons need a title (for the tooltip)
+
 		// set hover behaviour based on settings
 		if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight || settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_HighlightAndMove)
 		{
