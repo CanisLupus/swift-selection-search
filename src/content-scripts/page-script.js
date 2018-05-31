@@ -253,7 +253,8 @@ function tryShowPopup(ev, isForced)
 
 	if (popup === null) {
 		createPopup(settings);
-		setupPopupLayout(popup, settings.searchEngines, settings);
+		setupPopupSize(popup, settings.searchEngines, settings);
+		setupPopupIconPositions(popup, settings.searchEngines, settings);
 	}
 
 	showPopup(settings);
@@ -307,18 +308,11 @@ box-shadow: 0px 0px 3px rgba(0,0,0,.5) !important;
 direction: ltr !important;
 `;
 
-	// base format for each icon wrapper
-	let iconWrapperCssText = `
-all: initial;
-display: inline-block !important;
-box-sizing: initial !important;
-fontSize: 0 !important;
-`;
-
 	// base format for each icon (image)
 	let iconCssText = `
 all: initial;
 display: initial !important;
+position: absolute !important;
 box-sizing: initial !important;
 fontSize: 0 !important;
 `;
@@ -337,25 +331,18 @@ fontSize: 0 !important;
 		let iconWidth = settings.popupItemSize;
 		let icon;
 
-		let wrapper = setupEngineIconWrapper(iconWrapperCssText, popup, settings);
-
 		// special SSS icons with special functions
 		if (engine.type === "sss")
 		{
 			let sssIcon = settings.sssIcons[engine.id];
 
-			if (engine.id === "separator") {
-				iconWidth *= settings.popupSeparatorWidth / 100;
-				setProperty(wrapper, "width", iconWidth + "px");
-			}
-
 			// if (sssIcon.iconPath !== undefined) {
 				let iconImgSource = browser.extension.getURL(sssIcon.iconPath);
 				let isInteractive = sssIcon.isInteractive !== false;	// undefined or true means it's interactive
-				icon = setupEngineIcon(engine, iconImgSource, sssIcon.name, isInteractive, iconCssText, wrapper, settings);
+				icon = setupEngineIcon(engine, iconImgSource, sssIcon.name, isInteractive, iconCssText, popup, settings);
 			// }
 			// else if (sssIcon.iconCss !== undefined) {
-			// 	setupEngineCss(sssIcon, iconCssText, wrapper, settings);
+			// 	setupEngineCss(sssIcon, iconCssText, popup, settings);
 			// }
 
 			if (engine.id === "separator") {
@@ -376,7 +363,7 @@ fontSize: 0 !important;
 				iconImgSource = cachedIcon ? cachedIcon : engine.iconUrl;	// should have cached icon, but if not (for some reason) fall back to URL
 			}
 
-			icon = setupEngineIcon(engine, iconImgSource, engine.name, true, iconCssText, wrapper, settings);
+			icon = setupEngineIcon(engine, iconImgSource, engine.name, true, iconCssText, popup, settings);
 		}
 
 		setProperty(icon, "width", settings.popupItemSize + "px");
@@ -393,16 +380,6 @@ fontSize: 0 !important;
 	if (settings.hidePopupOnPageScroll) {
 		window.addEventListener("scroll", hidePopup);
 	}
-}
-
-function setupEngineIconWrapper(cssString, parent, settings)
-{
-	let elem = document.createElement("sss-icon");
-	elem.style.cssText = cssString;
-	setProperty(elem, "height", settings.popupItemSize + "px");
-	setProperty(elem, "position", "absolute");
-	parent.appendChild(elem);
-	return elem;
 }
 
 function setupEngineIcon(engine, iconImgSource, iconTitle, isInteractive, iconCssText, parent, settings)
@@ -481,7 +458,7 @@ function setupEngineIcon(engine, iconImgSource, iconTitle, isInteractive, iconCs
 // 	return div;
 // }
 
-function setupPopupLayout(popup, searchEngines, settings)
+function setupPopupSize(popup, searchEngines, settings)
 {
 	let nPopupIconsPerRow;
 	if (!settings.useSingleRow && settings.nPopupIconsPerRow < searchEngines.length) {
@@ -498,7 +475,7 @@ function setupPopupLayout(popup, searchEngines, settings)
 
 	for (let i = 0; i < searchEngines.length; i += nPopupIconsPerRow)
 	{
-		let lineWidth = 0;
+		let rowWidth = 0;
 		let limit = Math.min(i + nPopupIconsPerRow, searchEngines.length);
 
 		for (let j = i; j < limit; j++)
@@ -512,29 +489,29 @@ function setupPopupLayout(popup, searchEngines, settings)
 			}
 
 			iconWidths.push(iconWidth);
-			lineWidth += iconWidth;
+			rowWidth += iconWidth;
 		}
 
-		if (popupWidth < lineWidth) {
-			popupWidth = lineWidth;
+		if (popupWidth < rowWidth) {
+			popupWidth = rowWidth;
 		}
 	}
 
 	// Calculate popup height (number of "rows" iterated through above might not be the real number)
 
 	// all engine icons have the same height
-	let itemHeight = settings.popupItemSize + (3 + settings.popupItemVerticalPadding) * 2;
-	let popupHeight = itemHeight;
+	let rowHeight = settings.popupItemSize + (3 + settings.popupItemVerticalPadding) * 2;
+	let popupHeight = rowHeight;
 
-	let lineWidth = 0;
+	let rowWidth = 0;
 
 	for (let i = 0; i < iconWidths.length; i++)
 	{
-		lineWidth += iconWidths[i];
+		rowWidth += iconWidths[i];
 
-		if (lineWidth > popupWidth + 0.001) {	// 0.001 is just to avoid floating point errors causing problems
-			popupHeight += itemHeight;
-			lineWidth = iconWidths[i];
+		if (rowWidth > popupWidth + 0.001) {	// 0.001 is just to avoid floating point errors causing problems
+			popupHeight += rowHeight;
+			rowWidth = iconWidths[i];
 		}
 	}
 
@@ -545,9 +522,6 @@ function setupPopupLayout(popup, searchEngines, settings)
 	popup.width = popupWidth;
 	popup.height = popupHeight;
 	popup.iconWidths = iconWidths;
-
-	// now position all icons
-	setupPopupIconPositions(popup, searchEngines, settings);
 }
 
 function setupPopupIconPositions(popup, searchEngines, settings)
@@ -557,16 +531,16 @@ function setupPopupIconPositions(popup, searchEngines, settings)
 	let iconWidths = popup.iconWidths;
 
 	// all engine icons have the same height
-	let itemHeight = settings.popupItemSize + (3 + settings.popupItemVerticalPadding) * 2;
+	let rowHeight = settings.popupItemSize + (3 + settings.popupItemVerticalPadding) * 2;
+	let rowWidth = 0;
 	let y = settings.popupPaddingY;
-	let lineWidth = 0;
 
 	let popupChildren = popup.children;
 	let iAtStartOfRow = 0;
 
 	function positionRowIcons(start, end)
 	{
-		let x = (popupWidth - lineWidth) / 2 + settings.popupPaddingX;
+		let x = (popupWidth - rowWidth) / 2 + settings.popupPaddingX;
 		for (let j = start; j < end; j++) {
 			let popupChild = popupChildren[j];
 			setProperty(popupChild, "left", x + "px");
@@ -577,14 +551,13 @@ function setupPopupIconPositions(popup, searchEngines, settings)
 
 	for (let i = 0; i < popupChildren.length; i++)
 	{
-		if (lineWidth + iconWidths[i] > popupWidth + 0.001)	// 0.001 is just to avoid floating point errors causing problems
-		{
+		if (rowWidth + iconWidths[i] > popupWidth + 0.001) {	// 0.001 is just to avoid floating point errors causing problems
 			positionRowIcons(iAtStartOfRow, i);
 			iAtStartOfRow = i;
-			lineWidth = iconWidths[i];
-			y += itemHeight;
+			rowWidth = iconWidths[i];
+			y += rowHeight;
 		} else {
-			lineWidth += iconWidths[i];
+			rowWidth += iconWidths[i];
 		}
 	}
 
