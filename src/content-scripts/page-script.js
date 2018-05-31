@@ -328,7 +328,6 @@ fontSize: 0 !important;
 	for (let i = 0; i < settings.searchEngines.length; i++)
 	{
 		let engine = settings.searchEngines[i];
-		let iconWidth = settings.popupItemSize;
 		let icon;
 
 		// special SSS icons with special functions
@@ -346,8 +345,6 @@ fontSize: 0 !important;
 			// }
 
 			if (engine.id === "separator") {
-				setProperty(icon, "transform", "translateX(-50%)");
-				setProperty(icon, "margin-left", "50%");
 				setProperty(icon, "pointer-events", "none");
 			}
 		}
@@ -365,8 +362,6 @@ fontSize: 0 !important;
 
 			icon = setupEngineIcon(engine, iconImgSource, engine.name, true, iconCssText, popup, settings);
 		}
-
-		setProperty(icon, "width", settings.popupItemSize + "px");
 	}
 
 	// add popup to page
@@ -389,6 +384,7 @@ function setupEngineIcon(engine, iconImgSource, iconTitle, isInteractive, iconCs
 	icon.style.cssText = iconCssText;
 	setProperty(icon, "border-radius", settings.popupItemBorderRadius + "px");
 	setProperty(icon, "height", settings.popupItemSize + "px");
+	setProperty(icon, "width", settings.popupItemSize + "px");
 	setProperty(icon, "padding", `${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}px`);
 
 	// if icon responds to mouse interaction, it needs events!
@@ -543,7 +539,8 @@ function setupPopupIconPositions(popup, searchEngines, settings)
 		let x = (popupWidth - rowWidth) / 2 + settings.popupPaddingX;
 		for (let j = start; j < end; j++) {
 			let popupChild = popupChildren[j];
-			setProperty(popupChild, "left", x + "px");
+			let xOffset = -(settings.popupItemSize - iconWidths[j]) / 2;
+			setProperty(popupChild, "left", (x + xOffset) + "px");
 			setProperty(popupChild, "top", y + "px");
 			x += iconWidths[j];
 		}
@@ -554,11 +551,10 @@ function setupPopupIconPositions(popup, searchEngines, settings)
 		if (rowWidth + iconWidths[i] > popupWidth + 0.001) {	// 0.001 is just to avoid floating point errors causing problems
 			positionRowIcons(iAtStartOfRow, i);
 			iAtStartOfRow = i;
-			rowWidth = iconWidths[i];
+			rowWidth = 0;
 			y += rowHeight;
-		} else {
-			rowWidth += iconWidths[i];
 		}
+		rowWidth += iconWidths[i];
 	}
 
 	positionRowIcons(iAtStartOfRow, popupChildren.length);
