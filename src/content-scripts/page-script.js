@@ -253,6 +253,7 @@ function tryShowPopup(ev, isForced)
 
 	if (popup === null) {
 		createPopup(settings);
+		setupPopupLayout(popup, settings.searchEngines, settings);
 	}
 
 	showPopup(settings);
@@ -265,7 +266,7 @@ function showPopup(settings)
 	}
 
 	setProperty(popup, "display", "inline-block");
-	setPopupPositionAndSize(popup, settings.searchEngines, settings);
+	setPopupPosition(popup, settings.searchEngines, settings);
 
 	// Animate popup (only if cloneInto exists, which it doesn't in add-on resource pages).
 	// cloneInto fixes a Firefox bug that causes animations to not work (pre-Firefox 60?).
@@ -399,6 +400,7 @@ function setupEngineIconWrapper(cssString, parent, settings)
 	let elem = document.createElement("sss-icon");
 	elem.style.cssText = cssString;
 	setProperty(elem, "height", settings.popupItemSize + "px");
+	setProperty(elem, "position", "absolute");
 	parent.appendChild(elem);
 	return elem;
 }
@@ -479,7 +481,7 @@ function setupEngineIcon(engine, iconImgSource, iconTitle, isInteractive, iconCs
 // 	return div;
 // }
 
-function setPopupPositionAndSize(popup, searchEngines, settings)
+function setupPopupLayout(popup, searchEngines, settings)
 {
 	let nPopupIconsPerRow;
 	if (!settings.useSingleRow && settings.nPopupIconsPerRow < searchEngines.length) {
@@ -535,6 +537,64 @@ function setPopupPositionAndSize(popup, searchEngines, settings)
 			lineWidth = iconWidths[i];
 		}
 	}
+
+	// finally set the size and position values
+	setProperty(popup, "width",  popupWidth + "px");
+	setProperty(popup, "height", popupHeight + "px");
+
+	popup.width = popupWidth;
+	popup.height = popupHeight;
+	popup.iconWidths = iconWidths;
+
+	// now position all icons
+	setupPopupIconPositions(popup, searchEngines, settings);
+}
+
+function setupPopupIconPositions(popup, searchEngines, settings)
+{
+	let popupWidth = popup.width;
+	let popupHeight = popup.height;
+	let iconWidths = popup.iconWidths;
+
+	// all engine icons have the same height
+	let itemHeight = settings.popupItemSize + (3 + settings.popupItemVerticalPadding) * 2;
+	let y = settings.popupPaddingY;
+	let lineWidth = 0;
+
+	let popupChildren = popup.children;
+	let iAtStartOfRow = 0;
+
+	function positionRowIcons(start, end)
+	{
+		let x = (popupWidth - lineWidth) / 2 + settings.popupPaddingX;
+		for (let j = start; j < end; j++) {
+			let popupChild = popupChildren[j];
+			setProperty(popupChild, "left", x + "px");
+			setProperty(popupChild, "top", y + "px");
+			x += iconWidths[j];
+		}
+	}
+
+	for (let i = 0; i < popupChildren.length; i++)
+	{
+		if (lineWidth + iconWidths[i] > popupWidth + 0.001)	// 0.001 is just to avoid floating point errors causing problems
+		{
+			positionRowIcons(iAtStartOfRow, i);
+			iAtStartOfRow = i;
+			lineWidth = iconWidths[i];
+			y += itemHeight;
+		} else {
+			lineWidth += iconWidths[i];
+		}
+	}
+
+	positionRowIcons(iAtStartOfRow, popupChildren.length);
+}
+
+function setPopupPosition(popup, searchEngines, settings)
+{
+	let popupWidth = popup.width;
+	let popupHeight = popup.height;
 
 	// position popup
 
@@ -593,10 +653,8 @@ function setPopupPositionAndSize(popup, searchEngines, settings)
 	}
 
 	// finally set the size and position values
-	setProperty(popup, "width",  popupWidth + "px");
-	setProperty(popup, "height", popupHeight + "px");
-	setProperty(popup, "left",   positionLeft + "px");
-	setProperty(popup, "top",    positionTop + "px");
+	setProperty(popup, "left", positionLeft + "px");
+	setProperty(popup, "top",  positionTop + "px");
 }
 
 function onMouseUpdate(ev)
