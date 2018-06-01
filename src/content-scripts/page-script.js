@@ -382,9 +382,9 @@ function setupEngineIcon(engine, iconImgSource, iconTitle, isInteractive, iconCs
 	let icon = document.createElement("img");
 	icon.src = iconImgSource;
 	icon.style.cssText = iconCssText;
-	setProperty(icon, "border-radius", settings.popupItemBorderRadius + "px");
-	setProperty(icon, "height", settings.popupItemSize + "px");
 	setProperty(icon, "width", settings.popupItemSize + "px");
+	setProperty(icon, "height", settings.popupItemSize + "px");
+	setProperty(icon, "border-radius", settings.popupItemBorderRadius + "px");
 	setProperty(icon, "padding", `${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}px`);
 
 	// if icon responds to mouse interaction, it needs events!
@@ -477,11 +477,11 @@ function setupPopupSize(popup, searchEngines, settings)
 		for (let j = i; j < limit; j++)
 		{
 			let engine = searchEngines[j];
-			let iconWidth;
+			let iconWidth = settings.popupItemPadding * 2;
 			if (engine.type === "sss" && engine.id === "separator") {
-				iconWidth = settings.popupItemSize * settings.popupSeparatorWidth / 100;
+				iconWidth += settings.popupItemSize * settings.popupSeparatorWidth / 100;
 			} else {
-				iconWidth = settings.popupItemSize + settings.popupItemPadding * 2;
+				iconWidth += settings.popupItemSize;
 			}
 
 			iconWidths.push(iconWidth);
@@ -522,8 +522,6 @@ function setupPopupSize(popup, searchEngines, settings)
 
 function setupPopupIconPositions(popup, searchEngines, settings)
 {
-	let popupWidth = popup.width;
-	let popupHeight = popup.height;
 	let iconWidths = popup.iconWidths;
 
 	// all engine icons have the same height
@@ -534,22 +532,22 @@ function setupPopupIconPositions(popup, searchEngines, settings)
 	let popupChildren = popup.children;
 	let iAtStartOfRow = 0;
 
-	function positionRowIcons(start, end)
+	function positionRowIcons(start, end, rowWidth, y)
 	{
-		let x = (popupWidth - rowWidth) / 2 + settings.popupPaddingX;
-		for (let j = start; j < end; j++) {
-			let popupChild = popupChildren[j];
-			let xOffset = -(settings.popupItemSize - iconWidths[j]) / 2;
+		let x = (popup.width - rowWidth) / 2 + settings.popupPaddingX;
+		for (let i = start; i < end; i++) {
+			let popupChild = popupChildren[i];
+			let xOffset = -(settings.popupItemSize + settings.popupItemPadding * 2 - iconWidths[i]) / 2;
 			setProperty(popupChild, "left", (x + xOffset) + "px");
 			setProperty(popupChild, "top", y + "px");
-			x += iconWidths[j];
+			x += iconWidths[i];
 		}
 	}
 
 	for (let i = 0; i < popupChildren.length; i++)
 	{
-		if (rowWidth + iconWidths[i] > popupWidth + 0.001) {	// 0.001 is just to avoid floating point errors causing problems
-			positionRowIcons(iAtStartOfRow, i);
+		if (rowWidth + iconWidths[i] > popup.width + 0.001) {	// 0.001 is just to avoid floating point errors causing problems
+			positionRowIcons(iAtStartOfRow, i, rowWidth, y);
 			iAtStartOfRow = i;
 			rowWidth = 0;
 			y += rowHeight;
@@ -557,14 +555,11 @@ function setupPopupIconPositions(popup, searchEngines, settings)
 		rowWidth += iconWidths[i];
 	}
 
-	positionRowIcons(iAtStartOfRow, popupChildren.length);
+	positionRowIcons(iAtStartOfRow, popupChildren.length, rowWidth, y);
 }
 
 function setPopupPosition(popup, searchEngines, settings)
 {
-	let popupWidth = popup.width;
-	let popupHeight = popup.height;
-
 	// position popup
 
 	let positionLeft;
@@ -586,11 +581,11 @@ function setPopupPosition(popup, searchEngines, settings)
 	else if (settings.popupLocation === consts.PopupLocation_Cursor) {
 		// right above the mouse position
 		positionLeft = mousePositionX;
-		positionTop = mousePositionY - popupHeight - 10;	// 10 is forced padding to avoid popup being too close to cursor
+		positionTop = mousePositionY - popup.height - 10;	// 10 is forced padding to avoid popup being too close to cursor
 	}
 
 	// center horizontally
-	positionLeft -= popupWidth / 2;
+	positionLeft -= popup.width / 2;
 
 	// apply user offsets from settings
 	positionLeft += settings.popupOffsetX;
@@ -603,8 +598,8 @@ function setPopupPosition(popup, searchEngines, settings)
 		positionLeft = 5;
 	} else {
 		let pageWidth = document.documentElement.offsetWidth + window.pageXOffset;
-		if (positionLeft + popupWidth + 10 > pageWidth) {
-			positionLeft = pageWidth - popupWidth - 10;
+		if (positionLeft + popup.width + 10 > pageWidth) {
+			positionLeft = pageWidth - popup.width - 10;
 		}
 	}
 
@@ -613,10 +608,10 @@ function setPopupPosition(popup, searchEngines, settings)
 		positionTop = 5;
 	} else {
 		let pageHeight = document.documentElement.scrollHeight;
-		if (positionTop + popupHeight + 10 > pageHeight) {
-			let newPositionTop = pageHeight - popupHeight - 10;
+		if (positionTop + popup.height + 10 > pageHeight) {
+			let newPositionTop = pageHeight - popup.height - 10;
 			if (newPositionTop >= 0) {	// just to be sure, since some websites can have pageHeight = 0
-				positionTop = pageHeight - popupHeight - 10;
+				positionTop = pageHeight - popup.height - 10;
 			}
 		}
 	}
