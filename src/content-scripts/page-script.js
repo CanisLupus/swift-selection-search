@@ -253,6 +253,8 @@ function tryShowPopup(ev, isForced)
 
 	if (popup === null) {
 		createPopup(settings);
+		setupPopupSize(popup, settings.searchEngines, settings);
+		setupPopupIconPositions(popup, settings.searchEngines, settings);
 	}
 
 	showPopup(settings);
@@ -265,7 +267,7 @@ function showPopup(settings)
 	}
 
 	setProperty(popup, "display", "inline-block");
-	setPopupPositionAndSize(popup, settings.searchEngines, settings);
+	setPopupPosition(popup, settings.searchEngines, settings);
 
 	// Animate popup (only if cloneInto exists, which it doesn't in add-on resource pages).
 	// cloneInto fixes a Firefox bug that causes animations to not work (pre-Firefox 60?).
@@ -306,18 +308,11 @@ box-shadow: 0px 0px 3px rgba(0,0,0,.5) !important;
 direction: ltr !important;
 `;
 
-	// base format for each icon wrapper
-	let iconWrapperCssText = `
-all: initial;
-display: inline-block !important;
-box-sizing: initial !important;
-fontSize: 0 !important;
-`;
-
 	// base format for each icon (image)
 	let iconCssText = `
 all: initial;
 display: initial !important;
+position: absolute !important;
 box-sizing: initial !important;
 fontSize: 0 !important;
 `;
@@ -333,33 +328,23 @@ fontSize: 0 !important;
 	for (let i = 0; i < settings.searchEngines.length; i++)
 	{
 		let engine = settings.searchEngines[i];
-		let iconWidth = settings.popupItemSize;
 		let icon;
-
-		let wrapper = setupEngineIconWrapper(iconWrapperCssText, popup, settings);
 
 		// special SSS icons with special functions
 		if (engine.type === "sss")
 		{
 			let sssIcon = settings.sssIcons[engine.id];
 
-			if (engine.id === "separator") {
-				iconWidth *= settings.popupSeparatorWidth / 100;
-				setProperty(wrapper, "width", iconWidth + "px");
-			}
-
 			// if (sssIcon.iconPath !== undefined) {
 				let iconImgSource = browser.extension.getURL(sssIcon.iconPath);
 				let isInteractive = sssIcon.isInteractive !== false;	// undefined or true means it's interactive
-				icon = setupEngineIcon(engine, iconImgSource, sssIcon.name, isInteractive, iconCssText, wrapper, settings);
+				icon = setupEngineIcon(engine, iconImgSource, sssIcon.name, isInteractive, iconCssText, popup, settings);
 			// }
 			// else if (sssIcon.iconCss !== undefined) {
-			// 	setupEngineCss(sssIcon, iconCssText, wrapper, settings);
+			// 	setupEngineCss(sssIcon, iconCssText, popup, settings);
 			// }
 
 			if (engine.id === "separator") {
-				setProperty(icon, "transform", "translateX(-50%)");
-				setProperty(icon, "margin-left", "50%");
 				setProperty(icon, "pointer-events", "none");
 			}
 		}
@@ -375,10 +360,8 @@ fontSize: 0 !important;
 				iconImgSource = cachedIcon ? cachedIcon : engine.iconUrl;	// should have cached icon, but if not (for some reason) fall back to URL
 			}
 
-			icon = setupEngineIcon(engine, iconImgSource, engine.name, true, iconCssText, wrapper, settings);
+			icon = setupEngineIcon(engine, iconImgSource, engine.name, true, iconCssText, popup, settings);
 		}
-
-		setProperty(icon, "width", settings.popupItemSize + "px");
 	}
 
 	// add popup to page
@@ -394,28 +377,21 @@ fontSize: 0 !important;
 	}
 }
 
-function setupEngineIconWrapper(cssString, parent, settings)
-{
-	let elem = document.createElement("sss-icon");
-	elem.style.cssText = cssString;
-	setProperty(elem, "height", settings.popupItemSize + "px");
-	parent.appendChild(elem);
-	return elem;
-}
-
 function setupEngineIcon(engine, iconImgSource, iconTitle, isInteractive, iconCssText, parent, settings)
 {
 	let icon = document.createElement("img");
 	icon.src = iconImgSource;
-	icon.title = iconTitle;
 	icon.style.cssText = iconCssText;
-	setProperty(icon, "border-radius", settings.popupItemBorderRadius + "px");
+	setProperty(icon, "width", settings.popupItemSize + "px");
 	setProperty(icon, "height", settings.popupItemSize + "px");
+	setProperty(icon, "border-radius", settings.popupItemBorderRadius + "px");
 	setProperty(icon, "padding", `${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}px`);
 
 	// if icon responds to mouse interaction, it needs events!
 	if (isInteractive)
 	{
+		icon.title = iconTitle;	// only interactive icons need a title (for the tooltip)
+
 		// set hover behaviour based on settings
 		if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight || settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_HighlightAndMove)
 		{
@@ -478,7 +454,7 @@ function setupEngineIcon(engine, iconImgSource, iconTitle, isInteractive, iconCs
 // 	return div;
 // }
 
-function setPopupPositionAndSize(popup, searchEngines, settings)
+function setupPopupSize(popup, searchEngines, settings)
 {
 	let nPopupIconsPerRow;
 	if (!settings.useSingleRow && settings.nPopupIconsPerRow < searchEngines.length) {
@@ -487,32 +463,104 @@ function setPopupPositionAndSize(popup, searchEngines, settings)
 		nPopupIconsPerRow = searchEngines.length;
 	}
 
-	// all engine icons have the same height
-	let itemHeight = settings.popupItemSize + (3 + settings.popupItemVerticalPadding) * 2;
-	let popupHeight = itemHeight * Math.ceil(searchEngines.length / nPopupIconsPerRow);
-	let popupWidth = 0;
-
 	// Calculate popup width (not all icons have the same width).
 	// This deals with both single row and grid layouts.
+
+	var iconWidths = [];
+	let popupWidth = 0;
+
 	for (let i = 0; i < searchEngines.length; i += nPopupIconsPerRow)
 	{
-		let lineWidth = 0;
+		let rowWidth = 0;
 		let limit = Math.min(i + nPopupIconsPerRow, searchEngines.length);
 
-		for (let j = i; j < limit; j++) {
+		for (let j = i; j < limit; j++)
+		{
 			let engine = searchEngines[j];
+			let iconWidth = settings.popupItemPadding * 2;
 			if (engine.type === "sss" && engine.id === "separator") {
-				lineWidth += settings.popupItemSize * settings.popupSeparatorWidth / 100;
+				iconWidth += settings.popupItemSize * settings.popupSeparatorWidth / 100;
 			} else {
-				lineWidth += settings.popupItemSize;
-				lineWidth += settings.popupItemPadding * 2;
+				iconWidth += settings.popupItemSize;
 			}
+
+			iconWidths.push(iconWidth);
+			rowWidth += iconWidth;
 		}
 
-		if (popupWidth < lineWidth) {
-			popupWidth = lineWidth;
+		if (popupWidth < rowWidth) {
+			popupWidth = rowWidth;
 		}
 	}
+
+	// Calculate popup height (number of "rows" iterated through above might not be the real number)
+
+	// all engine icons have the same height
+	let rowHeight = settings.popupItemSize + (3 + settings.popupItemVerticalPadding) * 2;
+	let popupHeight = rowHeight;
+
+	let rowWidth = 0;
+
+	for (let i = 0; i < iconWidths.length; i++)
+	{
+		rowWidth += iconWidths[i];
+
+		if (rowWidth > popupWidth + 0.001) {	// 0.001 is just to avoid floating point errors causing problems
+			popupHeight += rowHeight;
+			rowWidth = iconWidths[i];
+		}
+	}
+
+	// finally set the size and position values
+	setProperty(popup, "width",  popupWidth + "px");
+	setProperty(popup, "height", popupHeight + "px");
+
+	popup.width = popupWidth;
+	popup.height = popupHeight;
+	popup.iconWidths = iconWidths;
+}
+
+function setupPopupIconPositions(popup, searchEngines, settings)
+{
+	let iconWidths = popup.iconWidths;
+
+	// all engine icons have the same height
+	let rowHeight = settings.popupItemSize + (3 + settings.popupItemVerticalPadding) * 2;
+	let rowWidth = 0;
+	let y = settings.popupPaddingY;
+
+	let popupChildren = popup.children;
+	let iAtStartOfRow = 0;
+
+	function positionRowIcons(start, end, rowWidth, y)
+	{
+		let x = (popup.width - rowWidth) / 2 + settings.popupPaddingX;
+		for (let i = start; i < end; i++) {
+			let popupChild = popupChildren[i];
+			let xOffset = -(settings.popupItemSize + settings.popupItemPadding * 2 - iconWidths[i]) / 2;
+			setProperty(popupChild, "left", (x + xOffset) + "px");
+			setProperty(popupChild, "top", y + "px");
+			x += iconWidths[i];
+		}
+	}
+
+	for (let i = 0; i < popupChildren.length; i++)
+	{
+		if (rowWidth + iconWidths[i] > popup.width + 0.001) {	// 0.001 is just to avoid floating point errors causing problems
+			positionRowIcons(iAtStartOfRow, i, rowWidth, y);
+			iAtStartOfRow = i;
+			rowWidth = 0;
+			y += rowHeight;
+		}
+		rowWidth += iconWidths[i];
+	}
+
+	positionRowIcons(iAtStartOfRow, popupChildren.length, rowWidth, y);
+}
+
+function setPopupPosition(popup, searchEngines, settings)
+{
+	// position popup
 
 	let positionLeft;
 	let positionTop;
@@ -533,11 +581,11 @@ function setPopupPositionAndSize(popup, searchEngines, settings)
 	else if (settings.popupLocation === consts.PopupLocation_Cursor) {
 		// right above the mouse position
 		positionLeft = mousePositionX;
-		positionTop = mousePositionY - popupHeight - 10;	// 10 is forced padding to avoid popup being too close to cursor
+		positionTop = mousePositionY - popup.height - 10;	// 10 is forced padding to avoid popup being too close to cursor
 	}
 
 	// center horizontally
-	positionLeft -= popupWidth / 2;
+	positionLeft -= popup.width / 2;
 
 	// apply user offsets from settings
 	positionLeft += settings.popupOffsetX;
@@ -550,8 +598,8 @@ function setPopupPositionAndSize(popup, searchEngines, settings)
 		positionLeft = 5;
 	} else {
 		let pageWidth = document.documentElement.offsetWidth + window.pageXOffset;
-		if (positionLeft + popupWidth + 10 > pageWidth) {
-			positionLeft = pageWidth - popupWidth - 10;
+		if (positionLeft + popup.width + 10 > pageWidth) {
+			positionLeft = pageWidth - popup.width - 10;
 		}
 	}
 
@@ -560,19 +608,17 @@ function setPopupPositionAndSize(popup, searchEngines, settings)
 		positionTop = 5;
 	} else {
 		let pageHeight = document.documentElement.scrollHeight;
-		if (positionTop + popupHeight + 10 > pageHeight) {
-			let newPositionTop = pageHeight - popupHeight - 10;
+		if (positionTop + popup.height + 10 > pageHeight) {
+			let newPositionTop = pageHeight - popup.height - 10;
 			if (newPositionTop >= 0) {	// just to be sure, since some websites can have pageHeight = 0
-				positionTop = pageHeight - popupHeight - 10;
+				positionTop = pageHeight - popup.height - 10;
 			}
 		}
 	}
 
 	// finally set the size and position values
-	setProperty(popup, "width",  popupWidth + "px");
-	setProperty(popup, "height", popupHeight + "px");
-	setProperty(popup, "left",   positionLeft + "px");
-	setProperty(popup, "top",    positionTop + "px");
+	setProperty(popup, "left", positionLeft + "px");
+	setProperty(popup, "top",  positionTop + "px");
 }
 
 function onMouseUpdate(ev)
