@@ -467,8 +467,11 @@ function setup_Commands()
 	}
 
 	if (browserVersion >= 60) {
-		browser.commands.update({ name: "open-popup",        shortcut: sss.settings.popupOpenCommand });
-		browser.commands.update({ name: "toggle-auto-popup", shortcut: sss.settings.popupDisableCommand });
+		let command;
+		command = sss.settings.popupOpenCommand.trim();
+		browser.commands.update({ name: "open-popup",        shortcut: command });
+		command = sss.settings.popupDisableCommand.trim();
+		browser.commands.update({ name: "toggle-auto-popup", shortcut: command });
 	}
 }
 
