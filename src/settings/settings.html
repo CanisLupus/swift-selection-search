@@ -48,34 +48,44 @@
 		border: 1px solid #3399FF;
 	}
 	.section {
-		padding: 7px 0px 0px 0px;
+		margin-top: 25px;
+		margin-bottom: 50px;
 	}
-	.vertically-padded {
-		padding: 25px 0px 25px 0px;
+	.collapsed-section {
+		margin-bottom: 0px;
 	}
 	.section-name {
-		padding: 0px 0px 10px 6px;
+		padding: 5px 0px 5px 6px;
 		font-size: 130%;
 		color: #222222;
-		border-bottom: 1px #bbb solid;
+		border-bottom: 1px #c6e3ff solid;
+		background: linear-gradient(to left, #c6e3ff 0%, #00000000 50%);
+		border-left: 5px #c6e3ff solid;
 	}
 	.section-name {
 		cursor: pointer;
 	}
-	.section-name:hover {
-		color: #3399FF;
-	}
-	.section-name:first-child {
-		padding: 0 0 10px 6px;
-	}
 	.section-name::before {
 		content: "▽ ";
+		font-size: 85%;
+	}
+	.collapsed-section .section-name::before {
+		content: "▷ ";
+	}
+	.section-settings {
+		border-left: 5px #c6e3ff solid;
 	}
 	.collapsed-section .section-settings {
 		display: none;
 	}
-	.collapsed-section .section-name::before {
-		content: "▷ ";
+	.section:hover > .section-name {
+		color: #3399FF;
+		border-bottom: 1px #3399FF solid;
+		background: linear-gradient(to left, #3399FF 0%, #00000000 50%);
+		border-left: 5px #3399FF solid;
+	}
+	.section:hover > .section-settings {
+		border-left: 5px #3399FF solid;
 	}
 	#engines-table * {
 		font-size: 0.8rem;
@@ -177,7 +187,7 @@
 		<h1><span style="color: #3399FF">Swift Selection Search</span> (SSS) options page</h1>
 	</div>
 
-	<div class="section vertically-padded" id="section_instructions">
+	<div class="section" id="section_instructions">
 		<div class="section-name">Instructions</div>
 
 		<div class="section-settings">
@@ -208,7 +218,7 @@
 		</div>
 	</div>
 
-	<div class="section vertically-padded collapsed-section" id="section_searchEngines">
+	<div class="section collapsed-section" id="section_searchEngines">
 		<div class="section-name">Search engines</div>
 
 		<div class="section-settings">
@@ -276,7 +286,7 @@
 		</div>
 	</div>
 
-	<div class="section vertically-padded collapsed-section" id="section_popupBehaviour">
+	<div class="section collapsed-section" id="section_popupBehaviour">
 		<div class="section-name">Popup/icons behaviour</div>
 
 		<div class="section-settings">
@@ -456,7 +466,7 @@
 		</div>
 	</div>
 
-	<div class="section vertically-padded collapsed-section" id="section_popupAppearance">
+	<div class="section collapsed-section" id="section_popupAppearance">
 		<div class="section-name">Popup/icons look</div>
 
 		<div class="section-settings">
@@ -588,7 +598,7 @@
 		</div>
 	</div>
 
-	<div class="section vertically-padded" id="section_contextMenu">
+	<div class="section" id="section_contextMenu">
 		<div class="section-name">Context menu</div>
 
 		<div class="section-settings">
@@ -629,7 +639,7 @@
 		</div>
 	</div>
 
-	<div class="section vertically-padded collapsed-section" id="section_storageAndBackup">
+	<div class="section collapsed-section" id="section_storageAndBackup">
 		<div class="section-name">Storage & backup</div>
 
 		<div class="section-settings">
@@ -688,7 +698,7 @@
 		</div>
 	</div>
 
-	<div class="section vertically-padded collapsed-section" id="section_reset">
+	<div class="section collapsed-section" id="section_reset">
 		<div class="section-name">Reset</div>
 
 		<div class="section-settings">
