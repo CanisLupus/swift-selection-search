@@ -814,7 +814,18 @@ function createEngineSearchLink(engine)
 	searchLinkInput.type = "text";
 	searchLinkInput.value = engine.searchUrl;
 	searchLinkInput.onchange = ev => {
-		engine.searchUrl = searchLinkInput.value;
+		// trim search url and prepend "http://" if it doesn't begin with a protocol
+		let url = searchLinkInput.value.trim();
+		if (url.length > 0 && !url.match(/^[0-9a-zA-Z\-+]+:\/\//)) {
+			url = "http://" + url;
+		}
+
+		// if trimming and checks changed the url, set it on the input element
+		if (searchLinkInput.value !== url) {
+			searchLinkInput.value = url;
+		}
+
+		engine.searchUrl = url;
 		saveSettings({ searchEngines: settings.searchEngines });
 		calculateAndShowSettingsSize();
 	};
