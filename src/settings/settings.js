@@ -1,23 +1,57 @@
 "use strict";
 
-const mainScript = browser.extension.getBackgroundPage();
-const DEBUG = mainScript.isDebugModeActive();
-if (DEBUG) {
-	var log = mainScript.log;
-}
-
-const consts = mainScript.getConsts();
 const page = {};
 let settings;
 let hasPageLoaded = false;
 let isFocused = true;
 let pendingSettings = false;
 
-// Load settings. The last of either onSettingsAcquired and onPageLoaded will update the UI with the loaded settings.
-browser.storage.local.get().then(onSettingsAcquired, mainScript.getErrorHandler("Error getting settings in settings page."));
-browser.storage.onChanged.addListener(onSettingsChanged);
+let DEBUG;
+let consts;
+let defaultSettings;
+let browserVersion;
+let log;
+let hasDOMContentLoaded = false;
 
-document.addEventListener("DOMContentLoaded", onPageLoaded);
+document.addEventListener("DOMContentLoaded", onDOMContentLoaded);
+
+// ask all needed information from the background script (can't use browser.extension.getBackgroundPage() in private mode, so it has to be this way)
+
+browser.runtime.sendMessage({ type: "getDataForSettingsPage" }).then(
+	data => {
+		DEBUG = data.DEBUG;
+		browserVersion = data.browserVersion;
+		consts = data.consts;
+		defaultSettings = data.defaultSettings;
+
+		// now we can initialize things
+
+		if (DEBUG) {
+			log = console.log;
+		}
+
+		// Load settings. The last of either onSettingsAcquired and onPageLoaded will update the UI with the loaded settings.
+		browser.storage.local.get().then(onSettingsAcquired, getErrorHandler("Error getting settings in settings page."));
+		browser.storage.onChanged.addListener(onSettingsChanged);
+
+		// if DOM already loaded by now, setup page
+		if (hasDOMContentLoaded) {
+			onPageLoaded();
+		}
+		// if it isn't, set up page when DOM loads (onDOMContentLoaded)
+	},
+	getErrorHandler("Error sending getDataForSettingsPage message from settings.")
+);
+
+// default error handler for promises
+function getErrorHandler(text)
+{
+	if (DEBUG) {
+		return error => { log(`${text} (${error})`); };
+	} else {
+		return undefined;
+	}
+}
 
 // This method's code was taken from node-lz4 by Pierre Curto. MIT license.
 // CHANGES: Added ; to all lines. Reformated one-liners. Removed n = eIdx. Fixed eIdx skipping end bytes if sIdx != 0.
@@ -223,6 +257,15 @@ function getDataUriFromImgUrl(imageUrl, callback)
 	img.src = imageUrl;	// starts the download and will call onload eventually
 }
 
+function onDOMContentLoaded()
+{
+	// if we have the consts already, it means we have everything from the background script
+	if (consts !== undefined) {
+		onPageLoaded();
+	}
+	hasDOMContentLoaded = true;
+}
+
 // main setup for settings page, called when page loads
 function onPageLoaded()
 {
@@ -364,7 +407,7 @@ function onPageLoaded()
 
 	// show/hide Firefox version-specific sections
 
-	if (mainScript.getBrowserVersion() < 60)
+	if (browserVersion < 60)
 	{
 		for (let elem of document.getElementsByClassName("command")) {
 			elem.classList.add("disabled", true);
@@ -384,7 +427,7 @@ function onPageLoaded()
 	window.onfocus = ev => {
 		// if settings changed while page was not focused, reload settings and UI
 		if (pendingSettings) {
-			browser.storage.local.get().then(onSettingsAcquired, mainScript.getErrorHandler("Error getting settings in settings page."));
+			browser.storage.local.get().then(onSettingsAcquired, getErrorHandler("Error getting settings in settings page."));
 		}
 		isFocused = true;
 	};
@@ -396,7 +439,7 @@ function onPageLoaded()
 	// engines footnote (small warnings related to bugs and similar stuff)
 	// TODO: move them to somewhere else in the page?
 
-	if (mainScript.getBrowserVersion() < 58)
+	if (browserVersion < 58)
 	{
 		let enginesFootnoteElem = document.getElementById("engines-footnote");
 
@@ -422,8 +465,6 @@ function onPageLoaded()
 	}
 
 	// register events for more button clicks
-
-	let defaultSettings = mainScript.getDefaultSettings();
 
 	page.addEngineButton.onclick = ev => {
 		// duplicates the first default SSS engine that is not a special SSS icon (whatever it is, but always the same)
@@ -523,7 +564,7 @@ function onPageLoaded()
 
 			// now parse and import the settings
 			importSettings(JSON.parse(settingsStr));
-		}, mainScript.getErrorHandler("Error getting settings from sync.")));
+		}, getErrorHandler("Error getting settings from sync.")));
 
 	// finish and set elements based on settings, if they are already loaded
 
@@ -532,6 +573,11 @@ function onPageLoaded()
 	if (settings !== undefined) {
 		updateUIWithSettings();
 	}
+
+	// make page content visible, but only after a minimum of time, so that the UI adjusts beforehand
+	setTimeout(() => {
+		document.body.style.display = "inherit";
+	}, 0);
 }
 
 function onSettingsAcquired(_settings)
@@ -922,16 +968,19 @@ function importSettings(importedSettings)
 		return;
 	}
 
-	settings = importedSettings;
-	settings.searchEnginesCache = {};
+	importedSettings.searchEnginesCache = {};
 
 	// run compatibility updates in case this is a backup made in an old version of SSS
-	mainScript.runBackwardsCompatibilityUpdates(settings);
+	browser.runtime.sendMessage({ type: "runBackwardsCompatibilityUpdates", settings: importedSettings }).then(
+		(_settings) => {
+			settings = _settings;
 
-	if (DEBUG) { log("imported settings!", settings); }
-
-	updateUIWithSettings();
-	saveSettings(settings);
+			if (DEBUG) { log("imported settings!", settings); }
+			updateUIWithSettings();
+			saveSettings(settings);
+		},
+		getErrorHandler("Error sending runBackwardsCompatibilityUpdates message from settings.")
+	);
 }
 
 function updateColorText(text, value)

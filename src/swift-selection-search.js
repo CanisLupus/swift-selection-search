@@ -271,7 +271,6 @@ function getPopupSettingsForContentScript(settings)
 	return popupSettings;
 }
 
-// (also called from settings.js)
 function runBackwardsCompatibilityUpdates(settings)
 {
 	// add settings that were not available in older versions of SSS
@@ -310,12 +309,6 @@ function createSettingIfNonExistent(settings, settingName)
 	return false;
 }
 
-// (all these are called from settings.js)
-function getDefaultSettings() { return defaultSettings; }
-function getConsts() { return consts; }
-function isDebugModeActive() { return DEBUG; }
-function getBrowserVersion() { return browserVersion; }
-
 // whenever settings change, we re-aquire all settings and setup everything again as if just starting
 // (definitely not performant, but very robust)
 function onSettingsChanged(changes, area)
@@ -330,7 +323,6 @@ function onSettingsChanged(changes, area)
 	browser.storage.local.get().then(onSettingsAcquired, getErrorHandler("Error getting settings after onSettingsChanged."));
 }
 
-// (also called from settings.js)
 // default error handler for promises
 function getErrorHandler(text)
 {
@@ -358,6 +350,7 @@ function onContentScriptMessage(msg, sender, callbackFunc)
 
 	switch (msg.type)
 	{
+		// messages from content script
 		case "getActivationSettings":
 			callbackFunc(sss.activationSettingsForContentScript);
 			break;
@@ -372,6 +365,21 @@ function onContentScriptMessage(msg, sender, callbackFunc)
 
 		case "log":
 			if (DEBUG) { log("[content script log]", msg.log); }
+			break;
+
+		// messages from settings page
+		case "getDataForSettingsPage":
+			callbackFunc({
+				DEBUG: DEBUG,
+				browserVersion: browserVersion,
+				consts: consts,
+				defaultSettings: defaultSettings
+			});
+			break;
+
+		case "runBackwardsCompatibilityUpdates":
+			runBackwardsCompatibilityUpdates(msg.settings);
+			callbackFunc(msg.settings);
 			break;
 
 		default: break;
