@@ -616,9 +616,10 @@ function onSearchEngineClick(engineObject, clickType, searchText, hostname)
 function getSearchQuery(engine, searchText, hostname)
 {
 	searchText = searchText.trim();
-	let query = engine.searchUrl;
-	query = query.replace("{searchTerms}", encodeURIComponent(searchText));
-	query = query.replace("{hostname}", hostname);
+	let query = getFilteredSearchUrl(engine.searchUrl, searchText)
+	// // use regex with "g" flag to match all occurences, "i" ignores case
+	// query = query.replace(/\{searchTerms\}/gi, encodeURIComponent(searchText));
+	query = query.replace(/\{hostname\}/gi, hostname);
 	return query;
 }
 
@@ -675,6 +676,121 @@ function getCurrentTab(callback)
 		tabs => callback(tabs[0]),
 		getErrorHandler("Error getting current tab.")
 	);
+}
+
+function getFilteredSearchUrl(url, text)
+{
+	text = text.trim();
+
+	let searchIndex = 0;
+	let queryParts = [];
+
+	while (true)
+	{
+		let [replacements, startIndex, endIndex] = getSearchTermsReplacements(url, searchIndex);
+
+		if (endIndex == -1) {
+			break;
+		}
+
+		queryParts.push(url.substring(searchIndex, startIndex));
+		queryParts.push(replace(text, replacements));
+		searchIndex = endIndex;
+	}
+
+	queryParts.push(url.substring(searchIndex));
+	return queryParts.join("");
+}
+
+function getSearchTermsReplacements(url, startIndexForIndexOf)
+{
+	let string = "{searchTerms";
+	let startIndex = url.indexOf(string, startIndexForIndexOf);
+	// if searchTerms not found, quit
+	if (startIndex === -1) {
+		return [[], -1, -1];
+	}
+
+	let index = startIndex + string.length;
+	// if searchTerms ends immediately with no replacements, quit
+	if (url[index] == "}") {
+		return [[], startIndex, index+1];
+	}
+
+	const EXPECT_REPLACE_PAIR_OR_END = 0;
+	const EXPECT_REPLACE_SOURCE = 1;
+	const EXPECT_REPLACE_RESULT = 2;
+
+	let state = EXPECT_REPLACE_PAIR_OR_END;
+	let replacementSource;
+	let replacementResult;
+	let replacements = [];
+	let isEscaped = false;
+
+	while (index < url.length)
+	{
+		let c = url[index];
+		// console.log(state, c);
+
+		if (!isEscaped && c === "\\") {
+			isEscaped = true;
+			index++;
+			continue;
+		}
+
+		switch (state)
+		{
+			case EXPECT_REPLACE_PAIR_OR_END:
+				if (c === "{") {
+					state = EXPECT_REPLACE_SOURCE;
+					replacementSource = "";
+				} else if (c === "}") {
+					return [replacements, startIndex, index+1];
+				} else if (c !== " ") {
+					return [[], -1, -1];
+				}
+				break;
+
+			case EXPECT_REPLACE_SOURCE:
+				if (!isEscaped && c === "|") {
+					state = EXPECT_REPLACE_RESULT;
+					replacementResult = "";
+				} else if (!isEscaped && (c === "{" || c === "}")) {
+					return [[], -1, -1];
+				} else {
+					replacementSource += c;
+				}
+				break;
+
+			case EXPECT_REPLACE_RESULT:
+				if (!isEscaped && c === "}") {
+					state = EXPECT_REPLACE_PAIR_OR_END;
+					replacements.push([replacementSource, replacementResult]);
+				} else if (!isEscaped && (c === "|" || c === "}")) {
+					return [[], -1, -1];
+				} else {
+					replacementResult += c;
+				}
+				break;
+		}
+
+		if (isEscaped) {
+			isEscaped = false;
+		}
+
+		index++;
+	}
+
+	return [[], -1, -1];
+}
+
+function replace(text, replacements)
+{
+	for (let i = 0; i < replacements.length; i++) {
+		let [replacementSource, replacementResult] = replacements[i];
+		text = text.split(replacementSource).join(replacementResult);	// replace all occurrences
+	}
+	return text;
 }
 
 /* ------------------------------------ */
