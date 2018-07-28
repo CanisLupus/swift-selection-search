@@ -195,7 +195,16 @@
 				<div class="setting-description">
 					<ol>
 						<li>Add new search engines using the "Add engine" button in the "Search engines" section. You can also load your search bar engines from Firefox. Engines will appear in the SSS popup and context menu when you select text on a page. SSS comes with a few examples!</li>
-						<li>You can change the engine names, search URLs, and icon URLs. When you click a search engine in the popup or context menu, <i>{searchTerms}</i> (in the search URL) will be replaced by the selected text. Additionally (this is a more advanced use), if {hostname} is present, it will be replaced by the website domain you are on.</li>
+						<li>You can change the engine names, search URLs, and icon URLs. When you click a search engine in the popup or context menu, <i>{searchTerms}</i> (in the search URL) will be replaced by the selected text.
+							<details style="padding-left: 1rem;">
+								<summary>[Press to see advanced usage]</summary>
+								<ul>
+									<li>If {hostname} is present, it will be replaced by the website domain you are on.</li>
+									<li>{searchTerms} supports text substitutions, in the format {searchTerms{OriginalText|TargetText}}, supporting multiple pairs of {OriginalText|TargetText}. So if in a certain search engine you want to always replace spaces in your search with "+" and "@" with "at" you can use {searchTerms{ |+}{@|at}}</li>
+									<li>Since SSS uses the special characters \, {, |, or } for delimiting the substitutions, if you want to use these characters in the substitution itself, you should precede them with a \. For example, {searchTerms{\{|\}}} replaces { with } in your text and {searchTerms{ |\\} replaces spaces with a \.</li>
+								</ul>
+							</details>
+						</li>
 						<li>Having trouble finding icons? Maybe try <a target="_blank" href="https://besticon.herokuapp.com">this link.</a> :)</li>
 						<li>For customizing the popup look, context menu, click behaviour, etc, please check the other options in this page.</li>
 					</ol>
