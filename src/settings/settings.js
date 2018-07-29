@@ -467,10 +467,15 @@ function onPageLoaded()
 	// register events for more button clicks
 
 	page.addEngineButton.onclick = ev => {
-		// duplicates the first default SSS engine that is not a special SSS icon (whatever it is, but always the same)
-		let templateEngine = defaultSettings.searchEngines.find(engine => engine.type === "custom");
-		let newSearchEngine = JSON.parse(JSON.stringify(templateEngine));
-		settings.searchEngines.push(newSearchEngine);
+		let searchUrl = "https://www.google.com/search?q={searchTerms}";	// use google as an example
+
+		settings.searchEngines.push({
+			type: "custom",
+			name: "New Search Engine",
+			searchUrl: searchUrl,
+			iconUrl: getFaviconForUrl(searchUrl),	// by default try to get a favicon for the domain
+			isEnabled: true,
+		});
 
 		saveSettings({ searchEngines: settings.searchEngines });
 		updateUIWithSettings();
@@ -645,7 +650,7 @@ function updateUIWithSettings()
 		// add all engines
 		for (let i = 0; i < settings.searchEngines.length; i++) {
 			let engine = settings.searchEngines[i];
-			addSearchEngine(engine, i);
+			buildSearchEngineTableRow(engine, i);
 		}
 
 		// setup draggable elements to be able to sort engines
@@ -701,7 +706,7 @@ function calculateAndShowSettingsSize()
 }
 
 // creates and adds a search engine to the engines table (each in a different row)
-function addSearchEngine(engine, i)
+function buildSearchEngineTableRow(engine, i)
 {
 	let row = document.createElement("tr");
 	row.className = "engine";
@@ -788,8 +793,9 @@ function addSearchEngine(engine, i)
 	{
 		// create columns for normal icons
 		row.appendChild(createEngineName(engine));
-		row.appendChild(createEngineSearchLink(engine));
-		row.appendChild(createEngineIconLink(engine, icon));
+		let searchLinkCell = createEngineSearchLink(engine)
+		row.appendChild(searchLinkCell);
+		row.appendChild(createEngineIconLink(engine, icon, searchLinkCell));
 		row.appendChild(createDeleteButton(i));
 	}
 
@@ -859,11 +865,22 @@ function createEngineSearchLink(engine)
 	let searchLinkInput = document.createElement("input");
 	searchLinkInput.type = "text";
 	searchLinkInput.value = engine.searchUrl;
+	searchLinkInput.previousValue = engine.searchUrl;	// custom attribute that keeps the previous value before a change
 	searchLinkInput.onchange = ev => {
 		// trim search url and prepend "http://" if it doesn't begin with a protocol
 		let url = searchLinkInput.value.trim();
 		if (url.length > 0 && !url.match(/^[0-9a-zA-Z\-+]+:\/\//)) {
 			url = "http://" + url;
+		}
+
+		if (searchLinkInput.previousValue !== url) {
+			// if we're using the default favicon search for the previous search url, update it
+			if (engine.iconUrl.length == 0 || engine.iconUrl === getFaviconForUrl(searchLinkInput.previousValue)) {
+				let iconUrl = getFaviconForUrl(url);
+				cell.iconLinkInput.value = iconUrl;	// doesn't trigger oninput or onchange
+				setIconUrlInput(engine, cell.iconLinkInput, cell.icon);
+			}
+			searchLinkInput.previousValue = url;
 		}
 
 		// if trimming and checks changed the url, set it on the input element
@@ -880,7 +897,7 @@ function createEngineSearchLink(engine)
 }
 
 // sets the icon URL field for a search engine in the engines table
-function createEngineIconLink(engine, icon)
+function createEngineIconLink(engine, icon, searchLinkCell)
 {
 	let cell = document.createElement("td");
 	cell.className = "engine-icon-link";
@@ -889,16 +906,7 @@ function createEngineIconLink(engine, icon)
 	iconLinkInput.type = "text";
 	iconLinkInput.value = engine.iconUrl;
 	iconLinkInput.oninput = ev => {
-		engine.iconUrl = iconLinkInput.value.trim();
-		icon.src = engine.iconUrl;
-
-		// if not a data link already, try downloading the image and cache it as one
-		if (!engine.iconUrl.startsWith("data:")) {
-			getDataUriFromImgUrl(engine.iconUrl, base64Img => {
-				icon.src = base64Img;
-				settings.searchEnginesCache[engine.iconUrl] = base64Img;
-			});
-		}
+		setIconUrlInput(engine, iconLinkInput, icon);
 	};
 
 	iconLinkInput.onchange = ev => {
@@ -906,8 +914,27 @@ function createEngineIconLink(engine, icon)
 		saveSettings({ searchEngines: settings.searchEngines, searchEnginesCache: settings.searchEnginesCache });
 		calculateAndShowSettingsSize();
 	};
+
+	// save the reference to the icon and input field in the search input's cell, as we'll need them to update the default favicon
+	searchLinkCell.icon = icon;
+	searchLinkCell.iconLinkInput = iconLinkInput;
+
 	cell.appendChild(iconLinkInput);
 	return cell;
+}
+
+// sets the engine icon from the icon url present in the iconLinkInput input field
+function setIconUrlInput(engine, iconLinkInput, icon)
+{
+	engine.iconUrl = iconLinkInput.value.trim();
+	icon.src = engine.iconUrl;
+	// if not a data link already, try downloading the image and cache it as one
+	if (!engine.iconUrl.startsWith("data:")) {
+		getDataUriFromImgUrl(engine.iconUrl, base64Img => {
+			icon.src = base64Img;
+			settings.searchEnginesCache[engine.iconUrl] = base64Img;
+		});
+	}
 }
 
 // sets the delete button for a search engine in the engines table
@@ -1084,4 +1111,21 @@ function saveSettings(obj)
 {
 	browser.storage.local.set(obj);
 	if (DEBUG) { log("saved!", settings); }
+}
+
+function getFaviconForUrl(url)
+{
+	return "https://api.faviconkit.com/" + getDomainFromUrl(url) + "/64";
+	// return "https://www.google.com/s2/favicons?domain=" + getDomainFromUrl(url);	// faster, but only supports 16px icons and no subdomains
+}
+
+function getDomainFromUrl(url)
+{
+	if (url.indexOf("//") !== -1) {
+		url = url.split("//")[1];
+	}
+	url = url.split("/")[0];	// url after domain
+	url = url.split(":")[0];	// port
+	url = url.split("?")[0];	// args
+	return url;
 }
