@@ -1,7 +1,9 @@
 "use strict";
 
+const DEBUG = typeof DEBUG_STATE !== "undefined" && DEBUG_STATE === true;
+
 if (DEBUG) {
-	// To have all log messages in the same console, we always request the background to log.
+	// To have all log messages in the same console, we always request the background script to log.
 	// Otherwise content script messages are in the Web Console instead of the Dev Tools Console.
 	var log = msg => browser.runtime.sendMessage({ type: "log", log: msg });
 }

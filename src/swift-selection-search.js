@@ -560,13 +560,19 @@ function injectContentScript(tabId, frameId, allFrames)
 	let errorHandler = getErrorHandler(`Error injecting page content script in tab ${tabId}.`);
 
 	// We need to run several scripts, but the main one is page-script.js.
-	// The DEBUG variable is also passed, so we only have to declare debug mode once: here at the top of this background script.
-	browser.tabs.executeScript(tabId, { runAt: "document_start", frameId: frameId, allFrames: allFrames, code: "const DEBUG = " + DEBUG + ";"        }).then(result =>
-	browser.tabs.executeScript(tabId, { runAt: "document_start", frameId: frameId, allFrames: allFrames, file: "/content-scripts/selectionchange.js" }).then(result =>
-	browser.tabs.executeScript(tabId, { runAt: "document_start", frameId: frameId, allFrames: allFrames, file: "/content-scripts/page-script.js"     }).then(null
-	, errorHandler)
-	, errorHandler)
-	, errorHandler);
+	let injectPageScript = _ => {
+		browser.tabs.executeScript(tabId, { runAt: "document_start", frameId: frameId, allFrames: allFrames, file: "/content-scripts/selectionchange.js" }).then(_ =>
+		browser.tabs.executeScript(tabId, { runAt: "document_start", frameId: frameId, allFrames: allFrames, file: "/content-scripts/page-script.js"     }).then(null
+		, errorHandler)
+		, errorHandler)
+	};
+
+	// The DEBUG variable is also passed if true, so we only have to declare debug mode once: here at the top of this background script.
+	if (DEBUG) {
+		browser.tabs.executeScript(tabId, { runAt: "document_start", frameId: frameId, allFrames: allFrames, code: "const DEBUG_STATE = " + DEBUG + ";" }).then(injectPageScript, errorHandler)
+	} else {
+		injectPageScript();
+	}
 }
 
 function onSearchEngineClick(engineObject, clickType, searchText, hostname)
