@@ -892,6 +892,8 @@ function createEngineSearchLink(engine)
 		saveSettings({ searchEngines: settings.searchEngines });
 		calculateAndShowSettingsSize();
 	};
+
+	cell.searchLinkInput = searchLinkInput;	// save reference in cell
 	cell.appendChild(searchLinkInput);
 	return cell;
 }
@@ -910,6 +912,10 @@ function createEngineIconLink(engine, icon, searchLinkCell)
 	};
 
 	iconLinkInput.onchange = ev => {
+		if (iconLinkInput.value.length == 0) {
+			iconLinkInput.value = getFaviconForUrl(searchLinkCell.searchLinkInput.value);
+			setIconUrlInput(engine, iconLinkInput, icon);
+		}
 		trimSearchEnginesCache(settings);
 		saveSettings({ searchEngines: settings.searchEngines, searchEnginesCache: settings.searchEnginesCache });
 		calculateAndShowSettingsSize();
