@@ -275,17 +275,18 @@ function runBackwardsCompatibilityUpdates(settings)
 {
 	// add settings that were not available in older versions of SSS
 	let shouldSave = false;
-	shouldSave |= createSettingIfNonExistent(settings, "popupItemVerticalPadding");
-	shouldSave |= createSettingIfNonExistent(settings, "allowPopupOnEditableFields");
-	shouldSave |= createSettingIfNonExistent(settings, "popupBorderRadius");
-	shouldSave |= createSettingIfNonExistent(settings, "popupItemBorderRadius");
-	shouldSave |= createSettingIfNonExistent(settings, "minSelectedCharacters");
-	shouldSave |= createSettingIfNonExistent(settings, "middleMouseSelectionClickMargin");
-	shouldSave |= createSettingIfNonExistent(settings, "hidePopupOnRightClick");
-	shouldSave |= createSettingIfNonExistent(settings, "popupSeparatorWidth");
-	shouldSave |= createSettingIfNonExistent(settings, "popupOpenCommand");
-	shouldSave |= createSettingIfNonExistent(settings, "popupDisableCommand");
+	shouldSave |= createSettingIfNonExistent(settings, "popupItemVerticalPadding");			// 3.1.0
+	shouldSave |= createSettingIfNonExistent(settings, "allowPopupOnEditableFields");		// 3.6.0
+	shouldSave |= createSettingIfNonExistent(settings, "popupBorderRadius");				// 3.9.1
+	shouldSave |= createSettingIfNonExistent(settings, "popupItemBorderRadius");			// 3.12.0
+	shouldSave |= createSettingIfNonExistent(settings, "minSelectedCharacters");			// 3.13.0
+	shouldSave |= createSettingIfNonExistent(settings, "middleMouseSelectionClickMargin");	// 3.14.1
+	shouldSave |= createSettingIfNonExistent(settings, "hidePopupOnRightClick");			// 3.15.0
+	shouldSave |= createSettingIfNonExistent(settings, "popupSeparatorWidth");				// 3.21.0
+	shouldSave |= createSettingIfNonExistent(settings, "popupOpenCommand");					// 3.22.0
+	shouldSave |= createSettingIfNonExistent(settings, "popupDisableCommand");				// 3.22.0
 
+	// 3.7.0
 	// convert old unchangeable browser-imported engines to normal "custom" ones
 	for (let engine of settings.searchEngines)
 	{
