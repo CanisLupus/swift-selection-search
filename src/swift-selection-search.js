@@ -401,8 +401,8 @@ function setup_ContextMenu()
 		return;
 	}
 
-	// get only the needed engines (don't show special SSS engines in the context menu)
-	let engines = sss.settings.searchEngines.filter(engine => engine.type !== "sss");
+	// get only the enabled engines
+	let engines = sss.settings.searchEngines;
 
 	if (sss.settings.contextMenuEnginesFilter === consts.ContextMenuEnginesFilter_SameAsPopup) {
 		engines = engines.filter(engine => engine.isEnabled);
@@ -420,20 +420,36 @@ function setup_ContextMenu()
 	{
 		let contextMenuOption = {
 			parentId: "sss",
-			id: engine.searchUrl,
-			title: engine.name,
 			contexts: ["selection"],
 		};
 
-		// icons are unsupported on Firefox 55 and below
-		if (browserVersion >= 56) {
+		if (engine.type === "sss") {
+			if (engine.id === "separator") {
+				contextMenuOption.type = "separator";
+				browser.contextMenus.create(contextMenuOption);
+				continue;
+			}
+			contextMenuOption.id = engine.id;
+			contextMenuOption.title = consts.sssIcons[engine.id].name;
+		} else {
+			contextMenuOption.id = engine.searchUrl;
+			contextMenuOption.title = engine.name;
+		}
+
+		// icons are not supported on Firefox 55 and below
+		if (browserVersion >= 56)
+		{
 			let icon;
-			if (engine.iconUrl.startsWith("data:")) {
-				icon = engine.iconUrl;
+			if (engine.type === "sss") {
+				icon = consts.sssIcons[engine.id].iconPath;
 			} else {
-				icon = sss.settings.searchEnginesCache[engine.iconUrl];
-				if (icon === undefined) {
+				if (engine.iconUrl.startsWith("data:")) {
 					icon = engine.iconUrl;
+				} else {
+					icon = sss.settings.searchEnginesCache[engine.iconUrl];
+					if (icon === undefined) {
+						icon = engine.iconUrl;
+					}
 				}
 			}
 
@@ -450,8 +466,32 @@ function setup_ContextMenu()
 
 function onContextMenuItemClicked(info, tab)
 {
-	let engine = sss.settings.searchEngines.find(engine => engine.searchUrl === info.menuItemId);
-	if (engine !== undefined) {
+	let engine = sss.settings.searchEngines.find(engine => {
+		if (engine.type === "sss") {
+			return engine.id === info.menuItemId;
+		} else {
+			return engine.searchUrl === info.menuItemId;
+		}
+	});
+
+	if (engine === undefined) {
+		return;
+	}
+
+	// check if it's a special SSS engine
+	if (engine.type === "sss")
+	{
+		if (engine.id === "copyToClipboard") {
+			copyToClipboard();
+		}
+		else if (engine.id === "openAsLink") {
+			let searchUrl = getOpenAsLinkSearchUrl(info.selectionText);
+			openUrl(searchUrl, sss.settings.contextMenuItemBehaviour);
+		}
+	}
+	// here we know it's a normal search engine, so run the search
+	else
+	{
 		// search using the engine
 		let hostname = new URL(info.pageUrl).hostname;
 		let searchUrl = getSearchQuery(engine, info.selectionText, hostname);
@@ -582,16 +622,10 @@ function onSearchEngineClick(engineObject, clickType, searchText, hostname)
 	if (engineObject.type === "sss")
 	{
 		if (engineObject.id === "copyToClipboard") {
-			getCurrentTab(tab => browser.tabs.sendMessage(tab.id, { type: "copyToClipboard" }));
+			copyToClipboard();
 		}
 		else if (engineObject.id === "openAsLink") {
-			// trim text and add http protocol as default if selected text doesn't have it
-			searchText = searchText.trim();
-			if (!searchText.includes("://") && !searchText.startsWith("about:")) {
-				searchText = "http://" + searchText;
-			}
-
-			searchText = encodeURI(searchText);	// encode any weird chars to not break URL
+			searchText = getOpenAsLinkSearchUrl(searchText);
 
 			if (DEBUG) { log("open as link: " + searchText); }
 
@@ -616,6 +650,20 @@ function onSearchEngineClick(engineObject, clickType, searchText, hostname)
 		} else if (clickType === "ctrlClick") {
 			openUrl(getSearchQuery(engine, searchText, hostname), consts.MouseButtonBehaviour_NewBgTab);
 		}
+	}
+}
+
+function copyToClipboard()
+{
+	getCurrentTab(tab => browser.tabs.sendMessage(tab.id, { type: "copyToClipboard" }));
+}
+
+function getOpenAsLinkSearchUrl(searchText)
+{
+	// trim text and add http protocol as default if selected text doesn't have it
+	searchText = searchText.trim();
+	if (!searchText.includes("://") && !searchText.startsWith("about:")) {
+		searchText = "http://" + searchText;
 	}
 }
 
