@@ -4,6 +4,8 @@
 <head>
 <meta charset="utf-8">
 <style>
+	/* general formatting and layout */
+
 	* {
 		font: message-box;
 		font-size: 1rem;
@@ -16,7 +18,7 @@
 		max-width: 1200px;
 		padding: 50px 30px;
 		margin: 0 auto;
-		display: none;	/* disable until script is ready */
+		display: none;	/* disable page until script is ready */
 	}
 	body .header {
 		display: flex;
@@ -46,6 +48,9 @@
 	select:hover {
 		border: 1px solid #3399FF;
 	}
+
+	/* sections */
+
 	.section {
 		margin-top: 25px;
 		margin-bottom: 50px;
@@ -84,45 +89,9 @@
 	.section:hover > .section-settings {
 		border-left: 5px #3399FF solid;
 	}
-	#engines-table * {
-		font-size: 0.8rem;
-	}
-	#engines-table button {
-		padding: 2px 4px;
-		width: 24px;
-		text-align: center;
-	}
-	.engine-options {
-		opacity: 0.2;
-	}
-	.engine:hover + .engine-options {
-		opacity: 1;
-	}
-	.engine-options:hover {
-		opacity: 1;
-	}
-	.engine-icon-img {
-		padding: 0;
-	}
-	.engine-icon-img img {
-		padding: 0;
-		width: 22px;
-	}
-	.engine-name {
-		width: 15%;
-	}
-	.engine-search-link {
-		width: 50%;
-	}
-	.engine-icon-link {
-		width: 35%;
-	}
-	.engine-native {
-		padding: 4px 4px;
-		border: 1px solid #e5e5e5;
-		background-color: #f5f5f5;
-		border-radius: 4px;
-	}
+
+	/* settings */
+
 	.setting {
 		display: flex;
 		border-bottom: 1px #ddd solid;
@@ -175,6 +144,80 @@
 	.setting.hidden {
 		display: none;
 	}
+
+	/* search engines "table" */
+
+	#engines-table {
+		width: 100%;
+	}
+	#engines-table * {
+		font-size: 0.8rem;
+	}
+	#engines-table button {
+		padding: 2px 4px;
+		width: 24px;
+		text-align: center;
+	}
+	.engine-table-row {
+		width: 100%;
+		display: flex;
+		flex-flow: column;
+		margin-bottom: 10px;
+	}
+	.engine-itself {
+		width: 100%;
+		display: flex;
+	}
+	.engine-options {
+		display: flex;
+	}
+	.engine-itself > div,
+	.engine-options > div {
+		margin: 1px;
+	}
+	.engine-dragger,
+	.engine-icon-img,
+	.engine-delete {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 22px;
+	}
+	.engine-icon-img {
+		margin-right: 5px !important;
+	}
+	.engine-icon-img img {
+		padding: 0;
+		width: 22px;
+	}
+	.engine-name {
+		width: 15%;
+	}
+	.engine-search-link {
+		width: 50%;
+	}
+	.engine-icon-link {
+		width: 35%;
+	}
+	.engine-sss {
+		padding: 4px 4px;
+		border: 1px solid #e5e5e5;
+		background-color: #f5f5f5;
+		border-radius: 4px;
+	}
+	.engine-sss-name {
+		width: 15%;
+	}
+	.engine-sss-description {
+		width: 85%;
+	}
+	.engine-add-button {
+		max-width: 150px;
+		width: 40%;
+	}
+
+	/* platform/version specific elements */
+
 	.os-windows, .os-mac, .os-linux {
 		display: none;
 	}
@@ -238,31 +281,29 @@
 
 		<div class="section-settings">
 			<div class="setting">
-				<table id="engines-table">
-					<thead>
-						<tr id="engines-header">
-							<td colspan=3></td>
-							<td class="engine-name">Name</td>
-							<td class="engine-search-link">Search link</td>
-							<td class="engine-icon-link">Icon link</td>
-						</tr>
-					</thead>
-					<tfoot>
-						<tr id="engines-footer">
-							<td colspan=3></td>
-							<td class="engine-name"><input type="button" name="addEngineButton" value="Add engine"></td>
-						</tr>
-						<tr>
-							<td colspan=3></td>
-							<td class="engine-name"><input type="button" name="addSeparatorButton" value="Add separator"></td>
-						</tr>
-						<tr></tr>
-						<tr>
-							<td id="engines-footnote" colspan=10></td>
-						</tr>
-					</tfoot>
-					<tbody id="engines"></tbody>
-				</table>
+				<div id="engines-table">
+					<div class="engine-table-row">
+						<div class="engine-itself">
+							<div class="engine-dragger"></div>
+							<div class="engine-icon-img"></div>
+							<div class="engine-name">Name</div>
+							<div class="engine-search-link">Search link</div>
+							<div class="engine-icon-link">Icon link</div>
+							<div class="engine-delete"></div>
+						</div>
+					</div>
+
+					<div id="engines"></div>
+
+					<div class="engine-table-row">
+						<div class="engine-itself">
+							<div class="engine-dragger"></div>
+							<div class="engine-icon-img"></div>
+							<div class="engine-add-button"><input type="button" name="addEngineButton" value="Add engine"></div>
+							<div class="engine-add-button"><input type="button" name="addSeparatorButton" value="Add separator"></div>
+						</div>
+					</div>
+				</div>
 			</div>
 
 			<div class="setting">

@@ -437,34 +437,6 @@ function onPageLoaded()
 		isFocused = false;
 	};
 
-	// engines footnote (small warnings related to bugs and similar stuff)
-	// TODO: move them to somewhere else in the page?
-
-	if (browserVersion < 58)
-	{
-		let enginesFootnoteElem = document.getElementById("engines-footnote");
-
-		// generic function to add a footnote with eventual linked text
-		let addToFootnote = (text, linkParams) => {
-			enginesFootnoteElem.appendChild(document.createTextNode(text));
-
-			for (let i = 0; i < linkParams.length; ) {
-				let link = linkParams[i++];
-				let linkText = linkParams[i++];
-				let postText = linkParams[i++];
-				let anchor = document.createElement("a");
-				anchor.href = link;
-				anchor.textContent = linkText;
-				anchor.target = "_blank";
-				enginesFootnoteElem.appendChild(anchor);
-				enginesFootnoteElem.appendChild(document.createTextNode(postText));
-			}
-		};
-
-		addToFootnote("* If you click a dropdown and it appears far from where it should, that is a ",
-			["https://bugzilla.mozilla.org/show_bug.cgi?id=1390445", "Firefox bug", " (fixed in Firefox 58)."]);
-	}
-
 	// register events for more button clicks
 
 	page.addEngineButton.onclick = ev => {
@@ -653,8 +625,10 @@ function updateUIWithSettings()
 		// add all engines
 		for (let i = 0; i < settings.searchEngines.length; i++) {
 			let engine = settings.searchEngines[i];
-			buildSearchEngineTableRow(engine, i);
-			buildSearchEngineOptionsTableRow(engine, i);
+			let engineRow = buildSearchEngineTableRow(engine, i);
+			let optionsRow = buildSearchEngineOptionsTableRow(engine, i);
+			engineRow.appendChild(optionsRow);
+			page.engines.appendChild(engineRow);
 		}
 
 		// setup draggable elements to be able to sort engines
@@ -712,40 +686,23 @@ function calculateAndShowSettingsSize()
 // creates and adds a search engine to the engines table (each in a different row)
 function buildSearchEngineTableRow(engine, i)
 {
-	let row = document.createElement("tr");
-	row.className = "engine";
+	let row = document.createElement("div");
+	row.className = "engine-table-row";
 
-	let cell;
+	let engineRow = createCustomElement(
+		`<div class="engine-itself"></div>`
+	);
+	row.appendChild(engineRow);
 
 	// dragger element
 
-	cell = document.createElement("td");
-	cell.className = "engine-dragger";
-	let div = document.createElement("div");
-	div.textContent = "☰";
-	div.style.cursor = "move";
-	cell.appendChild(div);
-	row.appendChild(cell);
-
-	// "is enabled" checkbox
-
-	cell = document.createElement("td");
-	// cell.className = "engine-is-enabled";
-	// let isEnabledInput = document.createElement("input");
-	// isEnabledInput.type = "checkbox";
-	// isEnabledInput.checked = engine.isEnabled;
-	// isEnabledInput.autocomplete = "off";
-	// isEnabledInput.onchange = ev => {
-	// 	engine.isEnabled = isEnabledInput.checked;
-	// 	saveSettings({ searchEngines: settings.searchEngines });
-	// };
-	// cell.style.paddingLeft = "6px";
-	// cell.appendChild(isEnabledInput);
-	row.appendChild(cell);
+	engineRow.appendChild(createCustomElement(
+		`<div class="engine-dragger" style="cursor: move;">☰</div>`
+	));
 
 	// icon
 
-	cell = document.createElement("td");
+	let cell = document.createElement("div");
 	cell.className = "engine-icon-img";
 	let icon;
 
@@ -766,7 +723,7 @@ function buildSearchEngineTableRow(engine, i)
 		icon = setupEngineIcon(engine.iconUrl, cell, settings);
 	}
 
-	row.appendChild(cell);
+	engineRow.appendChild(cell);
 
 	if (engine.type === "sss")
 	{
@@ -776,53 +733,55 @@ function buildSearchEngineTableRow(engine, i)
 
 		// name
 
-		cell = document.createElement("td");
-		cell.className = "engine-native";
-		cell.textContent = sssIcon.name;
-		row.appendChild(cell);
+		engineRow.appendChild(createCustomElement(
+			`<div class="engine-sss engine-sss-name">${sssIcon.name}</div>`
+		));
 
 		// description
 
-		cell = document.createElement("td");
-		cell.className = "engine-native";
-		cell.colSpan = 2;
-		cell.textContent = sssIcon.description;
-		row.appendChild(cell);
+		engineRow.appendChild(createCustomElement(
+			`<div class="engine-sss engine-sss-description">${sssIcon.description}</div>`
+		));
 
 		if (engine.id === "separator") {
-			row.appendChild(createDeleteButton(i));
+			engineRow.appendChild(createDeleteButton(i));
+		} else {
+			engineRow.appendChild(createDeleteButtonEquivalentSpace(i));
 		}
 	}
 	else
 	{
 		// create columns for normal icons
-		row.appendChild(createEngineName(engine));
+		engineRow.appendChild(createEngineName(engine));
 		let searchLinkCell = createEngineSearchLink(engine)
-		row.appendChild(searchLinkCell);
-		row.appendChild(createEngineIconLink(engine, icon, searchLinkCell));
-		row.appendChild(createDeleteButton(i));
+		engineRow.appendChild(searchLinkCell);
+		engineRow.appendChild(createEngineIconLink(engine, icon, searchLinkCell));
+		engineRow.appendChild(createDeleteButton(i));
 	}
 
-	page.engines.appendChild(row);
+	return row;
 }
 
 // creates and adds a row with options for a certain search engine to the engines table
 function buildSearchEngineOptionsTableRow(engine, i)
 {
-	var template = document.createElement('template');
 	let id = `checkbox_enabled_in_context_menu_${i}`;
-	template.innerHTML =
-`<tr class="engine-options">
-	<td colspan="3"></td>
-	<td colspan="4">
-		<input id="checkbox_enabled_${i}" autocomplete="off" type="checkbox" ${engine.isEnabled ? "checked" : ""}>
-		<label for="checkbox_enabled_${i}"> Enabled in popup</label>
-		<input id="checkbox_enabled_in_context_menu_${i}" autocomplete="off" type="checkbox" ${engine.isEnabledInContextMenu ? "checked" : ""}>
-		<label for="checkbox_enabled_in_context_menu_${i}"> Enabled in context menu</label>
-	</td>
-</tr>`;
+	let innerHTML =
+		`<div class="engine-options">
+			<div class="engine-dragger"></div>
+			<div class="engine-icon-img"></div>
+			<div>
+				<input id="checkbox_enabled_${i}" autocomplete="off" type="checkbox" ${engine.isEnabled ? "checked" : ""}>
+				<label for="checkbox_enabled_${i}"> Enabled in popup</label>
+				<input id="checkbox_enabled_in_context_menu_${i}" autocomplete="off" type="checkbox" ${engine.isEnabledInContextMenu ? "checked" : ""}>
+				<label for="checkbox_enabled_in_context_menu_${i}"> Enabled in context menu</label>
+			</div>
+		</div>`;
+	// var template = document.createElement('template');
+	// template.innerHTML = innerHTML;
+	// let row = template.content.firstChild;
 
-	let row = template.content.firstChild;
+	let row = createCustomElement(innerHTML);
 	let inputs = row.getElementsByTagName("input");
 
 	let isEnabledCheckbox = inputs[0];
@@ -839,7 +798,7 @@ function buildSearchEngineOptionsTableRow(engine, i)
 		saveSettings({ searchEngines: settings.searchEngines });
 	};
 
-	page.engines.appendChild(row);
+	return row;
 }
 
 // Sets the icon for a search engine in the engines table.
@@ -881,31 +840,35 @@ function setupEngineIcon(iconImgSource, parent, settings)
 // sets the name field for a search engine in the engines table
 function createEngineName(engine)
 {
-	let cell = document.createElement("td");
-	cell.className = "engine-name";
+	let elem = createCustomElement(
+		`<div class="engine-name">
+			<input value="${engine.name}" type="text">
+		</div>`
+	);
 
-	let nameInput = document.createElement("input");
-	nameInput.type = "text";
-	nameInput.value = engine.name;
+	let nameInput = elem.getElementsByTagName("input")[0];
+
 	nameInput.onchange = ev => {
 		engine.name = nameInput.value;
 		saveSettings({ searchEngines: settings.searchEngines });
 		calculateAndShowSettingsSize();
 	};
-	cell.appendChild(nameInput);
-	return cell;
+	return elem;
 }
 
 // sets the search URL field for a search engine in the engines table
 function createEngineSearchLink(engine)
 {
-	let cell = document.createElement("td");
-	cell.className = "engine-search-link";
+	let elem = createCustomElement(
+		`<div class="engine-search-link">
+			<input value="${engine.searchUrl}" type="text">
+		</div>`
+	);
 
-	let searchLinkInput = document.createElement("input");
-	searchLinkInput.type = "text";
-	searchLinkInput.value = engine.searchUrl;
+	let searchLinkInput = elem.getElementsByTagName("input")[0];
+
 	searchLinkInput.previousValue = engine.searchUrl;	// custom attribute that keeps the previous value before a change
+
 	searchLinkInput.onchange = ev => {
 		// trim search url and prepend "http://" if it doesn't begin with a protocol
 		let url = searchLinkInput.value.trim();
@@ -933,20 +896,21 @@ function createEngineSearchLink(engine)
 		calculateAndShowSettingsSize();
 	};
 
-	cell.searchLinkInput = searchLinkInput;	// save reference in cell
-	cell.appendChild(searchLinkInput);
-	return cell;
+	elem.searchLinkInput = searchLinkInput;	// save reference in element
+	return elem;
 }
 
 // sets the icon URL field for a search engine in the engines table
 function createEngineIconLink(engine, icon, searchLinkCell)
 {
-	let cell = document.createElement("td");
-	cell.className = "engine-icon-link";
+	let elem = createCustomElement(
+		`<div class="engine-icon-link">
+			<input value="${engine.iconUrl}" type="text">
+		</div>`
+	);
 
-	let iconLinkInput = document.createElement("input");
-	iconLinkInput.type = "text";
-	iconLinkInput.value = engine.iconUrl;
+	let iconLinkInput = elem.getElementsByTagName("input")[0];
+
 	iconLinkInput.oninput = ev => {
 		setIconUrlInput(engine, iconLinkInput, icon);
 	};
@@ -965,8 +929,7 @@ function createEngineIconLink(engine, icon, searchLinkCell)
 	searchLinkCell.icon = icon;
 	searchLinkCell.iconLinkInput = iconLinkInput;
 
-	cell.appendChild(iconLinkInput);
-	return cell;
+	return elem;
 }
 
 // sets the engine icon from the icon url present in the iconLinkInput input field
@@ -986,20 +949,29 @@ function setIconUrlInput(engine, iconLinkInput, icon)
 // sets the delete button for a search engine in the engines table
 function createDeleteButton(i)
 {
-	let cell = document.createElement("td");
-	cell.className = "engine-delete";
+	let elem = createCustomElement(
+		`<div class="engine-delete">
+			<input value="✖" type="button">
+		</div>`
+	);
 
-	let deleteButton = document.createElement("input");
-	deleteButton.type = "button";
-	deleteButton.value = "✖";
+	let deleteButton = elem.getElementsByTagName("input")[0];
+
 	deleteButton.onclick = ev => {
 		settings.searchEngines.splice(i, 1); // remove element at i
 		trimSearchEnginesCache(settings);
 		updateUIWithSettings();
 		saveSettings({ searchEngines: settings.searchEngines, searchEnginesCache: settings.searchEnginesCache });
 	};
-	cell.appendChild(deleteButton);
-	return cell;
+	return elem;
+}
+
+function createDeleteButtonEquivalentSpace(i)
+{
+	let elem = createCustomElement(
+		`<div class="engine-delete"></div>`
+	);
+	return elem;
 }
 
 // removes all non-existent engines from the icon cache
@@ -1020,6 +992,13 @@ function trimSearchEnginesCache(settings)
 	}
 
 	settings.searchEnginesCache = newCache;
+}
+
+function createCustomElement(innerHTML)
+{
+	var template = document.createElement('template');
+	template.innerHTML = innerHTML;
+	return template.content.firstChild;
 }
 
 // removes from settings any objects that are easily re-calculatable (ex.: caches)
