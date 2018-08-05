@@ -768,11 +768,11 @@ function buildSearchEngineOptionsTableRow(engine, i)
 	let id = `checkbox_enabled_in_context_menu_${i}`;
 	let innerHTML =
 		`<div class="engine-options">
-			<div class="engine-dragger"></div>
-			<div class="engine-icon-img"></div>
 			<div>
 				<input id="checkbox_enabled_${i}" autocomplete="off" type="checkbox" ${engine.isEnabled ? "checked" : ""}>
 				<label for="checkbox_enabled_${i}"> Enabled in popup</label>
+			</div>
+			<div>
 				<input id="checkbox_enabled_in_context_menu_${i}" autocomplete="off" type="checkbox" ${engine.isEnabledInContextMenu ? "checked" : ""}>
 				<label for="checkbox_enabled_in_context_menu_${i}"> Enabled in context menu</label>
 			</div>
