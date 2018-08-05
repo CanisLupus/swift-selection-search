@@ -737,7 +737,6 @@ function getSearchTermsReplacements(url, startIndexForIndexOf)
 	while (index < url.length)
 	{
 		let c = url[index];
-		// console.log(state, c);
 
 		if (!isEscaped && c === "\\") {
 			isEscaped = true;
