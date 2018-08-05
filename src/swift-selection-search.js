@@ -622,11 +622,10 @@ function onSearchEngineClick(engineObject, clickType, searchText, hostname)
 // gets the complete search URL by applying the selected text to the engine's own searchUrl
 function getSearchQuery(engine, searchText, hostname)
 {
-	searchText = searchText.trim();
+	// replace newlines with spaces and encode chars that are not to be used on URLs
+	searchText = encodeURIComponent(searchText.trim().replace("\r\n", " ").replace("\n", " "));
 	let query = getFilteredSearchUrl(engine.searchUrl, searchText)
-	// // use regex with "g" flag to match all occurences, "i" ignores case
-	// query = query.replace(/\{searchTerms\}/gi, encodeURIComponent(searchText));
-	query = query.replace(/\{hostname\}/gi, hostname);
+	query = query.replace(/\{hostname\}/gi, hostname);	// use regex with "g" flag to match all occurences, "i" ignores case
 	return query;
 }
 
