@@ -92,6 +92,15 @@
 		width: 24px;
 		text-align: center;
 	}
+	.engine-options {
+		opacity: 0.2;
+	}
+	.engine:hover + .engine-options {
+		opacity: 1;
+	}
+	.engine-options:hover {
+		opacity: 1;
+	}
 	.engine-icon-img {
 		padding: 0;
 	}
@@ -630,17 +639,6 @@
 					</select>
 				</div>
 				<div class="setting-description">What to do when a search engine is clicked in the context menu. NOTE: This is NOT for clicking a search engine in the popup, only in the context menu. For the former, please see the "Popup/icons behaviour" section.<br>(default: Open in new background tab)</div>
-			</div>
-
-			<div class="setting">
-				<div class="setting-name">Context menu engines filter</div>
-				<div class="setting-value">
-					<select name="contextMenuEnginesFilter">
-						<option value="all">All</option>
-						<option value="same-as-popup">Same as popup</option>
-					</select>
-				</div>
-				<div class="setting-description">What engines to show on the context menu.<br>(default: Same as popup)</div>
 			</div>
 		</div>
 	</div>

@@ -34,6 +34,7 @@ const consts = {
 	ItemHoverBehaviour_Highlight: "highlight",
 	ItemHoverBehaviour_HighlightAndMove: "highlight-and-move",
 
+	// not used anymore but needed for retrocompatibility
 	ContextMenuEnginesFilter_All: "all",
 	ContextMenuEnginesFilter_SameAsPopup: "same-as-popup",
 
@@ -90,23 +91,25 @@ const defaultSettings = {
 	popupBorderRadius: 2,
 	enableEnginesInContextMenu: true,
 	contextMenuItemBehaviour: consts.MouseButtonBehaviour_NewBgTab,
-	contextMenuEnginesFilter: consts.ContextMenuEnginesFilter_SameAsPopup,
 
 	searchEngines: [
 		{
 			type: "sss",
 			id: "copyToClipboard",
 			isEnabled: true,
+			isEnabledInContextMenu: true,
 		},
 		{
 			type: "sss",
 			id: "openAsLink",
 			isEnabled: true,
+			isEnabledInContextMenu: true,
 		},
 		{
 			type: "sss",
 			id: "separator",
 			isEnabled: true,
+			isEnabledInContextMenu: true,
 		},
 		{
 			type: "custom",
@@ -114,6 +117,7 @@ const defaultSettings = {
 			searchUrl: "https://www.google.com/search?q={searchTerms}",
 			iconUrl: "https://www.google.com/favicon.ico",
 			isEnabled: true,
+			isEnabledInContextMenu: true,
 		},
 		{
 			type: "custom",
@@ -121,6 +125,7 @@ const defaultSettings = {
 			searchUrl: "https://www.youtube.com/results?search_query={searchTerms}",
 			iconUrl: "https://www.youtube.com/yts/img/favicon_144-vfliLAfaB.png",
 			isEnabled: true,
+			isEnabledInContextMenu: true,
 		},
 		{
 			type: "custom",
@@ -128,6 +133,7 @@ const defaultSettings = {
 			searchUrl: "http://www.imdb.com/find?s=all&q={searchTerms}",
 			iconUrl: "https://www.imdb.com/favicon.ico",
 			isEnabled: true,
+			isEnabledInContextMenu: true,
 		},
 		{
 			type: "custom",
@@ -135,6 +141,7 @@ const defaultSettings = {
 			searchUrl: "https://en.wikipedia.org/wiki/Special:Search?search={searchTerms}",
 			iconUrl: "https://www.wikipedia.org/favicon.ico",
 			isEnabled: true,
+			isEnabledInContextMenu: true,
 		},
 		{
 			type: "custom",
@@ -142,6 +149,7 @@ const defaultSettings = {
 			searchUrl: "https://www.google.com/search?q={searchTerms} site:{hostname}",
 			iconUrl: "https://www.google.com/favicon.ico",
 			isEnabled: false,
+			isEnabledInContextMenu: false,
 		},
 		{
 			type: "custom",
@@ -149,6 +157,7 @@ const defaultSettings = {
 			searchUrl: "https://translate.google.com/#en/pt/{searchTerms}",
 			iconUrl: "https://translate.google.com/favicon.ico",
 			isEnabled: false,
+			isEnabledInContextMenu: false,
 		},
 		{
 			type: "custom",
@@ -156,6 +165,7 @@ const defaultSettings = {
 			searchUrl: "https://www.google.com/search?btnI&q={searchTerms} site:steampowered.com",
 			iconUrl: "https://store.steampowered.com/favicon.ico",
 			isEnabled: false,
+			isEnabledInContextMenu: false,
 		}
 	],
 
@@ -298,6 +308,16 @@ function runBackwardsCompatibilityUpdates(settings)
 		}
 	}
 
+	// 3.25.0
+	// add isEnabledInContextMenu to all engines
+	for (let engine of settings.searchEngines)
+	{
+		if (engine.isEnabledInContextMenu === undefined) {
+			engine.isEnabledInContextMenu = engine.type !== "sss" && (engine.isEnabled || settings.contextMenuEnginesFilter === consts.ContextMenuEnginesFilter_All);
+			shouldSave = true;
+		}
+	}
+
 	return shouldSave;
 }
 
@@ -402,11 +422,7 @@ function setup_ContextMenu()
 	}
 
 	// get only the enabled engines
-	let engines = sss.settings.searchEngines;
-
-	if (sss.settings.contextMenuEnginesFilter === consts.ContextMenuEnginesFilter_SameAsPopup) {
-		engines = engines.filter(engine => engine.isEnabled);
-	}
+	let engines = sss.settings.searchEngines.filter(engine => engine.isEnabledInContextMenu);
 
 	// define parent menu
 	browser.contextMenus.create({

@@ -200,6 +200,7 @@ function updateBrowserEnginesFromSearchJson(browserSearchEngines)
 				iconUrl: engine._iconURL,
 				searchUrl: url,
 				isEnabled: true,
+				isEnabledInContextMenu: true,
 			};
 
 			settings.searchEngines.push(sssBrowserEngine);
@@ -475,6 +476,7 @@ function onPageLoaded()
 			searchUrl: searchUrl,
 			iconUrl: getFaviconForUrl(searchUrl),	// by default try to get a favicon for the domain
 			isEnabled: true,
+			isEnabledInContextMenu: true,
 		});
 
 		saveSettings({ searchEngines: settings.searchEngines });
@@ -486,6 +488,7 @@ function onPageLoaded()
 			type: "sss",
 			id: "separator",
 			isEnabled: true,
+			isEnabledInContextMenu: true,
 		});
 
 		saveSettings({ searchEngines: settings.searchEngines });
@@ -651,6 +654,7 @@ function updateUIWithSettings()
 		for (let i = 0; i < settings.searchEngines.length; i++) {
 			let engine = settings.searchEngines[i];
 			buildSearchEngineTableRow(engine, i);
+			buildSearchEngineOptionsTableRow(engine, i);
 		}
 
 		// setup draggable elements to be able to sort engines
@@ -726,17 +730,17 @@ function buildSearchEngineTableRow(engine, i)
 	// "is enabled" checkbox
 
 	cell = document.createElement("td");
-	cell.className = "engine-is-enabled";
-	let isEnabledInput = document.createElement("input");
-	isEnabledInput.type = "checkbox";
-	isEnabledInput.checked = engine.isEnabled;
-	isEnabledInput.autocomplete = "off";
-	isEnabledInput.onchange = ev => {
-		engine.isEnabled = isEnabledInput.checked;
-		saveSettings({ searchEngines: settings.searchEngines });
-	};
-	cell.style.paddingLeft = "6px";
-	cell.appendChild(isEnabledInput);
+	// cell.className = "engine-is-enabled";
+	// let isEnabledInput = document.createElement("input");
+	// isEnabledInput.type = "checkbox";
+	// isEnabledInput.checked = engine.isEnabled;
+	// isEnabledInput.autocomplete = "off";
+	// isEnabledInput.onchange = ev => {
+	// 	engine.isEnabled = isEnabledInput.checked;
+	// 	saveSettings({ searchEngines: settings.searchEngines });
+	// };
+	// cell.style.paddingLeft = "6px";
+	// cell.appendChild(isEnabledInput);
 	row.appendChild(cell);
 
 	// icon
@@ -798,6 +802,42 @@ function buildSearchEngineTableRow(engine, i)
 		row.appendChild(createEngineIconLink(engine, icon, searchLinkCell));
 		row.appendChild(createDeleteButton(i));
 	}
+
+	page.engines.appendChild(row);
+}
+
+// creates and adds a row with options for a certain search engine to the engines table
+function buildSearchEngineOptionsTableRow(engine, i)
+{
+	var template = document.createElement('template');
+	let id = `checkbox_enabled_in_context_menu_${i}`;
+	template.innerHTML =
+`<tr class="engine-options">
+	<td colspan="3"></td>
+	<td colspan="4">
+		<input id="checkbox_enabled_${i}" autocomplete="off" type="checkbox" ${engine.isEnabled ? "checked" : ""}>
+		<label for="checkbox_enabled_${i}"> Enabled in popup</label>
+		<input id="checkbox_enabled_in_context_menu_${i}" autocomplete="off" type="checkbox" ${engine.isEnabledInContextMenu ? "checked" : ""}>
+		<label for="checkbox_enabled_in_context_menu_${i}"> Enabled in context menu</label>
+	</td>
+</tr>`;
+
+	let row = template.content.firstChild;
+	let inputs = row.getElementsByTagName("input");
+
+	let isEnabledCheckbox = inputs[0];
+
+	isEnabledCheckbox.onchange = ev => {
+		engine.isEnabled = isEnabledCheckbox.checked;
+		saveSettings({ searchEngines: settings.searchEngines });
+	};
+
+	let isEnabledInContextMenuCheckbox = inputs[1];
+
+	isEnabledInContextMenuCheckbox.onchange = ev => {
+		engine.isEnabledInContextMenu = isEnabledInContextMenuCheckbox.checked;
+		saveSettings({ searchEngines: settings.searchEngines });
+	};
 
 	page.engines.appendChild(row);
 }
