@@ -30,6 +30,10 @@ const consts = {
 	AutoCopyToClipboard_Off: "off",
 	AutoCopyToClipboard_Always: "always",
 
+	IconAlignment_Left: "left",
+	IconAlignment_Middle: "middle",
+	IconAlignment_Right: "right",
+
 	ItemHoverBehaviour_Nothing: "nothing",
 	ItemHoverBehaviour_Highlight: "highlight",
 	ItemHoverBehaviour_HighlightAndMove: "highlight-and-move",
@@ -75,6 +79,7 @@ const defaultSettings = {
 	autoCopyToClipboard: consts.AutoCopyToClipboard_Off,
 	useSingleRow: true,
 	nPopupIconsPerRow: 4,
+	iconAlignmentInGrid: consts.IconAlignment_Middle,
 	popupItemSize: 24,
 	popupSeparatorWidth: 60,
 	popupItemPadding: 2,
@@ -285,6 +290,7 @@ function runBackwardsCompatibilityUpdates(settings)
 	shouldSave |= createSettingIfNonExistent(settings, "popupSeparatorWidth");				// 3.21.0
 	shouldSave |= createSettingIfNonExistent(settings, "popupOpenCommand");					// 3.22.0
 	shouldSave |= createSettingIfNonExistent(settings, "popupDisableCommand");				// 3.22.0
+	shouldSave |= createSettingIfNonExistent(settings, "iconAlignmentInGrid");				// 3.25.0
 
 	// 3.7.0
 	// convert old unchangeable browser-imported engines to normal "custom" ones

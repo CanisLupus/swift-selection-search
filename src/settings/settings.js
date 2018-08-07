@@ -318,9 +318,10 @@ function onPageLoaded()
 		{
 			// certain fields cause other fields to show/hide when changed, so check those
 			if (item.name === "popupOpenBehaviour") {
-				updateMiddleMouseSelectionClickMarginSetting(item.value);
+				updateSetting_middleMouseSelectionClickMargin(item.value);
 			} else if (item.name === "useSingleRow") {
-				updateNPopupIconsPerRowSetting(item.checked);
+				updateSetting_nPopupIconsPerRow(item.checked);
+				updateSetting_iconAlignmentInGrid(item.checked);
 			}
 
 			// different fields have different ways to get their value
@@ -630,8 +631,11 @@ function updateUIWithSettings()
 	updatePickerColor(page.popupBackgroundColorPicker, page.popupBackgroundColor.value);
 	updatePickerColor(page.popupHighlightColorPicker, page.popupHighlightColor.value);
 
-	updateMiddleMouseSelectionClickMarginSetting(settings.popupOpenBehaviour);	// margin option only appears if using middle click for opening behaviour
-	updateNPopupIconsPerRowSetting(settings.useSingleRow);	// nPopupIconsPerRow option only appears if not using a single row of icons
+	// margin option only appears if using middle click for opening behaviour
+	updateSetting_middleMouseSelectionClickMargin(settings.popupOpenBehaviour);
+	// nPopupIconsPerRow and iconAlignmentInGrid options only appear if not using a single row of icons
+	updateSetting_nPopupIconsPerRow(settings.useSingleRow);
+	updateSetting_iconAlignmentInGrid(settings.useSingleRow);
 
 	// calculate storage size (helpful for Firefox Sync)
 
@@ -1036,7 +1040,7 @@ function updatePickerColor(picker, value)
 	}
 }
 
-function updateMiddleMouseSelectionClickMarginSetting(popupOpenBehaviour)
+function updateSetting_middleMouseSelectionClickMargin(popupOpenBehaviour)
 {
 	let middleMouseSelectionClickMarginSetting = page["middleMouseSelectionClickMargin"].closest(".setting");
 	if (popupOpenBehaviour === consts.PopupOpenBehaviour_MiddleMouse) {
@@ -1046,13 +1050,23 @@ function updateMiddleMouseSelectionClickMarginSetting(popupOpenBehaviour)
 	}
 }
 
-function updateNPopupIconsPerRowSetting(useSingleRow)
+function updateSetting_nPopupIconsPerRow(useSingleRow)
 {
 	let nPopupIconsPerRowSetting = page["nPopupIconsPerRow"].closest(".setting");
 	if (useSingleRow === true) {
 		nPopupIconsPerRowSetting.classList.add("hidden");
 	} else {
 		nPopupIconsPerRowSetting.classList.remove("hidden");
+	}
+}
+
+function updateSetting_iconAlignmentInGrid(useSingleRow)
+{
+	let iconAlignmentInGrid = page["iconAlignmentInGrid"].closest(".setting");
+	if (useSingleRow === true) {
+		iconAlignmentInGrid.classList.add("hidden");
+	} else {
+		iconAlignmentInGrid.classList.remove("hidden");
 	}
 }
 

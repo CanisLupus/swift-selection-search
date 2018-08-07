@@ -19,6 +19,10 @@ const consts = {
 
 	AutoCopyToClipboard_Always: "always",
 
+	IconAlignment_Left: "left",
+	IconAlignment_Middle: "middle",
+	IconAlignment_Right: "right",
+
 	ItemHoverBehaviour_Nothing: "nothing",
 	ItemHoverBehaviour_Highlight: "highlight",
 	ItemHoverBehaviour_HighlightAndMove: "highlight-and-move",
@@ -536,7 +540,13 @@ function setupPopupIconPositions(popup, searchEngines, settings)
 
 	function positionRowIcons(start, end, rowWidth, y)
 	{
-		let x = (popup.width - rowWidth) / 2 + settings.popupPaddingX;
+		let x = settings.popupPaddingX;
+		if (settings.iconAlignmentInGrid === consts.IconAlignment_Middle) {
+			x += (popup.width - rowWidth) / 2;
+		} else if (settings.iconAlignmentInGrid === consts.IconAlignment_Right) {
+			x += popup.width - rowWidth;
+		}
+
 		for (let i = start; i < end; i++) {
 			let popupChild = popupChildren[i];
 			let xOffset = -(settings.popupItemSize + settings.popupItemPadding * 2 - iconWidths[i]) / 2;
