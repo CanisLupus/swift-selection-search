@@ -672,25 +672,21 @@ function onMouseDown(ev)
 	let selection = window.getSelection();
 
 	// for selections inside editable elements
-	if (selection.rangeCount <= 0)
-	{
-		let elem = document.activeElement;
+	let elem = document.activeElement;
 
-		if (elem.tagName === "TEXTAREA" || (elem.tagName === "INPUT" && elem.type !== "password")) {
-			if (forceSelectionIfWithinRect(ev, elem.getBoundingClientRect())) {
-				return false;
-			}
+	if (elem.tagName === "TEXTAREA" || (elem.tagName === "INPUT" && elem.type !== "password")) {
+		if (forceSelectionIfWithinRect(ev, elem.getBoundingClientRect())) {
+			return false;
 		}
 	}
+
 	// for normal text selections
-	else
+	for (let i = 0; i < selection.rangeCount; ++i)
 	{
-		for (let i = 0; i < selection.rangeCount; ++i)
-		{
-			let range = selection.getRangeAt(i); // get the text range
-			if (forceSelectionIfWithinRect(ev, range.getBoundingClientRect())) {
-				return false;
-			}
+		let range = selection.getRangeAt(i); // get the text range
+		let bounds = range.getBoundingClientRect();
+		if (bounds.width > 0 && bounds.height > 0 && forceSelectionIfWithinRect(ev, range.getBoundingClientRect())) {
+			return false;
 		}
 	}
 }
