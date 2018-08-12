@@ -144,6 +144,9 @@
 	.setting.hidden {
 		display: none;
 	}
+	.setting.indent .setting-name::before {
+		content: "└\00a0\00a0";
+	}
 
 	/* search engines "table" */
 
@@ -365,7 +368,7 @@
 				<div class="setting-description">When to open the popup.<br>(default: Auto)</div>
 			</div>
 
-			<div class="setting hidden">
+			<div class="setting hidden indent">
 				<div class="setting-name">Middle mouse click margin</div>
 				<div class="setting-value">
 					<input type="number" name="middleMouseSelectionClickMargin" min="0" value="14">
@@ -539,12 +542,24 @@
 				<div class="setting-description">Places all search engines in a single row, instead of a grid.<br>(default: On)</div>
 			</div>
 
-			<div class="setting hidden">
+			<div class="setting hidden indent">
 				<div class="setting-name">Number of icons per row in grid</div>
 				<div class="setting-value">
 					<input type="number" name="nPopupIconsPerRow" min="1" value="4">
 				</div>
-				<div class="setting-description">Max number of search engines per row when in grid (i.e. if "Use single row" is off).<br>(default: 4)</div>
+				<div class="setting-description">Max number of search engines per row in grid display.<br>(default: 4)</div>
+			</div>
+
+			<div class="setting hidden indent">
+				<div class="setting-name">Icon alignment in grid</div>
+				<div class="setting-value">
+					<select name="iconAlignmentInGrid">
+						<option value="left">Left</option>
+						<option value="middle">Middle</option>
+						<option value="right">Right</option>
+					</select>
+				</div>
+				<div class="setting-description">Specifies how to align icons when a row is not full in grid display.<br>(default: Middle)</div>
 			</div>
 
 			<div class="setting">

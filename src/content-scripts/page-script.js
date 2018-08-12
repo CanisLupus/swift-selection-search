@@ -19,6 +19,10 @@ const consts = {
 
 	AutoCopyToClipboard_Always: "always",
 
+	IconAlignment_Left: "left",
+	IconAlignment_Middle: "middle",
+	IconAlignment_Right: "right",
+
 	ItemHoverBehaviour_Nothing: "nothing",
 	ItemHoverBehaviour_Highlight: "highlight",
 	ItemHoverBehaviour_HighlightAndMove: "highlight-and-move",
@@ -536,7 +540,13 @@ function setupPopupIconPositions(popup, searchEngines, settings)
 
 	function positionRowIcons(start, end, rowWidth, y)
 	{
-		let x = (popup.width - rowWidth) / 2 + settings.popupPaddingX;
+		let x = settings.popupPaddingX;
+		if (settings.iconAlignmentInGrid === consts.IconAlignment_Middle) {
+			x += (popup.width - rowWidth) / 2;
+		} else if (settings.iconAlignmentInGrid === consts.IconAlignment_Right) {
+			x += popup.width - rowWidth;
+		}
+
 		for (let i = start; i < end; i++) {
 			let popupChild = popupChildren[i];
 			let xOffset = -(settings.popupItemSize + settings.popupItemPadding * 2 - iconWidths[i]) / 2;
@@ -672,25 +682,21 @@ function onMouseDown(ev)
 	let selection = window.getSelection();
 
 	// for selections inside editable elements
-	if (selection.rangeCount <= 0)
-	{
-		let elem = document.activeElement;
+	let elem = document.activeElement;
 
-		if (elem.tagName === "TEXTAREA" || (elem.tagName === "INPUT" && elem.type !== "password")) {
-			if (forceSelectionIfWithinRect(ev, elem.getBoundingClientRect())) {
-				return false;
-			}
+	if (elem.tagName === "TEXTAREA" || (elem.tagName === "INPUT" && elem.type !== "password")) {
+		if (forceSelectionIfWithinRect(ev, elem.getBoundingClientRect())) {
+			return false;
 		}
 	}
+
 	// for normal text selections
-	else
+	for (let i = 0; i < selection.rangeCount; ++i)
 	{
-		for (let i = 0; i < selection.rangeCount; ++i)
-		{
-			let range = selection.getRangeAt(i); // get the text range
-			if (forceSelectionIfWithinRect(ev, range.getBoundingClientRect())) {
-				return false;
-			}
+		let range = selection.getRangeAt(i); // get the text range
+		let bounds = range.getBoundingClientRect();
+		if (bounds.width > 0 && bounds.height > 0 && forceSelectionIfWithinRect(ev, range.getBoundingClientRect())) {
+			return false;
 		}
 	}
 }

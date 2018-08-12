@@ -30,6 +30,10 @@ const consts = {
 	AutoCopyToClipboard_Off: "off",
 	AutoCopyToClipboard_Always: "always",
 
+	IconAlignment_Left: "left",
+	IconAlignment_Middle: "middle",
+	IconAlignment_Right: "right",
+
 	ItemHoverBehaviour_Nothing: "nothing",
 	ItemHoverBehaviour_Highlight: "highlight",
 	ItemHoverBehaviour_HighlightAndMove: "highlight-and-move",
@@ -76,6 +80,7 @@ const defaultSettings = {
 	autoCopyToClipboard: consts.AutoCopyToClipboard_Off,
 	useSingleRow: true,
 	nPopupIconsPerRow: 4,
+	iconAlignmentInGrid: consts.IconAlignment_Middle,
 	popupItemSize: 24,
 	popupSeparatorWidth: 60,
 	popupItemPadding: 2,
@@ -295,6 +300,7 @@ function runBackwardsCompatibilityUpdates(settings)
 	shouldSave |= createSettingIfNonExistent(settings, "popupSeparatorWidth");				// 3.21.0
 	shouldSave |= createSettingIfNonExistent(settings, "popupOpenCommand");					// 3.22.0
 	shouldSave |= createSettingIfNonExistent(settings, "popupDisableCommand");				// 3.22.0
+	shouldSave |= createSettingIfNonExistent(settings, "iconAlignmentInGrid");				// 3.25.0
 
 	// 3.7.0
 	// convert old unchangeable browser-imported engines to normal "custom" ones
@@ -686,11 +692,10 @@ function getOpenAsLinkSearchUrl(searchText)
 // gets the complete search URL by applying the selected text to the engine's own searchUrl
 function getSearchQuery(engine, searchText, hostname)
 {
-	searchText = searchText.trim();
+	// replace newlines with spaces and encode chars that are not to be used on URLs
+	searchText = encodeURIComponent(searchText.trim().replace("\r\n", " ").replace("\n", " "));
 	let query = getFilteredSearchUrl(engine.searchUrl, searchText)
-	// // use regex with "g" flag to match all occurences, "i" ignores case
-	// query = query.replace(/\{searchTerms\}/gi, encodeURIComponent(searchText));
-	query = query.replace(/\{hostname\}/gi, hostname);
+	query = query.replace(/\{hostname\}/gi, hostname);	// use regex with "g" flag to match all occurences, "i" ignores case
 	return query;
 }
 
@@ -801,7 +806,6 @@ function getSearchTermsReplacements(url, startIndexForIndexOf)
 	while (index < url.length)
 	{
 		let c = url[index];
-		// console.log(state, c);
 
 		if (!isEscaped && c === "\\") {
 			isEscaped = true;
