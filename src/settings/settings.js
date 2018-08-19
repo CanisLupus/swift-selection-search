@@ -633,11 +633,16 @@ function updateUIWithSettings()
 		for (let i = 0; i < settings.searchEngines.length; i++)
 		{
 			let engine = settings.searchEngines[i];
-			let engineRow = buildSearchEngineTableRow(engine, i);
+
+			let tableRow = buildSearchEngineTableRow();
+
+			let engineRow = buildSearchEngineRow(engine, i);
+			tableRow.appendChild(engineRow);
 			let optionsRow = buildSearchEngineOptionsTableRow(engine, i);
-			engineRow.appendChild(optionsRow);
+			tableRow.appendChild(optionsRow);
+
 			// expand engine options when clicking somewhere in the engine (and guarantee there's only one expanded at any time)
-			engineRow.onclick = ev => {
+			tableRow.onclick = ev => {
 				if (currentlyExpandedEngineOptions !== null && currentlyExpandedEngineOptions !== optionsRow) {
 					currentlyExpandedEngineOptions.style.display = "none";
 				}
@@ -645,7 +650,8 @@ function updateUIWithSettings()
 				currentlyExpandedEngineOptions = optionsRow;
 				ev.stopPropagation();
 			};
-			page.engines.appendChild(engineRow);
+
+			page.engines.appendChild(tableRow);
 		}
 
 		// set an event to close any expanded engine options when clicking outisde a section
@@ -710,55 +716,67 @@ function calculateAndShowSettingsSize()
 	storageSizeElement.textContent = getSizeWithUnit(storageSize);
 }
 
-// creates and adds a search engine to the engines table (each in a different row)
-function buildSearchEngineTableRow(engine, i)
+// creates a row for the engines table
+function buildSearchEngineTableRow()
 {
-	let row = document.createElement("div");
-	row.className = "engine-table-row";
+	let parent = document.createElement("div");
+	parent.className = "engine-table-row";
+	return parent;
+}
 
-	let engineRow = createCustomElement(
-		`<div class="engine-itself"></div>`
-	);
-	row.appendChild(engineRow);
+// creates a search engine for the engines table (each in a different row)
+function buildSearchEngineRow(engine, i)
+{
+	let engineRow = document.createElement("div");
+	engineRow.className = "engine-itself";
 
 	// dragger element
 
-	engineRow.appendChild(createCustomElement(
-		`<div class="engine-dragger" style="cursor: move;">☰</div>`
-	));
+	let dragger = document.createElement("div");
+	dragger.className = "engine-dragger";
+	dragger.textContent = "☰";
+	dragger.style.cursor = "move";
+	engineRow.appendChild(dragger);
 
 	// "is enabled" element
 
-	let isEnabledCheckboxParent = createCustomElement(
-		`<div class="engine-is-enabled">
-			<input autocomplete="off" type="checkbox" ${engine.isEnabled ? "checked" : ""} title="Show in popup">
-		</div>`
-	);
+	let isEnabledCheckboxParent = document.createElement("div");
+	isEnabledCheckboxParent.className = "engine-is-enabled";
 
-	let isEnabledCheckbox = isEnabledCheckboxParent.getElementsByTagName("input")[0];
+	let isEnabledCheckbox = document.createElement("input");
+	isEnabledCheckbox.type = "checkbox";
+	isEnabledCheckbox.checked = engine.isEnabled;
+	isEnabledCheckbox.autocomplete = "off";
+	isEnabledCheckbox.title = "Show in popup";
 	isEnabledCheckbox.onchange = () => {
 		setEnabledInPopup(engine, i, isEnabledCheckbox.checked);
 	};
+	isEnabledCheckboxParent.appendChild(isEnabledCheckbox);
+
 	engineRow.appendChild(isEnabledCheckboxParent);
 
 	// "is enabled in context menu" element
 
-	let isEnabledInContextMenuCheckboxParent = engineRow.appendChild(createCustomElement(
-		`<div class="engine-is-enabled-in-context-menu">
-			<input autocomplete="off" type="checkbox" ${engine.isEnabledInContextMenu ? "checked" : ""} title="Show in context menu">
-		</div>`
-	));
+	let isEnabledInContextMenuCheckboxParent = document.createElement("div");
+	isEnabledInContextMenuCheckboxParent.className = "engine-is-enabled-in-context-menu";
 
-	let isEnabledInContextMenuCheckbox = isEnabledInContextMenuCheckboxParent.getElementsByTagName("input")[0];
+	let isEnabledInContextMenuCheckbox = document.createElement("input");
+	isEnabledInContextMenuCheckbox.type = "checkbox";
+	isEnabledInContextMenuCheckbox.checked = engine.isEnabledInContextMenu;
+	isEnabledInContextMenuCheckbox.autocomplete = "off";
+	isEnabledInContextMenuCheckbox.title = "Show in context menu";
 	isEnabledInContextMenuCheckbox.onchange = () => {
 		setEnabledInContextMenu(engine, i, isEnabledInContextMenuCheckbox.checked);
 	};
+	isEnabledInContextMenuCheckboxParent.appendChild(isEnabledInContextMenuCheckbox);
+
 	engineRow.appendChild(isEnabledInContextMenuCheckboxParent);
 
 	// icon
 
-	let cell = document.createElement("div");
-	cell.className = "engine-icon-img";
+	let iconElem = document.createElement("div");
+	iconElem.className = "engine-icon-img";
+
 	let icon;
 
 	if (engine.type === "sss")
@@ -768,17 +786,17 @@ function buildSearchEngineTableRow(engine, i)
 
 		if (sssIcon.iconPath !== undefined) {
 			let iconImgSource = browser.extension.getURL(sssIcon.iconPath);
-			icon = setupEngineIcon(iconImgSource, cell, settings);
+			icon = setupEngineIcon(iconImgSource, iconElem, settings);
 		}
 		// else if (sssIcon.iconCss !== undefined) {
-		// 	icon = setupEngineCss(sssIcon, cell, settings);
+		// 	icon = setupEngineCss(sssIcon, iconElem, settings);
 		// }
 	}
 	else {
-		icon = setupEngineIcon(engine.iconUrl, cell, settings);
+		icon = setupEngineIcon(engine.iconUrl, iconElem, settings);
 	}
 
-	engineRow.appendChild(cell);
+	engineRow.appendChild(iconElem);
 
 	if (engine.type === "sss")
 	{
@@ -788,66 +806,89 @@ function buildSearchEngineTableRow(engine, i)
 
 		// name
 
-		engineRow.appendChild(createCustomElement(
-			`<div class="engine-sss engine-sss-name">${sssIcon.name}</div>`
-		));
+		let engineName = document.createElement("div");
+		engineName.className = "engine-sss engine-sss-name";
+		engineName.textContent = sssIcon.name;
+		engineRow.appendChild(engineName);
 
 		// description
 
-		engineRow.appendChild(createCustomElement(
-			`<div class="engine-sss engine-sss-description">${sssIcon.description}</div>`
-		));
+		let engineDescription = document.createElement("div");
+		engineDescription.className = "engine-sss engine-sss-description";
+		engineDescription.textContent = sssIcon.description;
+		engineRow.appendChild(engineDescription);
 
 		if (engine.id === "separator") {
 			engineRow.appendChild(createDeleteButton(i));
 		} else {
-			engineRow.appendChild(createDeleteButtonEquivalentSpace());
+			engineRow.appendChild(createDeleteButtonDiv());
 		}
 	}
 	else
 	{
 		// create columns for normal icons
 		engineRow.appendChild(createEngineName(engine));
-		let searchLinkCell = createEngineSearchLink(engine);
-		engineRow.appendChild(searchLinkCell);
-		engineRow.appendChild(createEngineIconLink(engine, icon, searchLinkCell));
+		let searchUrlElem = createEngineSearchLink(engine);
+		engineRow.appendChild(searchUrlElem);
+		engineRow.appendChild(createEngineIconLink(engine, icon, searchUrlElem));
 		engineRow.appendChild(createDeleteButton(i));
 	}
 
-	return row;
+	return engineRow;
 }
 
 // creates and adds a row with options for a certain search engine to the engines table
 function buildSearchEngineOptionsTableRow(engine, i)
 {
-	let enabledInPopupId = `checkbox_enabled_${i}`;
-	let enabledInContextMenuId = `checkbox_enabled_in_context_menu_${i}`;
+	let engineOptions = document.createElement("div");
+	engineOptions.className = "engine-options";
 
-	let innerHTML =
-		`<div class="engine-options">
-			<div>
-				<input id="${enabledInPopupId}" autocomplete="off" type="checkbox" ${engine.isEnabled ? "checked" : ""}>
-				<label for="${enabledInPopupId}"> Show in popup</label>
-			</div>
-			<div>
-				<input id="${enabledInContextMenuId}" autocomplete="off" type="checkbox" ${engine.isEnabledInContextMenu ? "checked" : ""}>
-				<label for="${enabledInContextMenuId}"> Show in context menu</label>
-			</div>
-		</div>`;
+	// "is enabled" element
 
-	let row = createCustomElement(innerHTML);
+	let isEnabledCheckboxParent = document.createElement("div");
 
-	let isEnabledCheckbox = row.querySelector("#"+enabledInPopupId);
+	let isEnabledCheckbox = document.createElement("input");
+	isEnabledCheckbox.type = "checkbox";
+	isEnabledCheckbox.id = `engine-is-enabled-${i}`;
+	isEnabledCheckbox.checked = engine.isEnabled;
+	isEnabledCheckbox.autocomplete = "off";
 	isEnabledCheckbox.onchange = () => {
 		setEnabledInPopup(engine, i, isEnabledCheckbox.checked);
 	};
+	isEnabledCheckboxParent.appendChild(isEnabledCheckbox);
 
-	let isEnabledInContextMenuCheckbox = row.querySelector("#"+enabledInContextMenuId);
+	let isEnabledLabel = document.createElement("label");
+	isEnabledLabel.htmlFor = isEnabledCheckbox.id;
+	isEnabledLabel.textContent = " Show in popup";
+
+	isEnabledCheckboxParent.appendChild(isEnabledLabel);
+
+	// "is enabled in context menu" element
+
+	let isEnabledInContextMenuCheckboxParent = document.createElement("div");
+
+	let isEnabledInContextMenuCheckbox = document.createElement("input");
+	isEnabledInContextMenuCheckbox.type = "checkbox";
+	isEnabledInContextMenuCheckbox.id = `engine-is-enabled-in-context-menu-${i}`;
+	isEnabledInContextMenuCheckbox.checked = engine.isEnabledInContextMenu;
+	isEnabledInContextMenuCheckbox.autocomplete = "off";
 	isEnabledInContextMenuCheckbox.onchange = () => {
 		setEnabledInContextMenu(engine, i, isEnabledInContextMenuCheckbox.checked);
 	};
+	isEnabledInContextMenuCheckboxParent.appendChild(isEnabledInContextMenuCheckbox);
 
-	return row;
+	let isEnabledInContextMenuLabel = document.createElement("label");
+	isEnabledInContextMenuLabel.htmlFor = isEnabledInContextMenuCheckbox.id;
+	isEnabledInContextMenuLabel.textContent = " Show in context menu";
+
+	isEnabledInContextMenuCheckboxParent.appendChild(isEnabledInContextMenuLabel);
+
+	// final stuff
+
+	engineOptions.appendChild(isEnabledCheckboxParent);
+	engineOptions.appendChild(isEnabledInContextMenuCheckboxParent);
+
+	return engineOptions;
 }
 
 function setEnabledInPopup(engine, i, value)
@@ -857,7 +898,7 @@ function setEnabledInPopup(engine, i, value)
 	let checkbox = engineRow.querySelector(".engine-is-enabled input");
 	checkbox.checked = value;
 
-	checkbox = engineRow.querySelector(`#checkbox_enabled_${i}`);
+	checkbox = engineRow.querySelector(`#engine-is-enabled-${i}`);
 	checkbox.checked = value;
 
 	engine.isEnabled = value;
@@ -871,7 +912,7 @@ function setEnabledInContextMenu(engine, i, value)
 	let checkbox = engineRow.querySelector(".engine-is-enabled-in-context-menu input");
 	checkbox.checked = value;
 
-	checkbox = engineRow.querySelector(`#checkbox_enabled_in_context_menu_${i}`);
+	checkbox = engineRow.querySelector(`#engine-is-enabled-in-context-menu-${i}`);
 	checkbox.checked = value;
 
 	engine.isEnabledInContextMenu = value;
@@ -917,33 +958,30 @@ function setupEngineIcon(iconImgSource, parent, settings)
 // sets the name field for a search engine in the engines table
 function createEngineName(engine)
 {
-	let elem = createCustomElement(
-		`<div class="engine-name">
-			<input value="${engine.name}" type="text">
-		</div>`
-	);
+	let parent = document.createElement("div");
+	parent.className = "engine-name";
 
-	let nameInput = elem.getElementsByTagName("input")[0];
-
+	let nameInput = document.createElement("input");
+	nameInput.type = "text";
+	nameInput.value = engine.name;
 	nameInput.onchange = () => {
 		engine.name = nameInput.value;
 		saveSettings({ searchEngines: settings.searchEngines });
 		calculateAndShowSettingsSize();
 	};
-	return elem;
+	parent.appendChild(nameInput);
+	return parent;
 }
 
 // sets the search URL field for a search engine in the engines table
 function createEngineSearchLink(engine)
 {
-	let elem = createCustomElement(
-		`<div class="engine-search-link">
-			<input value="${engine.searchUrl}" type="text">
-		</div>`
-	);
+	let parent = document.createElement("div");
+	parent.className = "engine-search-link";
 
-	let searchLinkInput = elem.getElementsByTagName("input")[0];
-
+	let searchLinkInput = document.createElement("input");
+	searchLinkInput.type = "text";
+	searchLinkInput.value = engine.searchUrl;
 	searchLinkInput.previousValue = engine.searchUrl;	// custom attribute that keeps the previous value before a change
 
 	searchLinkInput.onchange = () => {
@@ -957,8 +995,8 @@ function createEngineSearchLink(engine)
 			// if we're using the default favicon search for the previous search url, update it
 			if (engine.iconUrl.length == 0 || engine.iconUrl === getFaviconForUrl(searchLinkInput.previousValue)) {
 				let iconUrl = getFaviconForUrl(url);
-				elem.iconLinkInput.value = iconUrl;	// doesn't trigger oninput or onchange
-				setIconUrlInput(engine, elem.iconLinkInput, elem.icon);
+				parent.iconLinkInput.value = iconUrl;	// doesn't trigger oninput or onchange
+				setIconUrlInput(engine, parent.iconLinkInput, parent.icon);
 			}
 			searchLinkInput.previousValue = url;
 		}
@@ -973,20 +1011,20 @@ function createEngineSearchLink(engine)
 		calculateAndShowSettingsSize();
 	};
 
-	elem.searchLinkInput = searchLinkInput;	// save reference in element
-	return elem;
+	parent.appendChild(searchLinkInput);
+	parent.searchLinkInput = searchLinkInput;	// save reference in element
+	return parent;
 }
 
 // sets the icon URL field for a search engine in the engines table
-function createEngineIconLink(engine, icon, searchLinkCell)
+function createEngineIconLink(engine, icon, searchUrlElem)
 {
-	let elem = createCustomElement(
-		`<div class="engine-icon-link">
-			<input value="${engine.iconUrl}" type="text">
-		</div>`
-	);
+	let parent = document.createElement("div");
+	parent.className = "engine-icon-link";
 
-	let iconLinkInput = elem.getElementsByTagName("input")[0];
+	let iconLinkInput = document.createElement("input");
+	iconLinkInput.type = "text";
+	iconLinkInput.value = engine.iconUrl;
 
 	iconLinkInput.oninput = () => {
 		setIconUrlInput(engine, iconLinkInput, icon);
@@ -994,7 +1032,7 @@ function createEngineIconLink(engine, icon, searchLinkCell)
 
 	iconLinkInput.onchange = () => {
 		if (iconLinkInput.value.length == 0) {
-			iconLinkInput.value = getFaviconForUrl(searchLinkCell.searchLinkInput.value);
+			iconLinkInput.value = getFaviconForUrl(searchUrlElem.searchLinkInput.value);
 			setIconUrlInput(engine, iconLinkInput, icon);
 		}
 		trimSearchEnginesCache(settings);
@@ -1002,11 +1040,12 @@ function createEngineIconLink(engine, icon, searchLinkCell)
 		calculateAndShowSettingsSize();
 	};
 
-	// save the reference to the icon and input field in the search input's cell, as we'll need them to update the default favicon
-	searchLinkCell.icon = icon;
-	searchLinkCell.iconLinkInput = iconLinkInput;
+	// save the reference to the icon and input field in the search input's parent, as we'll need them to update the default favicon
+	searchUrlElem.icon = icon;
+	searchUrlElem.iconLinkInput = iconLinkInput;
 
-	return elem;
+	parent.appendChild(iconLinkInput);
+	return parent;
 }
 
 // sets the engine icon from the icon url present in the iconLinkInput input field
@@ -1026,29 +1065,28 @@ function setIconUrlInput(engine, iconLinkInput, icon)
 // sets the delete button for a search engine in the engines table
 function createDeleteButton(i)
 {
-	let elem = createCustomElement(
-		`<div class="engine-delete">
-			<input value="✖" type="button" title="Delete">
-		</div>`
-	);
+	let parent = createDeleteButtonDiv();
 
-	let deleteButton = elem.getElementsByTagName("input")[0];
-
+	let deleteButton = document.createElement("input");
+	deleteButton.type = "button";
+	deleteButton.value = "✖";
+	deleteButton.title = "Delete";
 	deleteButton.onclick = () => {
 		settings.searchEngines.splice(i, 1); // remove element at i
 		trimSearchEnginesCache(settings);
 		updateUIWithSettings();
 		saveSettings({ searchEngines: settings.searchEngines, searchEnginesCache: settings.searchEnginesCache });
 	};
-	return elem;
+
+	parent.appendChild(deleteButton);
+	return parent;
 }
 
-function createDeleteButtonEquivalentSpace()
+function createDeleteButtonDiv()
 {
-	let elem = createCustomElement(
-		`<div class="engine-delete"></div>`
-	);
-	return elem;
+	let parent = document.createElement("div");
+	parent.className = "engine-delete";
+	return parent;
 }
 
 // removes all non-existent engines from the icon cache
@@ -1069,13 +1107,6 @@ function trimSearchEnginesCache(settings)
 	}
 
 	settings.searchEnginesCache = newCache;
-}
-
-function createCustomElement(innerHTML)
-{
-	var template = document.createElement("template");
-	template.innerHTML = innerHTML;
-	return template.content.firstChild;
 }
 
 // removes from settings any objects that are easily re-calculatable (ex.: caches)
