@@ -45,17 +45,17 @@ const consts = {
 	sssIcons: {
 		copyToClipboard: {
 			name: "Copy to clipboard",
-			description: '[SSS] Adds a "Copy selection to clipboard" icon to the popup.',
+			description: "[SSS] Adds a \"Copy selection to clipboard\" icon to the popup.",
 			iconPath: "res/sss-engine-icons/copy.png",
 		},
 		openAsLink: {
 			name: "Open as link",
-			description: '[SSS] Adds an "Open selection as link" icon to the popup.',
+			description: "[SSS] Adds an \"Open selection as link\" icon to the popup.",
 			iconPath: "res/sss-engine-icons/open-link.png",
 		},
 		separator: {
 			name: "Separator",
-			description: '[SSS] Adds a separator.',
+			description: "[SSS] Adds a separator.",
 			iconPath: "res/sss-engine-icons/separator.png",
 			isInteractive: false,
 		}
@@ -612,7 +612,7 @@ function injectContentScriptIfNeeded(tabId, frameId, allFrames)
 				injectContentScript(tabId, frameId, allFrames);
 			}
 		},
-		_ => injectContentScript(tabId, frameId, allFrames)
+		() => injectContentScript(tabId, frameId, allFrames)
 	);
 }
 
@@ -623,16 +623,16 @@ function injectContentScript(tabId, frameId, allFrames)
 	let errorHandler = getErrorHandler(`Error injecting page content script in tab ${tabId}.`);
 
 	// We need to run several scripts, but the main one is page-script.js.
-	let injectPageScript = _ => {
-		browser.tabs.executeScript(tabId, { runAt: "document_start", frameId: frameId, allFrames: allFrames, file: "/content-scripts/selectionchange.js" }).then(_ =>
+	let injectPageScript = () => {
+		browser.tabs.executeScript(tabId, { runAt: "document_start", frameId: frameId, allFrames: allFrames, file: "/content-scripts/selectionchange.js" }).then(() =>
 		browser.tabs.executeScript(tabId, { runAt: "document_start", frameId: frameId, allFrames: allFrames, file: "/content-scripts/page-script.js"     }).then(null
 		, errorHandler)
-		, errorHandler)
+		, errorHandler);
 	};
 
 	// The DEBUG variable is also passed if true, so we only have to declare debug mode once: here at the top of this background script.
 	if (DEBUG) {
-		browser.tabs.executeScript(tabId, { runAt: "document_start", frameId: frameId, allFrames: allFrames, code: "const DEBUG_STATE = " + DEBUG + ";" }).then(injectPageScript, errorHandler)
+		browser.tabs.executeScript(tabId, { runAt: "document_start", frameId: frameId, allFrames: allFrames, code: "const DEBUG_STATE = " + DEBUG + ";" }).then(injectPageScript, errorHandler);
 	} else {
 		injectPageScript();
 	}
@@ -694,7 +694,7 @@ function getSearchQuery(engine, searchText, hostname)
 {
 	// replace newlines with spaces and encode chars that are not to be used on URLs
 	searchText = encodeURIComponent(searchText.trim().replace("\r\n", " ").replace("\n", " "));
-	let query = getFilteredSearchUrl(engine.searchUrl, searchText)
+	let query = getFilteredSearchUrl(engine.searchUrl, searchText);
 	query = query.replace(/\{hostname\}/gi, hostname);	// use regex with "g" flag to match all occurences, "i" ignores case
 	return query;
 }

@@ -54,29 +54,31 @@ function getErrorHandler(text)
 }
 
 // This method's code was taken from node-lz4 by Pierre Curto. MIT license.
-// CHANGES: Added ; to all lines. Reformated one-liners. Removed n = eIdx. Fixed eIdx skipping end bytes if sIdx != 0.
+// CHANGES: Added ; to all lines. Reformated one-liners. Removed n = eIdx. Fixed eIdx skipping end bytes if sIdx != 0. Changed "var" to "let".
 function decodeLz4Block(input, output, sIdx, eIdx)
 {
 	sIdx = sIdx || 0;
 	eIdx = eIdx || input.length;
 
+	let j = 0;
+
 	// Process each sequence in the incoming data
-	for (var i = sIdx, j = 0; i < eIdx;)
+	for (let i = sIdx; i < eIdx;)
 	{
-		var token = input[i++];
+		let token = input[i++];
 
 		// Literals
-		var literals_length = (token >> 4);
+		let literals_length = (token >> 4);
 		if (literals_length > 0) {
 			// length of literals
-			var l = literals_length + 240;
+			let l = literals_length + 240;
 			while (l === 255) {
 				l = input[i++];
 				literals_length += l;
 			}
 
 			// Copy the literals
-			var end = i + literals_length;
+			let end = i + literals_length;
 			while (i < end) {
 				output[j++] = input[i++];
 			}
@@ -89,7 +91,7 @@ function decodeLz4Block(input, output, sIdx, eIdx)
 
 		// Match copy
 		// 2 bytes offset (little endian)
-		var offset = input[i++] | (input[i++] << 8);
+		let offset = input[i++] | (input[i++] << 8);
 
 		// 0 is an invalid offset value
 		if (offset === 0 || offset > j) {
@@ -97,16 +99,16 @@ function decodeLz4Block(input, output, sIdx, eIdx)
 		}
 
 		// length of match copy
-		var match_length = (token & 0xf);
-		var l = match_length + 240;
+		let match_length = (token & 0xf);
+		let l = match_length + 240;
 		while (l === 255) {
 			l = input[i++];
 			match_length += l;
 		}
 
 		// Copy the match
-		var pos = j - offset; // position of the match copy in the current output
-		var end = j + match_length + 4; // minmatch = 4
+		let pos = j - offset; // position of the match copy in the current output
+		let end = j + match_length + 4; // minmatch = 4
 		while (j < end) {
 			output[j++] = output[pos++];
 		}
@@ -144,7 +146,7 @@ function readMozlz4File(file, onRead, onError)
 	}
 
 	reader.readAsArrayBuffer(file);	// read as bytes
-};
+}
 
 // adds to SSS all engines from the browser's search engines file
 function updateBrowserEnginesFromSearchJson(browserSearchEngines)
@@ -213,7 +215,7 @@ function updateBrowserEnginesFromSearchJson(browserSearchEngines)
 function getDataUriFromImgUrl(imageUrl, callback)
 {
 	var img = new Image();
-	img.crossOrigin = 'Anonymous';
+	img.crossOrigin = "Anonymous";
 	img.onload = () => {
 		const maxSize = 48;
 		let width;
@@ -239,11 +241,11 @@ function getDataUriFromImgUrl(imageUrl, callback)
 		if (DEBUG) { log(img.width + "x" + img.height + " became " + width + "x" + height); }
 
 		// canvas is always a square (using larger dimension)
-		let canvas = document.createElement('canvas');
+		let canvas = document.createElement("canvas");
 		canvas.width = canvas.height = Math.max(width, height);
 
 		// draw image with size and position defined above
-		let ctx = canvas.getContext('2d');
+		let ctx = canvas.getContext("2d");
 		ctx.drawImage(img, xPos, yPos, width, height);
 
 		// finally get the image data (base64 data:image)
@@ -342,8 +344,8 @@ function onPageLoaded()
 	};
 
 	// there are two elements for some buttons: a button for display and the actual "real" button that does the work
-	page.importBrowserEnginesFileButton.onclick = ev => page.importBrowserEnginesFileButton_real.click();
-	page.exportSettingsToFileButton.onclick = ev => {
+	page.importBrowserEnginesFileButton.onclick = () => page.importBrowserEnginesFileButton_real.click();
+	page.exportSettingsToFileButton.onclick = () => {
 		// remove useless stuff that doesn't need to be stored
 		var blob = runActionOnDietSettings(settings, settings => new Blob([JSON.stringify(settings)]));
 		// save with current date and time
@@ -355,13 +357,13 @@ function onPageLoaded()
 			"filename": filename,
 		});
 	};
-	page.importSettingsFromFileButton.onclick = ev => page.importSettingsFromFileButton_real.click();
+	page.importSettingsFromFileButton.onclick = () => page.importSettingsFromFileButton_real.click();
 
 	// register events for specific behaviour when certain fields change (color pickers change their text and vice versa)
-	page.popupBackgroundColorPicker.oninput = ev => updateColorText  (page.popupBackgroundColor,       page.popupBackgroundColorPicker.value);
-	page.popupBackgroundColor.oninput       = ev => updatePickerColor(page.popupBackgroundColorPicker, page.popupBackgroundColor.value);
-	page.popupHighlightColorPicker.oninput  = ev => updateColorText  (page.popupHighlightColor,        page.popupHighlightColorPicker.value);
-	page.popupHighlightColor.oninput        = ev => updatePickerColor(page.popupHighlightColorPicker,  page.popupHighlightColor.value);
+	page.popupBackgroundColorPicker.oninput = () => updateColorText  (page.popupBackgroundColor,       page.popupBackgroundColorPicker.value);
+	page.popupBackgroundColor.oninput       = () => updatePickerColor(page.popupBackgroundColorPicker, page.popupBackgroundColor.value);
+	page.popupHighlightColorPicker.oninput  = () => updateColorText  (page.popupHighlightColor,        page.popupHighlightColorPicker.value);
+	page.popupHighlightColor.oninput        = () => updatePickerColor(page.popupHighlightColorPicker,  page.popupHighlightColor.value);
 
 	// sections' collapse/expand code
 
@@ -377,7 +379,7 @@ function onPageLoaded()
 			let isCollapsed = sectionNameElement.parentElement.classList.toggle("collapsed-section");
 			settings.sectionsExpansionState[sectionNameElement.parentElement.id] = !isCollapsed;
 			saveSettings({ sectionsExpansionState: settings.sectionsExpansionState });
-		}
+		};
 	}
 
 	// show platform-specific sections (some info on the page is related to a specific OS and should only appear in that OS)
@@ -426,7 +428,7 @@ function onPageLoaded()
 
 	// entering/leaving settings page
 
-	window.onfocus = ev => {
+	window.onfocus = () => {
 		// if settings changed while page was not focused, reload settings and UI
 		if (pendingSettings) {
 			browser.storage.local.get().then(onSettingsAcquired, getErrorHandler("Error getting settings in settings page."));
@@ -434,13 +436,13 @@ function onPageLoaded()
 		isFocused = true;
 	};
 
-	window.onblur = ev => {
+	window.onblur = () => {
 		isFocused = false;
 	};
 
 	// register events for more button clicks
 
-	page.addEngineButton.onclick = ev => {
+	page.addEngineButton.onclick = () => {
 		let searchUrl = "https://www.google.com/search?q={searchTerms}";	// use google as an example
 
 		settings.searchEngines.push({
@@ -456,7 +458,7 @@ function onPageLoaded()
 		updateUIWithSettings();
 	};
 
-	page.addSeparatorButton.onclick = ev => {
+	page.addSeparatorButton.onclick = () => {
 		settings.searchEngines.push({
 			type: "sss",
 			id: "separator",
@@ -469,7 +471,7 @@ function onPageLoaded()
 	};
 
 	// saves settings to Firefox Sync
-	page.saveSettingsToSyncButton.onclick = ev => {
+	page.saveSettingsToSyncButton.onclick = () => {
 		if (DEBUG) { log("saving!"); }
 		// remove useless stuff that doesn't need to be stored
 		let settingsStr = runActionOnDietSettings(settings, settings => JSON.stringify(settings));
@@ -492,7 +494,7 @@ function onPageLoaded()
 
 	let setupConfirmationProcessForButton = (mainButton, confirmationButton, originalMainButtonValue, onConfirm) => {
 		// the clicked button becomes a "Cancel" button
-		mainButton.onclick = ev => {
+		mainButton.onclick = () => {
 			if (mainButton.value === "Cancel") {
 				mainButton.value = originalMainButtonValue;
 				confirmationButton.style.display = "none";
@@ -510,7 +512,7 @@ function onPageLoaded()
 			ev.preventDefault();
 			onConfirm();
 		};
-	}
+	};
 
 	setupConfirmationProcessForButton(page.resetSearchEnginesButton, page.resetSearchEnginesButton_real, page.resetSearchEnginesButton.value,
 		() => {
@@ -735,7 +737,7 @@ function buildSearchEngineTableRow(engine, i)
 	);
 
 	let isEnabledCheckbox = isEnabledCheckboxParent.getElementsByTagName("input")[0];
-	isEnabledCheckbox.onchange = ev => {
+	isEnabledCheckbox.onchange = () => {
 		setEnabledInPopup(engine, i, isEnabledCheckbox.checked);
 	};
 	engineRow.appendChild(isEnabledCheckboxParent);
@@ -749,7 +751,7 @@ function buildSearchEngineTableRow(engine, i)
 	));
 
 	let isEnabledInContextMenuCheckbox = isEnabledInContextMenuCheckboxParent.getElementsByTagName("input")[0];
-	isEnabledInContextMenuCheckbox.onchange = ev => {
+	isEnabledInContextMenuCheckbox.onchange = () => {
 		setEnabledInContextMenu(engine, i, isEnabledInContextMenuCheckbox.checked);
 	};
 	engineRow.appendChild(isEnabledInContextMenuCheckboxParent);
@@ -800,14 +802,14 @@ function buildSearchEngineTableRow(engine, i)
 		if (engine.id === "separator") {
 			engineRow.appendChild(createDeleteButton(i));
 		} else {
-			engineRow.appendChild(createDeleteButtonEquivalentSpace(i));
+			engineRow.appendChild(createDeleteButtonEquivalentSpace());
 		}
 	}
 	else
 	{
 		// create columns for normal icons
 		engineRow.appendChild(createEngineName(engine));
-		let searchLinkCell = createEngineSearchLink(engine)
+		let searchLinkCell = createEngineSearchLink(engine);
 		engineRow.appendChild(searchLinkCell);
 		engineRow.appendChild(createEngineIconLink(engine, icon, searchLinkCell));
 		engineRow.appendChild(createDeleteButton(i));
@@ -837,12 +839,12 @@ function buildSearchEngineOptionsTableRow(engine, i)
 	let row = createCustomElement(innerHTML);
 
 	let isEnabledCheckbox = row.querySelector("#"+enabledInPopupId);
-	isEnabledCheckbox.onchange = ev => {
+	isEnabledCheckbox.onchange = () => {
 		setEnabledInPopup(engine, i, isEnabledCheckbox.checked);
 	};
 
 	let isEnabledInContextMenuCheckbox = row.querySelector("#"+enabledInContextMenuId);
-	isEnabledInContextMenuCheckbox.onchange = ev => {
+	isEnabledInContextMenuCheckbox.onchange = () => {
 		setEnabledInContextMenu(engine, i, isEnabledInContextMenuCheckbox.checked);
 	};
 
@@ -924,7 +926,7 @@ function createEngineName(engine)
 
 	let nameInput = elem.getElementsByTagName("input")[0];
 
-	nameInput.onchange = ev => {
+	nameInput.onchange = () => {
 		engine.name = nameInput.value;
 		saveSettings({ searchEngines: settings.searchEngines });
 		calculateAndShowSettingsSize();
@@ -945,7 +947,7 @@ function createEngineSearchLink(engine)
 
 	searchLinkInput.previousValue = engine.searchUrl;	// custom attribute that keeps the previous value before a change
 
-	searchLinkInput.onchange = ev => {
+	searchLinkInput.onchange = () => {
 		// trim search url and prepend "http://" if it doesn't begin with a protocol
 		let url = searchLinkInput.value.trim();
 		if (url.length > 0 && !url.match(/^[0-9a-zA-Z\-+]+:\/\//)) {
@@ -987,11 +989,11 @@ function createEngineIconLink(engine, icon, searchLinkCell)
 
 	let iconLinkInput = elem.getElementsByTagName("input")[0];
 
-	iconLinkInput.oninput = ev => {
+	iconLinkInput.oninput = () => {
 		setIconUrlInput(engine, iconLinkInput, icon);
 	};
 
-	iconLinkInput.onchange = ev => {
+	iconLinkInput.onchange = () => {
 		if (iconLinkInput.value.length == 0) {
 			iconLinkInput.value = getFaviconForUrl(searchLinkCell.searchLinkInput.value);
 			setIconUrlInput(engine, iconLinkInput, icon);
@@ -1033,7 +1035,7 @@ function createDeleteButton(i)
 
 	let deleteButton = elem.getElementsByTagName("input")[0];
 
-	deleteButton.onclick = ev => {
+	deleteButton.onclick = () => {
 		settings.searchEngines.splice(i, 1); // remove element at i
 		trimSearchEnginesCache(settings);
 		updateUIWithSettings();
@@ -1042,7 +1044,7 @@ function createDeleteButton(i)
 	return elem;
 }
 
-function createDeleteButtonEquivalentSpace(i)
+function createDeleteButtonEquivalentSpace()
 {
 	let elem = createCustomElement(
 		`<div class="engine-delete"></div>`
@@ -1072,7 +1074,7 @@ function trimSearchEnginesCache(settings)
 
 function createCustomElement(innerHTML)
 {
-	var template = document.createElement('template');
+	var template = document.createElement("template");
 	template.innerHTML = innerHTML;
 	return template.content.firstChild;
 }
@@ -1164,7 +1166,7 @@ function updateSetting_iconAlignmentInGrid(useSingleRow)
 // taken from https://stackoverflow.com/a/11900218/2162837
 // by thomas-peter
 // License: https://creativecommons.org/licenses/by-sa/3.0/legalcode
-// Changes: formatting
+// Changes: formatting, double quotes
 function roughSizeOfObject(object)
 {
 	var objectList = [];
@@ -1175,16 +1177,16 @@ function roughSizeOfObject(object)
 	{
 		var value = stack.pop();
 
-		if (typeof value === 'boolean') {
+		if (typeof value === "boolean") {
 			bytes += 4;
 		}
-		else if (typeof value === 'string') {
+		else if (typeof value === "string") {
 			bytes += value.length * 2;
 		}
-		else if (typeof value === 'number') {
+		else if (typeof value === "number") {
 			bytes += 8;
 		}
-		else if (typeof value === 'object' && objectList.indexOf(value) === -1) {
+		else if (typeof value === "object" && objectList.indexOf(value) === -1) {
 			objectList.push(value);
 
 			for (var i in value) {
