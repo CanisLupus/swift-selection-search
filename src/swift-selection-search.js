@@ -38,6 +38,7 @@ const consts = {
 	ItemHoverBehaviour_Highlight: "highlight",
 	ItemHoverBehaviour_HighlightAndMove: "highlight-and-move",
 
+	// not used anymore but needed for retrocompatibility
 	ContextMenuEnginesFilter_All: "all",
 	ContextMenuEnginesFilter_SameAsPopup: "same-as-popup",
 
@@ -95,23 +96,25 @@ const defaultSettings = {
 	popupBorderRadius: 2,
 	enableEnginesInContextMenu: true,
 	contextMenuItemBehaviour: consts.MouseButtonBehaviour_NewBgTab,
-	contextMenuEnginesFilter: consts.ContextMenuEnginesFilter_SameAsPopup,
 
 	searchEngines: [
 		{
 			type: "sss",
 			id: "copyToClipboard",
 			isEnabled: true,
+			isEnabledInContextMenu: true,
 		},
 		{
 			type: "sss",
 			id: "openAsLink",
 			isEnabled: true,
+			isEnabledInContextMenu: true,
 		},
 		{
 			type: "sss",
 			id: "separator",
 			isEnabled: true,
+			isEnabledInContextMenu: true,
 		},
 		{
 			type: "custom",
@@ -119,6 +122,7 @@ const defaultSettings = {
 			searchUrl: "https://www.google.com/search?q={searchTerms}",
 			iconUrl: "https://www.google.com/favicon.ico",
 			isEnabled: true,
+			isEnabledInContextMenu: true,
 		},
 		{
 			type: "custom",
@@ -126,6 +130,7 @@ const defaultSettings = {
 			searchUrl: "https://www.youtube.com/results?search_query={searchTerms}",
 			iconUrl: "https://www.youtube.com/yts/img/favicon_144-vfliLAfaB.png",
 			isEnabled: true,
+			isEnabledInContextMenu: true,
 		},
 		{
 			type: "custom",
@@ -133,6 +138,7 @@ const defaultSettings = {
 			searchUrl: "http://www.imdb.com/find?s=all&q={searchTerms}",
 			iconUrl: "https://www.imdb.com/favicon.ico",
 			isEnabled: true,
+			isEnabledInContextMenu: true,
 		},
 		{
 			type: "custom",
@@ -140,6 +146,7 @@ const defaultSettings = {
 			searchUrl: "https://en.wikipedia.org/wiki/Special:Search?search={searchTerms}",
 			iconUrl: "https://www.wikipedia.org/favicon.ico",
 			isEnabled: true,
+			isEnabledInContextMenu: true,
 		},
 		{
 			type: "custom",
@@ -147,6 +154,7 @@ const defaultSettings = {
 			searchUrl: "https://www.google.com/search?q={searchTerms} site:{hostname}",
 			iconUrl: "https://www.google.com/favicon.ico",
 			isEnabled: false,
+			isEnabledInContextMenu: false,
 		},
 		{
 			type: "custom",
@@ -154,6 +162,7 @@ const defaultSettings = {
 			searchUrl: "https://translate.google.com/#en/pt/{searchTerms}",
 			iconUrl: "https://translate.google.com/favicon.ico",
 			isEnabled: false,
+			isEnabledInContextMenu: false,
 		},
 		{
 			type: "custom",
@@ -161,6 +170,7 @@ const defaultSettings = {
 			searchUrl: "https://www.google.com/search?btnI&q={searchTerms} site:steampowered.com",
 			iconUrl: "https://store.steampowered.com/favicon.ico",
 			isEnabled: false,
+			isEnabledInContextMenu: false,
 		}
 	],
 
@@ -304,6 +314,16 @@ function runBackwardsCompatibilityUpdates(settings)
 		}
 	}
 
+	// 3.25.0
+	// add isEnabledInContextMenu to all engines
+	for (let engine of settings.searchEngines)
+	{
+		if (engine.isEnabledInContextMenu === undefined) {
+			engine.isEnabledInContextMenu = engine.type !== "sss" && (engine.isEnabled || settings.contextMenuEnginesFilter === consts.ContextMenuEnginesFilter_All);
+			shouldSave = true;
+		}
+	}
+
 	return shouldSave;
 }
 
@@ -407,12 +427,8 @@ function setup_ContextMenu()
 		return;
 	}
 
-	// get only the needed engines (don't show special SSS engines in the context menu)
-	let engines = sss.settings.searchEngines.filter(engine => engine.type !== "sss");
-
-	if (sss.settings.contextMenuEnginesFilter === consts.ContextMenuEnginesFilter_SameAsPopup) {
-		engines = engines.filter(engine => engine.isEnabled);
-	}
+	// get only the enabled engines
+	let engines = sss.settings.searchEngines.filter(engine => engine.isEnabledInContextMenu);
 
 	// define parent menu
 	browser.contextMenus.create({
@@ -426,20 +442,36 @@ function setup_ContextMenu()
 	{
 		let contextMenuOption = {
 			parentId: "sss",
-			id: engine.searchUrl,
-			title: engine.name,
 			contexts: ["selection"],
 		};
 
-		// icons are unsupported on Firefox 55 and below
-		if (browserVersion >= 56) {
+		if (engine.type === "sss") {
+			if (engine.id === "separator") {
+				contextMenuOption.type = "separator";
+				browser.contextMenus.create(contextMenuOption);
+				continue;
+			}
+			contextMenuOption.id = engine.id;
+			contextMenuOption.title = consts.sssIcons[engine.id].name;
+		} else {
+			contextMenuOption.id = engine.searchUrl;
+			contextMenuOption.title = engine.name;
+		}
+
+		// icons are not supported on Firefox 55 and below
+		if (browserVersion >= 56)
+		{
 			let icon;
-			if (engine.iconUrl.startsWith("data:")) {
-				icon = engine.iconUrl;
+			if (engine.type === "sss") {
+				icon = consts.sssIcons[engine.id].iconPath;
 			} else {
-				icon = sss.settings.searchEnginesCache[engine.iconUrl];
-				if (icon === undefined) {
+				if (engine.iconUrl.startsWith("data:")) {
 					icon = engine.iconUrl;
+				} else {
+					icon = sss.settings.searchEnginesCache[engine.iconUrl];
+					if (icon === undefined) {
+						icon = engine.iconUrl;
+					}
 				}
 			}
 
@@ -456,8 +488,32 @@ function setup_ContextMenu()
 
 function onContextMenuItemClicked(info, tab)
 {
-	let engine = sss.settings.searchEngines.find(engine => engine.searchUrl === info.menuItemId);
-	if (engine !== undefined) {
+	let engine = sss.settings.searchEngines.find(engine => {
+		if (engine.type === "sss") {
+			return engine.id === info.menuItemId;
+		} else {
+			return engine.searchUrl === info.menuItemId;
+		}
+	});
+
+	if (engine === undefined) {
+		return;
+	}
+
+	// check if it's a special SSS engine
+	if (engine.type === "sss")
+	{
+		if (engine.id === "copyToClipboard") {
+			copyToClipboard();
+		}
+		else if (engine.id === "openAsLink") {
+			let searchUrl = getOpenAsLinkSearchUrl(info.selectionText);
+			openUrl(searchUrl, sss.settings.contextMenuItemBehaviour);
+		}
+	}
+	// here we know it's a normal search engine, so run the search
+	else
+	{
 		// search using the engine
 		let hostname = new URL(info.pageUrl).hostname;
 		let searchUrl = getSearchQuery(engine, info.selectionText, hostname);
@@ -588,16 +644,10 @@ function onSearchEngineClick(engineObject, clickType, searchText, hostname)
 	if (engineObject.type === "sss")
 	{
 		if (engineObject.id === "copyToClipboard") {
-			getCurrentTab(tab => browser.tabs.sendMessage(tab.id, { type: "copyToClipboard" }));
+			copyToClipboard();
 		}
 		else if (engineObject.id === "openAsLink") {
-			// trim text and add http protocol as default if selected text doesn't have it
-			searchText = searchText.trim();
-			if (!searchText.includes("://") && !searchText.startsWith("about:")) {
-				searchText = "http://" + searchText;
-			}
-
-			searchText = encodeURI(searchText);	// encode any weird chars to not break URL
+			searchText = getOpenAsLinkSearchUrl(searchText);
 
 			if (DEBUG) { log("open as link: " + searchText); }
 
@@ -622,6 +672,20 @@ function onSearchEngineClick(engineObject, clickType, searchText, hostname)
 		} else if (clickType === "ctrlClick") {
 			openUrl(getSearchQuery(engine, searchText, hostname), consts.MouseButtonBehaviour_NewBgTab);
 		}
+	}
+}
+
+function copyToClipboard()
+{
+	getCurrentTab(tab => browser.tabs.sendMessage(tab.id, { type: "copyToClipboard" }));
+}
+
+function getOpenAsLinkSearchUrl(searchText)
+{
+	// trim text and add http protocol as default if selected text doesn't have it
+	searchText = searchText.trim();
+	if (!searchText.includes("://") && !searchText.startsWith("about:")) {
+		searchText = "http://" + searchText;
 	}
 }
 
