@@ -98,80 +98,69 @@ const defaultSettings = {
 	contextMenuItemBehaviour: consts.MouseButtonBehaviour_NewBgTab,
 
 	searchEngines: [
-		{
+
+		// special engines
+
+		createDefaultEngine({
 			type: "sss",
-			id: "copyToClipboard",
-			isEnabled: true,
-			isEnabledInContextMenu: true,
-		},
-		{
+			id: "copyToClipboard"
+		}),
+		createDefaultEngine({
 			type: "sss",
-			id: "openAsLink",
-			isEnabled: true,
-			isEnabledInContextMenu: true,
-		},
-		{
+			id: "openAsLink"
+		}),
+		createDefaultEngine({
 			type: "sss",
-			id: "separator",
-			isEnabled: true,
-			isEnabledInContextMenu: true,
-		},
-		{
+			id: "separator"
+		}),
+
+		// actual search engines
+
+		createDefaultEngine({
 			type: "custom",
 			name: "Google",
 			searchUrl: "https://www.google.com/search?q={searchTerms}",
 			iconUrl: "https://www.google.com/favicon.ico",
-			isEnabled: true,
-			isEnabledInContextMenu: true,
-		},
-		{
+		}),
+		createDefaultEngine({
 			type: "custom",
 			name: "YouTube",
 			searchUrl: "https://www.youtube.com/results?search_query={searchTerms}",
 			iconUrl: "https://www.youtube.com/yts/img/favicon_144-vfliLAfaB.png",
-			isEnabled: true,
-			isEnabledInContextMenu: true,
-		},
-		{
+		}),
+		createDefaultEngine({
 			type: "custom",
 			name: "IMDB",
 			searchUrl: "http://www.imdb.com/find?s=all&q={searchTerms}",
 			iconUrl: "https://www.imdb.com/favicon.ico",
-			isEnabled: true,
-			isEnabledInContextMenu: true,
-		},
-		{
+		}),
+		createDefaultEngine({
 			type: "custom",
 			name: "Wikipedia (en)",
 			searchUrl: "https://en.wikipedia.org/wiki/Special:Search?search={searchTerms}",
 			iconUrl: "https://www.wikipedia.org/favicon.ico",
-			isEnabled: true,
-			isEnabledInContextMenu: true,
-		},
-		{
+		}),
+		createDefaultEngine({
 			type: "custom",
 			name: "(Example) Search current site on Google",
 			searchUrl: "https://www.google.com/search?q={searchTerms} site:{hostname}",
 			iconUrl: "https://www.google.com/favicon.ico",
 			isEnabled: false,
-			isEnabledInContextMenu: false,
-		},
-		{
+		}),
+		createDefaultEngine({
 			type: "custom",
 			name: "(Example) Translate EN > PT",
 			searchUrl: "https://translate.google.com/#en/pt/{searchTerms}",
 			iconUrl: "https://translate.google.com/favicon.ico",
 			isEnabled: false,
-			isEnabledInContextMenu: false,
-		},
-		{
+		}),
+		createDefaultEngine({
 			type: "custom",
 			name: "(Example) Steam using first result from Google",
 			searchUrl: "https://www.google.com/search?btnI&q={searchTerms} site:steampowered.com",
 			iconUrl: "https://store.steampowered.com/favicon.ico",
 			isEnabled: false,
-			isEnabledInContextMenu: false,
-		}
+		}),
 	],
 
 	searchEnginesCache: {
@@ -224,7 +213,7 @@ function onSettingsAcquired(settings)
 	// If settings object is empty, use defaults.
 	if (settings === undefined || isObjectEmpty(settings)) {
 		if (DEBUG) { log("Empty settings! Using defaults."); }
-		settings = defaultSettings;
+		settings = defaultSettings;	// not a copy, but we will exit this function right after
 		doSaveSettings = true;
 	} else if (isFirstLoad) {
 		doSaveSettings = runBackwardsCompatibilityUpdates(settings);
@@ -411,6 +400,18 @@ function onContentScriptMessage(msg, sender, callbackFunc)
 
 		default: break;
 	}
+}
+
+function createDefaultEngine(engine)
+{
+	if (engine.isEnabled === undefined) {
+		engine.isEnabled = true;
+	}
+	if (engine.isEnabledInContextMenu === undefined) {
+		engine.isEnabledInContextMenu = engine.isEnabled;
+	}
+
+	return engine;
 }
 
 /* ------------------------------------ */

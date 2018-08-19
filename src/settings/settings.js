@@ -53,6 +53,13 @@ function getErrorHandler(text)
 	}
 }
 
+function createDefaultEngine(engine)
+{
+	engine.isEnabled = true;
+	engine.isEnabledInContextMenu = true;
+	return engine;
+}
+
 // This method's code was taken from node-lz4 by Pierre Curto. MIT license.
 // CHANGES: Added ; to all lines. Reformated one-liners. Removed n = eIdx. Fixed eIdx skipping end bytes if sIdx != 0. Changed "var" to "let".
 function decodeLz4Block(input, output, sIdx, eIdx)
@@ -196,16 +203,12 @@ function updateBrowserEnginesFromSearchJson(browserSearchEngines)
 
 			// finally add the engine to the user's engines
 
-			let sssBrowserEngine = {
+			settings.searchEngines.push(createDefaultEngine({
 				type: "browser",
 				name: engine._name,
 				iconUrl: engine._iconURL,
 				searchUrl: url,
-				isEnabled: true,
-				isEnabledInContextMenu: true,
-			};
-
-			settings.searchEngines.push(sssBrowserEngine);
+			}));
 		}
 	}
 }
@@ -445,26 +448,22 @@ function onPageLoaded()
 	page.addEngineButton.onclick = () => {
 		let searchUrl = "https://www.google.com/search?q={searchTerms}";	// use google as an example
 
-		settings.searchEngines.push({
+		settings.searchEngines.push(createDefaultEngine({
 			type: "custom",
 			name: "New Search Engine",
 			searchUrl: searchUrl,
 			iconUrl: getFaviconForUrl(searchUrl),	// by default try to get a favicon for the domain
-			isEnabled: true,
-			isEnabledInContextMenu: true,
-		});
+		}));
 
 		saveSettings({ searchEngines: settings.searchEngines });
 		updateUIWithSettings();
 	};
 
 	page.addSeparatorButton.onclick = () => {
-		settings.searchEngines.push({
+		settings.searchEngines.push(createDefaultEngine({
 			type: "sss",
 			id: "separator",
-			isEnabled: true,
-			isEnabledInContextMenu: true,
-		});
+		}));
 
 		saveSettings({ searchEngines: settings.searchEngines });
 		updateUIWithSettings();
