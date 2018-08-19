@@ -732,7 +732,7 @@ function buildSearchEngineTableRow(engine, i)
 
 	let isEnabledCheckboxParent = createCustomElement(
 		`<div class="engine-is-enabled">
-			<input autocomplete="off" type="checkbox" ${engine.isEnabled ? "checked" : ""}>
+			<input autocomplete="off" type="checkbox" ${engine.isEnabled ? "checked" : ""} title="Show in popup">
 		</div>`
 	);
 
@@ -746,7 +746,7 @@ function buildSearchEngineTableRow(engine, i)
 
 	let isEnabledInContextMenuCheckboxParent = engineRow.appendChild(createCustomElement(
 		`<div class="engine-is-enabled-in-context-menu">
-			<input autocomplete="off" type="checkbox" ${engine.isEnabledInContextMenu ? "checked" : ""}>
+			<input autocomplete="off" type="checkbox" ${engine.isEnabledInContextMenu ? "checked" : ""} title="Show in context menu">
 		</div>`
 	));
 
