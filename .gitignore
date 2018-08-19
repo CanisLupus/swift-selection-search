@@ -1,3 +1,7 @@
 Thumbs.db
 .vscode
-web-ext-artifacts
+/web-ext-artifacts
+/package.json
+*eslint*
+*.bat
+/tests*
