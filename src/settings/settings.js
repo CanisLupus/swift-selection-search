@@ -626,14 +626,36 @@ function updateUIWithSettings()
 			engineParent.removeChild(engineParent.firstChild);
 		}
 
+		let currentlyExpandedEngineOptions = null;
+
 		// add all engines
-		for (let i = 0; i < settings.searchEngines.length; i++) {
+		for (let i = 0; i < settings.searchEngines.length; i++)
+		{
 			let engine = settings.searchEngines[i];
 			let engineRow = buildSearchEngineTableRow(engine, i);
 			let optionsRow = buildSearchEngineOptionsTableRow(engine, i);
 			engineRow.appendChild(optionsRow);
+			// expand engine options when clicking somewhere in the engine (and guarantee there's only one expanded at any time)
+			engineRow.onclick = ev => {
+				if (currentlyExpandedEngineOptions !== null && currentlyExpandedEngineOptions !== optionsRow) {
+					currentlyExpandedEngineOptions.style.display = "none";
+				}
+				optionsRow.style.display = "initial";
+				currentlyExpandedEngineOptions = optionsRow;
+				ev.stopPropagation();
+			};
 			page.engines.appendChild(engineRow);
 		}
+
+		// set an event to close any expanded engine options when clicking outisde a section
+		document.onclick = ev => {
+			if (currentlyExpandedEngineOptions !== null) {
+				// hide if neither itself or any parent has the "section" class
+				if (ev.target.closest(".section") === null) {
+					currentlyExpandedEngineOptions.style.display = "none";
+				}
+			}
+		};
 
 		// setup draggable elements to be able to sort engines
 		Sortable.create(page.engines, {
@@ -704,6 +726,34 @@ function buildSearchEngineTableRow(engine, i)
 		`<div class="engine-dragger" style="cursor: move;">☰</div>`
 	));
 
+	// "is enabled" element
+
+	let isEnabledCheckboxParent = createCustomElement(
+		`<div class="engine-is-enabled">
+			<input autocomplete="off" type="checkbox" ${engine.isEnabled ? "checked" : ""}>
+		</div>`
+	);
+
+	let isEnabledCheckbox = isEnabledCheckboxParent.getElementsByTagName("input")[0];
+	isEnabledCheckbox.onchange = ev => {
+		setEnabledInPopup(engine, i, isEnabledCheckbox.checked);
+	};
+	engineRow.appendChild(isEnabledCheckboxParent);
+
+	// "is enabled in context menu" element
+
+	let isEnabledInContextMenuCheckboxParent = engineRow.appendChild(createCustomElement(
+		`<div class="engine-is-enabled-in-context-menu">
+			<input autocomplete="off" type="checkbox" ${engine.isEnabledInContextMenu ? "checked" : ""}>
+		</div>`
+	));
+
+	let isEnabledInContextMenuCheckbox = isEnabledInContextMenuCheckboxParent.getElementsByTagName("input")[0];
+	isEnabledInContextMenuCheckbox.onchange = ev => {
+		setEnabledInContextMenu(engine, i, isEnabledInContextMenuCheckbox.checked);
+	};
+	engineRow.appendChild(isEnabledInContextMenuCheckboxParent);
+
 	// icon
 
 	let cell = document.createElement("div");
@@ -769,40 +819,62 @@ function buildSearchEngineTableRow(engine, i)
 // creates and adds a row with options for a certain search engine to the engines table
 function buildSearchEngineOptionsTableRow(engine, i)
 {
-	let id = `checkbox_enabled_in_context_menu_${i}`;
+	let enabledInPopupId = `checkbox_enabled_${i}`;
+	let enabledInContextMenuId = `checkbox_enabled_in_context_menu_${i}`;
+
 	let innerHTML =
 		`<div class="engine-options">
 			<div>
-				<input id="checkbox_enabled_${i}" autocomplete="off" type="checkbox" ${engine.isEnabled ? "checked" : ""}>
-				<label for="checkbox_enabled_${i}"> Enabled in popup</label>
+				<input id="${enabledInPopupId}" autocomplete="off" type="checkbox" ${engine.isEnabled ? "checked" : ""}>
+				<label for="${enabledInPopupId}"> Show in popup</label>
 			</div>
 			<div>
-				<input id="checkbox_enabled_in_context_menu_${i}" autocomplete="off" type="checkbox" ${engine.isEnabledInContextMenu ? "checked" : ""}>
-				<label for="checkbox_enabled_in_context_menu_${i}"> Enabled in context menu</label>
+				<input id="${enabledInContextMenuId}" autocomplete="off" type="checkbox" ${engine.isEnabledInContextMenu ? "checked" : ""}>
+				<label for="${enabledInContextMenuId}"> Show in context menu</label>
 			</div>
 		</div>`;
-	// var template = document.createElement('template');
-	// template.innerHTML = innerHTML;
-	// let row = template.content.firstChild;
 
 	let row = createCustomElement(innerHTML);
-	let inputs = row.getElementsByTagName("input");
 
-	let isEnabledCheckbox = inputs[0];
-
+	let isEnabledCheckbox = row.querySelector("#"+enabledInPopupId);
 	isEnabledCheckbox.onchange = ev => {
-		engine.isEnabled = isEnabledCheckbox.checked;
-		saveSettings({ searchEngines: settings.searchEngines });
+		setEnabledInPopup(engine, i, isEnabledCheckbox.checked);
 	};
 
-	let isEnabledInContextMenuCheckbox = inputs[1];
-
+	let isEnabledInContextMenuCheckbox = row.querySelector("#"+enabledInContextMenuId);
 	isEnabledInContextMenuCheckbox.onchange = ev => {
-		engine.isEnabledInContextMenu = isEnabledInContextMenuCheckbox.checked;
-		saveSettings({ searchEngines: settings.searchEngines });
+		setEnabledInContextMenu(engine, i, isEnabledInContextMenuCheckbox.checked);
 	};
 
 	return row;
+}
+
+function setEnabledInPopup(engine, i, value)
+{
+	let engineRow = page.engines.children[i];
+
+	let checkbox = engineRow.querySelector(".engine-is-enabled input");
+	checkbox.checked = value;
+
+	checkbox = engineRow.querySelector(`#checkbox_enabled_${i}`);
+	checkbox.checked = value;
+
+	engine.isEnabled = value;
+	saveSettings({ searchEngines: settings.searchEngines });
+}
+
+function setEnabledInContextMenu(engine, i, value)
+{
+	let engineRow = page.engines.children[i];
+
+	let checkbox = engineRow.querySelector(".engine-is-enabled-in-context-menu input");
+	checkbox.checked = value;
+
+	checkbox = engineRow.querySelector(`#checkbox_enabled_in_context_menu_${i}`);
+	checkbox.checked = value;
+
+	engine.isEnabledInContextMenu = value;
+	saveSettings({ searchEngines: settings.searchEngines });
 }
 
 // Sets the icon for a search engine in the engines table.
@@ -955,7 +1027,7 @@ function createDeleteButton(i)
 {
 	let elem = createCustomElement(
 		`<div class="engine-delete">
-			<input value="✖" type="button">
+			<input value="✖" type="button" title="Delete">
 		</div>`
 	);
 

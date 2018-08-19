@@ -165,25 +165,25 @@
 		width: 100%;
 		display: flex;
 		flex-flow: column;
-		margin-bottom: 10px;
 	}
 	.engine-itself {
 		width: 100%;
 		display: flex;
 	}
 	.engine-options {
-		margin-left: 52px;	/* 24 + 24 + 4 (dragger + icon + 4px margin-right) */
-		/* opacity: 0.2; */
-		/* display: flex; */
+		margin-left: 100px;	/* 24 + 24 + 24 + 24 + 4 (dragger + icon + 4px margin-right) */
+		display: none;
 	}
-	.engine-table-row:hover .engine-options {
-		/* opacity: 1; */
+	.engine-table-row:not(.static-row):hover {
+		background: rgba(51, 153, 255, 0.1);
 	}
 	.engine-itself > div,
 	.engine-options > div {
 		margin: 1px;
 	}
 	.engine-dragger,
+	.engine-is-enabled,
+	.engine-is-enabled-in-context-menu,
 	.engine-icon-img,
 	.engine-delete {
 		display: flex;
@@ -290,9 +290,11 @@
 		<div class="section-settings">
 			<div class="setting">
 				<div id="engines-table">
-					<div class="engine-table-row">
+					<div class="engine-table-row static-row">
 						<div class="engine-itself">
 							<div class="engine-dragger"></div>
+							<div class="engine-is-enabled" title="Show in popup">P</div>
+							<div class="engine-is-enabled-in-context-menu" title="Show in context menu">C</div>
 							<div class="engine-icon-img"></div>
 							<div class="engine-name">Name</div>
 							<div class="engine-search-link">Search link</div>
@@ -303,9 +305,11 @@
 
 					<div id="engines"></div>
 
-					<div class="engine-table-row">
+					<div class="engine-table-row static-row">
 						<div class="engine-itself">
 							<div class="engine-dragger"></div>
+							<div class="engine-is-enabled"></div>
+							<div class="engine-is-enabled-in-context-menu"></div>
 							<div class="engine-icon-img"></div>
 							<div class="engine-add-button"><input type="button" name="addEngineButton" value="Add engine"></div>
 							<div class="engine-add-button"><input type="button" name="addSeparatorButton" value="Add separator"></div>
