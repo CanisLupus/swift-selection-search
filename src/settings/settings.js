@@ -956,8 +956,8 @@ function createEngineSearchLink(engine)
 			// if we're using the default favicon search for the previous search url, update it
 			if (engine.iconUrl.length == 0 || engine.iconUrl === getFaviconForUrl(searchLinkInput.previousValue)) {
 				let iconUrl = getFaviconForUrl(url);
-				cell.iconLinkInput.value = iconUrl;	// doesn't trigger oninput or onchange
-				setIconUrlInput(engine, cell.iconLinkInput, cell.icon);
+				elem.iconLinkInput.value = iconUrl;	// doesn't trigger oninput or onchange
+				setIconUrlInput(engine, elem.iconLinkInput, elem.icon);
 			}
 			searchLinkInput.previousValue = url;
 		}
