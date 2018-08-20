@@ -2,88 +2,111 @@
 // License: http://unlicense.org
 // Adapted for Swift Selection Search by Daniel Lobo.
 
-var selectionchange = (function () {
+let selectionchange = (function () {
 
-	var MAC = /^Mac/.test(navigator.platform);
-	var MAC_MOVE_KEYS = [65, 66, 69, 70, 78, 80]; // A, B, E, F, P, N from support.apple.com/en-ie/HT201236
-	var SELECT_ALL_MODIFIER = MAC ? "metaKey" : "ctrlKey";
-	var RANGE_PROPS = ["startContainer", "startOffset", "endContainer", "endOffset"];
-	var HAS_OWN_SELECTION = {INPUT: 1, TEXTAREA: 1};
+	let MAC = /^Mac/.test(navigator.platform);
+	let MAC_MOVE_KEYS = [65, 66, 69, 70, 78, 80]; // A, B, E, F, P, N from support.apple.com/en-ie/HT201236
+	let modifierKey = MAC ? "metaKey" : "ctrlKey";
 
-	var ranges;
+	let ranges = null;
 
 	return {
-		start: function (doc) {
-			var d = doc || document;
-			if (ranges || (ranges = new WeakMap())) {
-				if (!ranges.has(d)) {
-					ranges.set(d, getSelectionRange(d));
-					d.addEventListener("input", onInput, true);
-					d.addEventListener("keydown", onKeyDown, true);
-					d.addEventListener("mouseup", onMouseUp, true);
-					// d.defaultView.addEventListener("focus", onFocus, true);
-				}
-			}
+		start: function () {
+			ranges = getSelectedRanges();
+			document.addEventListener("input", onInput, true);
+			document.addEventListener("keydown", onKeyDown, true);
+			document.addEventListener("mouseup", onMouseUp, true);
 		},
-		stop: function (doc) {
-			var d = doc || document;
-			if (ranges && ranges.has(d)) {
-				ranges["delete"](d);
-				d.removeEventListener("input", onInput, true);
-				d.removeEventListener("keydown", onKeyDown, true);
-				d.removeEventListener("mouseup", onMouseUp, true);
-				// d.defaultView.removeEventListener("focus", onFocus, true);
-			}
+		stop: function () {
+			ranges = null;
+			document.removeEventListener("input", onInput, true);
+			document.removeEventListener("keydown", onKeyDown, true);
+			document.removeEventListener("mouseup", onMouseUp, true);
 		},
-		modifier: SELECT_ALL_MODIFIER
+		modifierKey: modifierKey
 	};
 
-	function getSelectionRange(doc) {
-		var s = doc.getSelection();
-		return s !== null && s.rangeCount ? s.getRangeAt(0) : null;
+	function getSelectedRanges()
+	{
+		let selection = document.getSelection();
+		let newRanges = [];
+
+		if (selection !== null) {
+			for (let i = 0; i < selection.rangeCount; i++) {
+				newRanges.push(selection.getRangeAt(i));
+			}
+		}
+
+		return newRanges;
 	}
 
-	function onInput(e) {
-		if (!HAS_OWN_SELECTION[e.target.tagName]) {
-			dispatchIfChanged(this, true, e);
+	function onInput(ev)
+	{
+		if (!isInputField(ev.target)) {
+			dispatchEventIfSelectionChanged(true, ev);
 		}
 	}
 
-	function onKeyDown(e) {
-		var code = e.keyCode;
-		if (code === 65 && e[SELECT_ALL_MODIFIER] && !e.shiftKey && !e.altKey || // Ctrl-A or Cmd-A
-			code >= 35 && code <= 40 || // home, end and arrow key
-			e.ctrlKey && MAC && MAC_MOVE_KEYS.indexOf(code) >= 0)
+	function onKeyDown(ev)
+	{
+		let code = ev.keyCode;
+
+		if ((code === 65 && ev[modifierKey] && !ev.shiftKey && !ev.altKey) // Ctrl-A or Cmd-A
+			|| (code >= 35 && code <= 40) // home, end and arrow keys
+			|| (ev.ctrlKey && MAC && MAC_MOVE_KEYS.includes(code)))
 		{
-			if (!HAS_OWN_SELECTION[e.target.tagName]) {	// comment to enable selections with keyboard
-				setTimeout(dispatchIfChanged.bind(null, this, true, e), 0);
+			if (!isInputField(ev.target)) {	// comment to enable selections with keyboard
+				setTimeout(() => dispatchEventIfSelectionChanged(true, ev), 0);
 			}
 		}
 	}
 
-	function onMouseUp(e) {
-		if (e.button === 0) {
-			setTimeout(dispatchIfChanged.bind(null, this, HAS_OWN_SELECTION[e.target.tagName], e), 0);
+	function onMouseUp(ev)
+	{
+		if (ev.button === 0) {
+			setTimeout(() => dispatchEventIfSelectionChanged(isInputField(ev.target), ev), 0);
 		}
 	}
 
-	// function onFocus(e) {
-	// 	setTimeout(dispatchIfChanged.bind(null, this.document, e), 0);
-	// }
+	function dispatchEventIfSelectionChanged(force, ev)
+	{
+		let newRanges = getSelectedRanges();
 
-	function dispatchIfChanged(doc, force, e) {
-		var r = getSelectionRange(doc);
-		if (force || !sameRange(r, ranges.get(doc))) {
-			ranges.set(doc, r);
-			var event = new CustomEvent("customselectionchange");
-			event.altKey = e.altKey;
-			setTimeout(doc.dispatchEvent.bind(doc, event), 0);
+		if (force || !areAllRangesEqual(newRanges, ranges)) {
+			ranges = newRanges;
+			let event = new CustomEvent("customselectionchange");
+			event.altKey = ev.altKey;
+			setTimeout(() => document.dispatchEvent(event), 0);
 		}
 	}
 
-	function sameRange(r1, r2) {
-		return r1 === r2 || r1 && r2 && RANGE_PROPS.every(function (prop) {
-			return r1[prop] === r2[prop];
-		});
+	function isInputField(elem)
+	{
+		return elem.tagName === "INPUT" || elem.tagName === "TEXTAREA";
+	}
+
+	// compares two lists of ranges to see if the ranges are the exact same
+	function areAllRangesEqual(rs1, rs2)
+	{
+		if (rs1.length !== rs2.length) {
+			return false;
+		}
+
+		for (let i = 0; i < rs1.length; i++)
+		{
+			const r1 = rs1[i];
+			const r2 = rs2[i];
+
+			let areEqual = r1.startContainer === r2.startContainer
+						&& r1.startOffset === r2.startOffset
+						&& r1.endContainer === r2.endContainer
+						&& r1.endOffset === r2.endOffset;
+
+			if (!areEqual) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 })();
