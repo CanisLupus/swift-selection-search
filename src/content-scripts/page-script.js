@@ -217,19 +217,20 @@ function saveCurrentSelection()
 		let selectedText = selectionObject.toString();
 
 		// if selection.toString() is empty, try to get string from the ranges instead (this can happen!)
-		if (selectedText.length == 0)
+		if (selectedText.length === 0)
 		{
 			selectedText = selectionObject.getRangeAt(0).toString();
 			for (let i = 1; i < selectionObject.rangeCount; i++) {
 				let range = selectionObject.getRangeAt(i);
 				selectedText += range.toString();
 			}
-			selectedText = selectedText.trim();
 		}
 
 		selection.text = selectedText;
 		selection.selection = selectionObject;
 	}
+
+	selection.text = selection.text.trim();
 
 	return selection.text.length > 0;
 }
