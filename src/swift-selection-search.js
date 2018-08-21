@@ -648,16 +648,16 @@ function onSearchEngineClick(engineObject, clickType, searchText, hostname)
 			copyToClipboard();
 		}
 		else if (engineObject.id === "openAsLink") {
-			searchText = getOpenAsLinkSearchUrl(searchText);
+			let link = getOpenAsLinkSearchUrl(searchText);
 
-			if (DEBUG) { log("open as link: " + searchText); }
+			if (DEBUG) { log("open as link: " + link); }
 
 			if (clickType === "leftClick") {
-				openUrl(searchText, sss.settings.mouseLeftButtonBehaviour);
+				openUrl(link, sss.settings.mouseLeftButtonBehaviour);
 			} else if (clickType === "middleClick") {
-				openUrl(searchText, sss.settings.mouseMiddleButtonBehaviour);
+				openUrl(link, sss.settings.mouseMiddleButtonBehaviour);
 			} else if (clickType === "ctrlClick") {
-				openUrl(searchText, consts.MouseButtonBehaviour_NewBgTab);
+				openUrl(link, consts.MouseButtonBehaviour_NewBgTab);
 			}
 		}
 	}
@@ -681,13 +681,16 @@ function copyToClipboard()
 	getCurrentTab(tab => browser.tabs.sendMessage(tab.id, { type: "copyToClipboard" }));
 }
 
-function getOpenAsLinkSearchUrl(searchText)
+function getOpenAsLinkSearchUrl(link)
 {
 	// trim text and add http protocol as default if selected text doesn't have it
-	searchText = searchText.trim();
-	if (!searchText.includes("://") && !searchText.startsWith("about:")) {
-		searchText = "http://" + searchText;
+	link = link.trim();
+
+	if (!link.includes("://") && !link.startsWith("about:")) {
+		link = "http://" + link;
 	}
+
+	return link;
 }
 
 // gets the complete search URL by applying the selected text to the engine's own searchUrl
