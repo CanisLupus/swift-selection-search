@@ -5,3 +5,5 @@ Thumbs.db
 *eslint*
 *.bat
 /tests*
+/node_modules
+/js-build

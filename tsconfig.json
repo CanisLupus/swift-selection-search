@@ -1,0 +1,7 @@
+{
+    "compilerOptions": {
+        "target": "es6",
+        "outDir": "js-build",
+        "typeRoots": ["node_modules/@types", "node_modules/web-ext-types"],
+    }
+}
