@@ -2,29 +2,31 @@
 // License: http://unlicense.org
 // Adapted for Swift Selection Search by Daniel Lobo.
 
-let selectionchange = (function () {
-
+namespace selectionchange
+{
 	let MAC = /^Mac/.test(navigator.platform);
-	let MAC_MOVE_KEYS = [65, 66, 69, 70, 78, 80]; // A, B, E, F, P, N from support.apple.com/en-ie/HT201236
-	let modifierKey = MAC ? "metaKey" : "ctrlKey";
+	let MAC_MOVE_KEYS = new Set([65, 66, 69, 70, 78, 80]); // A, B, E, F, P, N from support.apple.com/en-ie/HT201236
+	export let modifierKey = MAC ? "metaKey" : "ctrlKey";
 
 	let ranges = null;
 
-	return {
-		start: function () {
-			ranges = getSelectedRanges();
-			document.addEventListener("input", onInput, true);
-			document.addEventListener("keydown", onKeyDown, true);
-			document.addEventListener("mouseup", onMouseUp, true);
-		},
-		stop: function () {
-			ranges = null;
-			document.removeEventListener("input", onInput, true);
-			document.removeEventListener("keydown", onKeyDown, true);
-			document.removeEventListener("mouseup", onMouseUp, true);
-		},
-		modifierKey: modifierKey
-	};
+	export function start() {
+		ranges = getSelectedRanges();
+		document.addEventListener("input", onInput, true);
+		document.addEventListener("keydown", onKeyDown, true);
+		document.addEventListener("mouseup", onMouseUp, true);
+	}
+
+	export function stop() {
+		ranges = null;
+		document.removeEventListener("input", onInput, true);
+		document.removeEventListener("keydown", onKeyDown, true);
+		document.removeEventListener("mouseup", onMouseUp, true);
+	}
+
+	export class CustomSelectionChangeEvent extends CustomEvent<any> {
+		altKey: boolean;
+	}
 
 	function getSelectedRanges()
 	{
@@ -53,7 +55,7 @@ let selectionchange = (function () {
 
 		if ((code === 65 && ev[modifierKey] && !ev.shiftKey && !ev.altKey) // Ctrl-A or Cmd-A
 			|| (code >= 35 && code <= 40) // home, end and arrow keys
-			|| (ev.ctrlKey && MAC && MAC_MOVE_KEYS.includes(code)))
+			|| (ev.ctrlKey && MAC && MAC_MOVE_KEYS.has(code)))
 		{
 			if (!isInputField(ev.target)) {	// comment to enable selections with keyboard
 				setTimeout(() => dispatchEventIfSelectionChanged(true, ev), 0);
@@ -74,7 +76,7 @@ let selectionchange = (function () {
 
 		if (force || !areAllRangesEqual(newRanges, ranges)) {
 			ranges = newRanges;
-			let event = new CustomEvent("customselectionchange");
+			let event = new CustomSelectionChangeEvent("customselectionchange");
 			event.altKey = ev.altKey;
 			setTimeout(() => document.dispatchEvent(event), 0);
 		}
@@ -109,4 +111,4 @@ let selectionchange = (function () {
 
 		return true;
 	}
-})();
+}

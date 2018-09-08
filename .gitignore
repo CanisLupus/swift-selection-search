@@ -7,3 +7,4 @@ Thumbs.db
 /tests*
 /node_modules
 /js-build
+*.js

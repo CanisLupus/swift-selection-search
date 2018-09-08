@@ -1,72 +1,176 @@
+namespace SSS
+{
 /* ==================================== */
 /* ====== Swift Selection Search ====== */
 /* ==================================== */
 
-"use strict";
+export abstract class SearchEngine
+{
+	[key: string]: browser.storage.StorageValue;
 
-const DEBUG = false;
-if (DEBUG) {
-	var log = console.log;
+	type: SearchEngineType;
+	isEnabled: boolean;
+	isEnabledInContextMenu: boolean;
 }
 
-const consts = {
-	PopupOpenBehaviour_Off: "off",
-	PopupOpenBehaviour_Auto: "auto",
-	PopupOpenBehaviour_Keyboard: "keyboard",
-	PopupOpenBehaviour_HoldAlt: "hold-alt",
-	PopupOpenBehaviour_MiddleMouse: "middle-mouse",
+export class SearchEngine_SSS extends SearchEngine
+{
+	id: string;
+}
 
-	PopupLocation_Selection: "selection",
-	PopupLocation_Cursor: "cursor",
+export class SearchEngine_Custom extends SearchEngine
+{
+	name: string;
+	searchUrl: string;
+	iconUrl: string;
+}
 
-	MouseButtonBehaviour_ThisTab: "this-tab",
-	MouseButtonBehaviour_NewTab: "new-tab",
-	MouseButtonBehaviour_NewBgTab: "new-bg-tab",
-	MouseButtonBehaviour_NewTabNextToThis: "new-tab-next",
-	MouseButtonBehaviour_NewBgTabNextToThis: "new-bg-tab-next",
-	MouseButtonBehaviour_NewWindow: "new-window",
-	MouseButtonBehaviour_NewBgWindow: "new-bg-window",
+enum SearchEngineType {
+	SSS = "sss",
+	Custom = "custom",
+	Browser = "browser",
+}
 
-	AutoCopyToClipboard_Off: "off",
-	AutoCopyToClipboard_Always: "always",
+export class Settings
+{
+	[key: string]: browser.storage.StorageValue;
 
-	IconAlignment_Left: "left",
-	IconAlignment_Middle: "middle",
-	IconAlignment_Right: "right",
+	popupOpenBehaviour: PopupOpenBehaviour;
+	middleMouseSelectionClickMargin: number;
+	popupLocation: PopupLocation;
+	minSelectedCharacters: number;
+	allowPopupOnEditableFields: boolean;
+	hidePopupOnPageScroll: boolean;
+	hidePopupOnRightClick: boolean;
+	hidePopupOnSearch: boolean;
+	popupOpenCommand: string;
+	popupDisableCommand: string;
+	mouseLeftButtonBehaviour: OpenResultBehaviour;
+	mouseMiddleButtonBehaviour: OpenResultBehaviour;
+	popupAnimationDuration: number;
+	autoCopyToClipboard: AutoCopyToClipboard;
+	useSingleRow: boolean;
+	nPopupIconsPerRow: number;
+	iconAlignmentInGrid: IconAlignment;
+	popupItemSize: number;
+	popupSeparatorWidth: number;
+	popupItemPadding: number;
+	popupItemVerticalPadding: number;
+	popupItemHoverBehaviour: ItemHoverBehaviour;
+	popupItemBorderRadius: number;
+	popupBackgroundColor: string;
+	popupHighlightColor: string;
+	popupPaddingX: number;
+	popupPaddingY: number;
+	popupOffsetX: number;
+	popupOffsetY: number;
+	popupBorderRadius: number;
+	enableEnginesInContextMenu: boolean;
+	contextMenuItemBehaviour: OpenResultBehaviour;
+	searchEngines: SearchEngine[];
+	searchEnginesCache: { [id: string] : string; };
+}
 
-	ItemHoverBehaviour_Nothing: "nothing",
-	ItemHoverBehaviour_Highlight: "highlight",
-	ItemHoverBehaviour_HighlightAndMove: "highlight-and-move",
+export class ActivationSettings
+{
+	popupLocation: PopupLocation;
+	popupOpenBehaviour: PopupOpenBehaviour;
+	middleMouseSelectionClickMargin: number;
+}
 
-	// not used anymore but needed for retrocompatibility
-	ContextMenuEnginesFilter_All: "all",
-	ContextMenuEnginesFilter_SameAsPopup: "same-as-popup",
+export class ContentScriptSettings
+{
+	settings: Settings;
+	sssIcons: { [id: string] : SSSIconDefinition; };
+}
 
-	sssIcons: {
-		copyToClipboard: {
-			name: "Copy to clipboard",
-			description: "[SSS] Adds a \"Copy selection to clipboard\" icon to the popup.",
-			iconPath: "res/sss-engine-icons/copy.png",
-		},
-		openAsLink: {
-			name: "Open as link",
-			description: "[SSS] Adds an \"Open selection as link\" icon to the popup.",
-			iconPath: "res/sss-engine-icons/open-link.png",
-		},
-		separator: {
-			name: "Separator",
-			description: "[SSS] Adds a separator.",
-			iconPath: "res/sss-engine-icons/separator.png",
-			isInteractive: false,
-		}
+export class SSSIconDefinition
+{
+	name: string;
+	description: string;
+	iconPath: string;
+	isInteractive: boolean = true;
+}
+
+enum PopupOpenBehaviour {
+	Off = "off",
+	Auto = "auto",
+	Keyboard = "keyboard",
+	HoldAlt = "hold-alt",
+	MiddleMouse = "middle-mouse",
+}
+
+enum PopupLocation {
+	Selection = "selection",
+	Cursor = "cursor",
+}
+
+enum OpenResultBehaviour {
+	ThisTab = "this-tab",
+	NewTab = "new-tab",
+	NewBgTab = "new-bg-tab",
+	NewTabNextToThis = "new-tab-next",
+	NewBgTabNextToThis = "new-bg-tab-next",
+	NewWindow = "new-window",
+	NewBgWindow = "new-bg-window",
+}
+
+enum AutoCopyToClipboard {
+	Off = "off",
+	Always = "always",
+}
+
+enum IconAlignment {
+	Left = "left",
+	Middle = "middle",
+	Right = "right",
+}
+
+enum ItemHoverBehaviour {
+	Nothing = "nothing",
+	Highlight = "highlight",
+	HighlightAndMove = "highlight-and-move",
+}
+
+// not used anymore but needed for retrocompatibility
+enum ContextMenuEnginesFilter {
+	All = "all",
+	SameAsPopup = "same-as-popup",
+}
+
+class SSS
+{
+	settings: Settings;
+	activationSettingsForContentScript: ActivationSettings;
+	settingsForContentScript: ContentScriptSettings;
+}
+
+const sssIcons: { [id: string] : SSSIconDefinition; } = {
+	copyToClipboard: {
+		name: "Copy to clipboard",
+		description: "[SSS] Adds a \"Copy selection to clipboard\" icon to the popup.",
+		iconPath: "res/sss-engine-icons/copy.png",
+		isInteractive: true,
+	},
+	openAsLink: {
+		name: "Open as link",
+		description: "[SSS] Adds an \"Open selection as link\" icon to the popup.",
+		iconPath: "res/sss-engine-icons/open-link.png",
+		isInteractive: true,
+	},
+	separator: {
+		name: "Separator",
+		description: "[SSS] Adds a separator.",
+		iconPath: "res/sss-engine-icons/separator.png",
+		isInteractive: false,
 	}
 };
 
 // default state of all configurable options
-const defaultSettings = {
-	popupOpenBehaviour: consts.PopupOpenBehaviour_Auto,
+const defaultSettings: Settings = {
+	popupOpenBehaviour: PopupOpenBehaviour.Auto,
 	middleMouseSelectionClickMargin: 14,
-	popupLocation: consts.PopupLocation_Cursor,
+	popupLocation: PopupLocation.Cursor,
 	minSelectedCharacters: 0,
 	allowPopupOnEditableFields: false,
 	hidePopupOnPageScroll: true,
@@ -74,18 +178,18 @@ const defaultSettings = {
 	hidePopupOnSearch: true,
 	popupOpenCommand: "Ctrl+Shift+Space",
 	popupDisableCommand: "Ctrl+Shift+U",
-	mouseLeftButtonBehaviour: consts.MouseButtonBehaviour_ThisTab,
-	mouseMiddleButtonBehaviour: consts.MouseButtonBehaviour_NewBgTab,
+	mouseLeftButtonBehaviour: OpenResultBehaviour.ThisTab,
+	mouseMiddleButtonBehaviour: OpenResultBehaviour.NewBgTab,
 	popupAnimationDuration: 100,
-	autoCopyToClipboard: consts.AutoCopyToClipboard_Off,
+	autoCopyToClipboard: AutoCopyToClipboard.Off,
 	useSingleRow: true,
 	nPopupIconsPerRow: 4,
-	iconAlignmentInGrid: consts.IconAlignment_Middle,
+	iconAlignmentInGrid: IconAlignment.Middle,
 	popupItemSize: 24,
 	popupSeparatorWidth: 60,
 	popupItemPadding: 2,
 	popupItemVerticalPadding: 1,
-	popupItemHoverBehaviour: consts.ItemHoverBehaviour_HighlightAndMove,
+	popupItemHoverBehaviour: ItemHoverBehaviour.HighlightAndMove,
 	popupItemBorderRadius: 0,
 	popupBackgroundColor: "#FFFFFF",
 	popupHighlightColor: "#3399FF",
@@ -95,67 +199,67 @@ const defaultSettings = {
 	popupOffsetY: 0,
 	popupBorderRadius: 2,
 	enableEnginesInContextMenu: true,
-	contextMenuItemBehaviour: consts.MouseButtonBehaviour_NewBgTab,
+	contextMenuItemBehaviour: OpenResultBehaviour.NewBgTab,
 
 	searchEngines: [
 
 		// special engines
 
 		createDefaultEngine({
-			type: "sss",
+			type: SearchEngineType.SSS,
 			id: "copyToClipboard"
 		}),
 		createDefaultEngine({
-			type: "sss",
+			type: SearchEngineType.SSS,
 			id: "openAsLink"
 		}),
 		createDefaultEngine({
-			type: "sss",
+			type: SearchEngineType.SSS,
 			id: "separator"
 		}),
 
 		// actual search engines
 
 		createDefaultEngine({
-			type: "custom",
+			type: SearchEngineType.Custom,
 			name: "Google",
 			searchUrl: "https://www.google.com/search?q={searchTerms}",
 			iconUrl: "https://www.google.com/favicon.ico",
 		}),
 		createDefaultEngine({
-			type: "custom",
+			type: SearchEngineType.Custom,
 			name: "YouTube",
 			searchUrl: "https://www.youtube.com/results?search_query={searchTerms}",
 			iconUrl: "https://www.youtube.com/yts/img/favicon_144-vfliLAfaB.png",
 		}),
 		createDefaultEngine({
-			type: "custom",
+			type: SearchEngineType.Custom,
 			name: "IMDB",
 			searchUrl: "http://www.imdb.com/find?s=all&q={searchTerms}",
 			iconUrl: "https://www.imdb.com/favicon.ico",
 		}),
 		createDefaultEngine({
-			type: "custom",
+			type: SearchEngineType.Custom,
 			name: "Wikipedia (en)",
 			searchUrl: "https://en.wikipedia.org/wiki/Special:Search?search={searchTerms}",
 			iconUrl: "https://www.wikipedia.org/favicon.ico",
 		}),
 		createDefaultEngine({
-			type: "custom",
+			type: SearchEngineType.Custom,
 			name: "(Example) Search current site on Google",
 			searchUrl: "https://www.google.com/search?q={searchTerms} site:{hostname}",
 			iconUrl: "https://www.google.com/favicon.ico",
 			isEnabled: false,
 		}),
 		createDefaultEngine({
-			type: "custom",
+			type: SearchEngineType.Custom,
 			name: "(Example) Translate EN > PT",
 			searchUrl: "https://translate.google.com/#en/pt/{searchTerms}",
 			iconUrl: "https://translate.google.com/favicon.ico",
 			isEnabled: false,
 		}),
 		createDefaultEngine({
-			type: "custom",
+			type: SearchEngineType.Custom,
 			name: "(Example) Steam using first result from Google",
 			searchUrl: "https://www.google.com/search?btnI&q={searchTerms} site:steampowered.com",
 			iconUrl: "https://store.steampowered.com/favicon.ico",
@@ -173,14 +277,19 @@ const defaultSettings = {
 	}
 };
 
-let isFirstLoad = true;
-let browserVersion = 0;
-const sss = {};
+const DEBUG = true;
+if (DEBUG) {
+	var log = console.log;
+}
+
+let isFirstLoad: boolean = true;
+let browserVersion: number = 0;
+const sss: SSS = new SSS();
 
 // show message on installation
 browser.runtime.onInstalled.addListener(details => {
 	if (details.reason == "install") {
-		browser.tabs.create({ url : "/res/msg-pages/sss-intro.html" });
+		browser.tabs.create({ url: "/res/msg-pages/sss-intro.html" });
 	}
 });
 
@@ -206,7 +315,7 @@ browser.runtime.getBrowserInfo().then(browserInfo => {
 /* ------------------------------------ */
 
 // Main SSS setup. Called when settings are acquired. Prepares everything.
-function onSettingsAcquired(settings)
+function onSettingsAcquired(settings: Settings)
 {
 	let doSaveSettings = false;
 
@@ -244,58 +353,59 @@ function onSettingsAcquired(settings)
 }
 
 // small subset of settings needed for activating content scripts (no need to pass everything if the popup isn't ever called)
-function getActivationSettingsForContentScript(settings)
+function getActivationSettingsForContentScript(settings: Settings): ActivationSettings
 {
-	let activationSettings = {
-		popupLocation: settings.popupLocation,
-		popupOpenBehaviour: settings.popupOpenBehaviour,
-		middleMouseSelectionClickMargin: settings.middleMouseSelectionClickMargin
-	};
+	let activationSettings = new ActivationSettings();
+	activationSettings.popupLocation = settings.popupLocation;
+	activationSettings.popupOpenBehaviour = settings.popupOpenBehaviour;
+	activationSettings.middleMouseSelectionClickMargin = settings.middleMouseSelectionClickMargin;
 	return activationSettings;
 }
 
 // settings for when a content script needs to show the popup
-function getPopupSettingsForContentScript(settings)
+function getPopupSettingsForContentScript(settings: Settings): ContentScriptSettings
 {
-	let popupSettings = Object.assign({}, settings);	// shallow copy
-	popupSettings.searchEngines = settings.searchEngines.filter(engine => engine.isEnabled);	// pass only enabled engines
-	popupSettings.searchEnginesCache = {};
-	popupSettings.sssIcons = consts.sssIcons;	// add information about special SSS icons (normally not in settings because it doesn't change)
+	let contentScriptSettings = new ContentScriptSettings();
+	contentScriptSettings.settings = Object.assign({}, settings);	// shallow copy
+	contentScriptSettings.settings.searchEngines = settings.searchEngines.filter(engine => engine.isEnabled);	// pass only enabled engines
+	contentScriptSettings.settings.searchEnginesCache = {};
+	contentScriptSettings.sssIcons = sssIcons;	// add information about special SSS icons (normally not in settings because it doesn't change)
 
 	// get icon cache for enabled engines
-	for (const engine of popupSettings.searchEngines)
+	for (const engine of contentScriptSettings.settings.searchEngines)
 	{
-		if (engine.iconUrl) {
-			let iconCache = settings.searchEnginesCache[engine.iconUrl];
+		if (engine.type === SearchEngineType.Custom)
+		{
+			let iconCache: string = settings.searchEnginesCache[(engine as SearchEngine_Custom).iconUrl];
 			if (iconCache) {
-				popupSettings.searchEnginesCache[engine.iconUrl] = iconCache;
+				contentScriptSettings.settings.searchEnginesCache[(engine as SearchEngine_Custom).iconUrl] = iconCache;
 			}
 		}
 	}
-	return popupSettings;
+	return contentScriptSettings;
 }
 
 function runBackwardsCompatibilityUpdates(settings)
 {
 	// add settings that were not available in older versions of SSS
 	let shouldSave = false;
-	shouldSave |= createSettingIfNonExistent(settings, "popupItemVerticalPadding");			// 3.1.0
-	shouldSave |= createSettingIfNonExistent(settings, "allowPopupOnEditableFields");		// 3.6.0
-	shouldSave |= createSettingIfNonExistent(settings, "popupBorderRadius");				// 3.9.1
-	shouldSave |= createSettingIfNonExistent(settings, "popupItemBorderRadius");			// 3.12.0
-	shouldSave |= createSettingIfNonExistent(settings, "minSelectedCharacters");			// 3.13.0
-	shouldSave |= createSettingIfNonExistent(settings, "middleMouseSelectionClickMargin");	// 3.14.1
-	shouldSave |= createSettingIfNonExistent(settings, "hidePopupOnRightClick");			// 3.15.0
-	shouldSave |= createSettingIfNonExistent(settings, "popupSeparatorWidth");				// 3.21.0
-	shouldSave |= createSettingIfNonExistent(settings, "popupOpenCommand");					// 3.22.0
-	shouldSave |= createSettingIfNonExistent(settings, "popupDisableCommand");				// 3.22.0
-	shouldSave |= createSettingIfNonExistent(settings, "iconAlignmentInGrid");				// 3.25.0
+	shouldSave = shouldSave || createSettingIfNonExistent(settings, "popupItemVerticalPadding");		// 3.1.0
+	shouldSave = shouldSave || createSettingIfNonExistent(settings, "allowPopupOnEditableFields");		// 3.6.0
+	shouldSave = shouldSave || createSettingIfNonExistent(settings, "popupBorderRadius");				// 3.9.1
+	shouldSave = shouldSave || createSettingIfNonExistent(settings, "popupItemBorderRadius");			// 3.12.0
+	shouldSave = shouldSave || createSettingIfNonExistent(settings, "minSelectedCharacters");			// 3.13.0
+	shouldSave = shouldSave || createSettingIfNonExistent(settings, "middleMouseSelectionClickMargin");	// 3.14.1
+	shouldSave = shouldSave || createSettingIfNonExistent(settings, "hidePopupOnRightClick");			// 3.15.0
+	shouldSave = shouldSave || createSettingIfNonExistent(settings, "popupSeparatorWidth");				// 3.21.0
+	shouldSave = shouldSave || createSettingIfNonExistent(settings, "popupOpenCommand");				// 3.22.0
+	shouldSave = shouldSave || createSettingIfNonExistent(settings, "popupDisableCommand");				// 3.22.0
+	shouldSave = shouldSave || createSettingIfNonExistent(settings, "iconAlignmentInGrid");				// 3.25.0
 
 	// 3.7.0
-	// convert old unchangeable browser-imported engines to normal "custom" ones
+	// convert old unchangeable browser-imported engines to normal ones
 	for (let engine of settings.searchEngines)
 	{
-		if (engine.iconUrl === undefined && engine.type === "browser") {
+		if (engine.iconUrl === undefined && engine.type === SearchEngineType.Browser) {
 			engine.iconUrl = engine.iconSrc;
 			delete engine.iconSrc;
 			delete engine.id;
@@ -308,7 +418,7 @@ function runBackwardsCompatibilityUpdates(settings)
 	for (let engine of settings.searchEngines)
 	{
 		if (engine.isEnabledInContextMenu === undefined) {
-			engine.isEnabledInContextMenu = engine.type !== "sss" && (engine.isEnabled || settings.contextMenuEnginesFilter === consts.ContextMenuEnginesFilter_All);
+			engine.isEnabledInContextMenu = engine.type !== SearchEngineType.SSS && (engine.isEnabled || settings.contextMenuEnginesFilter === ContextMenuEnginesFilter.All);
 			shouldSave = true;
 		}
 	}
@@ -316,7 +426,7 @@ function runBackwardsCompatibilityUpdates(settings)
 	return shouldSave;
 }
 
-function createSettingIfNonExistent(settings, settingName)
+function createSettingIfNonExistent(settings, settingName): boolean
 {
 	if (settings[settingName] === undefined) {
 		settings[settingName] = defaultSettings[settingName];
@@ -327,7 +437,7 @@ function createSettingIfNonExistent(settings, settingName)
 
 // whenever settings change, we re-aquire all settings and setup everything again as if just starting
 // (definitely not performant, but very robust)
-function onSettingsChanged(changes, area)
+function onSettingsChanged(changes: browser.storage.ChangeDict, area: browser.storage.StorageName)
 {
 	if (area !== "local" || isObjectEmpty(changes)) {
 		return;
@@ -340,7 +450,7 @@ function onSettingsChanged(changes, area)
 }
 
 // default error handler for promises
-function getErrorHandler(text)
+function getErrorHandler(text: string)
 {
 	if (DEBUG) {
 		return error => { log(`${text} (${error})`); };
@@ -349,9 +459,9 @@ function getErrorHandler(text)
 	}
 }
 
-function isObjectEmpty(obj)
+function isObjectEmpty(obj: object)
 {
-	for (const key in obj) {
+	for (const _ in obj) {
 		return false;	// has at least one element
 	}
 	return true;
@@ -360,13 +470,16 @@ function isObjectEmpty(obj)
 // act when a content script requests something from this script
 function onContentScriptMessage(msg, sender, callbackFunc)
 {
-	if (msg.type !== "log") {
-		if (DEBUG) { log("msg.type: " + msg.type); }
+	if (DEBUG) {
+		if (msg.type !== "log") {
+			log("msg.type: " + msg.type);
+		}
 	}
 
 	switch (msg.type)
 	{
 		// messages from content script
+
 		case "getActivationSettings":
 			callbackFunc(sss.activationSettingsForContentScript);
 			break;
@@ -384,11 +497,12 @@ function onContentScriptMessage(msg, sender, callbackFunc)
 			break;
 
 		// messages from settings page
+
 		case "getDataForSettingsPage":
 			callbackFunc({
 				DEBUG: DEBUG,
 				browserVersion: browserVersion,
-				consts: consts,
+				sssIcons: sssIcons,
 				defaultSettings: defaultSettings
 			});
 			break;
@@ -402,7 +516,7 @@ function onContentScriptMessage(msg, sender, callbackFunc)
 	}
 }
 
-function createDefaultEngine(engine)
+function createDefaultEngine(engine) : SearchEngine
 {
 	if (engine.isEnabled === undefined) {
 		engine.isEnabled = true;
@@ -429,7 +543,7 @@ function setup_ContextMenu()
 	}
 
 	// get only the enabled engines
-	let engines = sss.settings.searchEngines.filter(engine => engine.isEnabledInContextMenu);
+	let engines: SearchEngine[] = sss.settings.searchEngines.filter(engine => engine.isEnabledInContextMenu);
 
 	// define parent menu
 	browser.contextMenus.create({
@@ -442,36 +556,44 @@ function setup_ContextMenu()
 	for (const engine of engines)
 	{
 		let contextMenuOption = {
+			id: undefined,
+			title: undefined,
+			type: undefined,
+			icons: undefined,
 			parentId: "sss",
-			contexts: ["selection"],
+			contexts: ["selection" as browser.contextMenus.ContextType],
 		};
 
-		if (engine.type === "sss") {
-			if (engine.id === "separator") {
+		if (engine.type === SearchEngineType.SSS) {
+			let concreteEngine = engine as SearchEngine_SSS;
+			if (concreteEngine.id === "separator") {
 				contextMenuOption.type = "separator";
 				browser.contextMenus.create(contextMenuOption);
 				continue;
 			}
-			contextMenuOption.id = engine.id;
-			contextMenuOption.title = consts.sssIcons[engine.id].name;
+			contextMenuOption.id = concreteEngine.id;
+			contextMenuOption.title = sssIcons[concreteEngine.id].name;
 		} else {
-			contextMenuOption.id = engine.searchUrl;
-			contextMenuOption.title = engine.name;
+			let concreteEngine = engine as SearchEngine_Custom;
+			contextMenuOption.id = concreteEngine.searchUrl;
+			contextMenuOption.title = concreteEngine.name;
 		}
 
 		// icons are not supported on Firefox 55 and below
 		if (browserVersion >= 56)
 		{
 			let icon;
-			if (engine.type === "sss") {
-				icon = consts.sssIcons[engine.id].iconPath;
+			if (engine.type === SearchEngineType.SSS) {
+				let concreteEngine = engine as SearchEngine_SSS;
+				icon = sssIcons[concreteEngine.id].iconPath;
 			} else {
-				if (engine.iconUrl.startsWith("data:")) {
-					icon = engine.iconUrl;
+				let concreteEngine = engine as SearchEngine_Custom;
+				if (concreteEngine.iconUrl.startsWith("data:")) {
+					icon = concreteEngine.iconUrl;
 				} else {
-					icon = sss.settings.searchEnginesCache[engine.iconUrl];
+					icon = sss.settings.searchEnginesCache[concreteEngine.iconUrl];
 					if (icon === undefined) {
-						icon = engine.iconUrl;
+						icon = concreteEngine.iconUrl;
 					}
 				}
 			}
@@ -490,10 +612,10 @@ function setup_ContextMenu()
 function onContextMenuItemClicked(info, tab)
 {
 	let engine = sss.settings.searchEngines.find(engine => {
-		if (engine.type === "sss") {
-			return engine.id === info.menuItemId;
+		if (engine.type === SearchEngineType.SSS) {
+			return (engine as SearchEngine_SSS).id === info.menuItemId;
 		} else {
-			return engine.searchUrl === info.menuItemId;
+			return (engine as SearchEngine_Custom).searchUrl === info.menuItemId;
 		}
 	});
 
@@ -502,7 +624,7 @@ function onContextMenuItemClicked(info, tab)
 	}
 
 	// check if it's a special SSS engine
-	if (engine.type === "sss")
+	if (engine.type === SearchEngineType.SSS)
 	{
 		if (engine.id === "copyToClipboard") {
 			copyToClipboard();
@@ -517,7 +639,7 @@ function onContextMenuItemClicked(info, tab)
 	{
 		// search using the engine
 		let hostname = new URL(info.pageUrl).hostname;
-		let searchUrl = getSearchQuery(engine, info.selectionText, hostname);
+		let searchUrl = getSearchQuery(engine as SearchEngine_Custom, info.selectionText, hostname);
 		openUrl(searchUrl, sss.settings.contextMenuItemBehaviour);
 	}
 }
@@ -534,20 +656,17 @@ function setup_Commands()
 	}
 
 	// register keyboard shortcuts
-	if (sss.settings.popupOpenBehaviour !== consts.PopupOpenBehaviour_Off) {
+	if (sss.settings.popupOpenBehaviour !== PopupOpenBehaviour.Off) {
 		browser.commands.onCommand.addListener(onCommand);
 	}
 
 	if (browserVersion >= 60) {
-		let command;
-		command = sss.settings.popupOpenCommand.trim();
-		browser.commands.update({ name: "open-popup",        shortcut: command });
-		command = sss.settings.popupDisableCommand.trim();
-		browser.commands.update({ name: "toggle-auto-popup", shortcut: command });
+		browser.commands.update({ name: "open-popup",        shortcut: sss.settings.popupOpenCommand.trim() });
+		browser.commands.update({ name: "toggle-auto-popup", shortcut: sss.settings.popupDisableCommand.trim() });
 	}
 }
 
-function onCommand(command)
+function onCommand(command: string)
 {
 	switch (command)
 	{
@@ -567,10 +686,10 @@ function onToggleAutoPopupCommand()
 	if (DEBUG) { log("toggle-auto-popup, sss.settings.popupOpenBehaviour: " + sss.settings.popupOpenBehaviour); }
 
 	// toggles value between Auto and Keyboard
-	if (sss.settings.popupOpenBehaviour === consts.PopupOpenBehaviour_Auto) {
-		browser.storage.local.set({ popupOpenBehaviour: consts.PopupOpenBehaviour_Keyboard });
-	} else if (sss.settings.popupOpenBehaviour === consts.PopupOpenBehaviour_Keyboard) {
-		browser.storage.local.set({ popupOpenBehaviour: consts.PopupOpenBehaviour_Auto });
+	if (sss.settings.popupOpenBehaviour === PopupOpenBehaviour.Auto) {
+		browser.storage.local.set({ popupOpenBehaviour: PopupOpenBehaviour.Keyboard });
+	} else if (sss.settings.popupOpenBehaviour === PopupOpenBehaviour.Keyboard) {
+		browser.storage.local.set({ popupOpenBehaviour: PopupOpenBehaviour.Auto });
 	}
 }
 
@@ -583,7 +702,7 @@ function setup_Popup()
 	// remove eventual previous registrations
 	browser.webNavigation.onDOMContentLoaded.removeListener(onDOMContentLoaded);
 
-	if (sss.settings.popupOpenBehaviour !== consts.PopupOpenBehaviour_Off) {
+	if (sss.settings.popupOpenBehaviour !== PopupOpenBehaviour.Off) {
 		// register page load event and try to add the content script to all open pages
 		browser.webNavigation.onDOMContentLoaded.addListener(onDOMContentLoaded);
 		browser.tabs.query({}).then(installOnOpenTabs, getErrorHandler("Error querying tabs."));
@@ -592,10 +711,10 @@ function setup_Popup()
 
 function onDOMContentLoaded(details)
 {
-	injectContentScript(details.tabId, details.frameId);
+	injectContentScript(details.tabId, details.frameId, false);
 }
 
-function installOnOpenTabs(tabs)
+function installOnOpenTabs(tabs: browser.tabs.Tab[])
 {
 	if (DEBUG) { log("installOnOpenTabs"); }
 
@@ -604,7 +723,7 @@ function installOnOpenTabs(tabs)
 	}
 }
 
-function injectContentScriptIfNeeded(tabId, frameId, allFrames)
+function injectContentScriptIfNeeded(tabId: number, frameId?: number, allFrames: boolean = false)
 {
 	// try sending message to see if content script exists. if it errors then inject it
 	browser.tabs.sendMessage(tabId, { type: "isAlive" }).then(
@@ -617,38 +736,49 @@ function injectContentScriptIfNeeded(tabId, frameId, allFrames)
 	);
 }
 
-function injectContentScript(tabId, frameId, allFrames)
+function injectContentScript(tabId: number, frameId?: number, allFrames: boolean = false)
 {
 	if (DEBUG) { log("injectContentScript " + tabId + " frameId: " + frameId + " allFrames: " + allFrames); }
 
 	let errorHandler = getErrorHandler(`Error injecting page content script in tab ${tabId}.`);
 
-	// We need to run several scripts, but the main one is page-script.js.
-	let injectPageScript = () => {
-		browser.tabs.executeScript(tabId, { runAt: "document_start", frameId: frameId, allFrames: allFrames, file: "/content-scripts/selectionchange.js" }).then(() =>
-		browser.tabs.executeScript(tabId, { runAt: "document_start", frameId: frameId, allFrames: allFrames, file: "/content-scripts/page-script.js"     }).then(null
-		, errorHandler)
-		, errorHandler);
+	let executeScriptOptions: browser.extensionTypes.InjectDetails = {
+		runAt: "document_start",
+		frameId: frameId,
+		allFrames: allFrames,
+		file: undefined,
+		code: undefined,
 	};
 
-	// The DEBUG variable is also passed if true, so we only have to declare debug mode once: here at the top of this background script.
+	// Save function for either calling it as a callback to another function (1), or as its own call (2).
+	let injectPageScript = () => {
+		executeScriptOptions.file = "/content-scripts/selectionchange.js";
+		browser.tabs.executeScript(tabId, executeScriptOptions).then(() => {
+			executeScriptOptions.file = "/content-scripts/page-script.js";
+			browser.tabs.executeScript(tabId, executeScriptOptions).then(null, errorHandler)
+		}, errorHandler);
+	};
+
+	// The DEBUG variable is also passed if true, so we only have to declare debug mode once: at the top of this background script.
 	if (DEBUG) {
-		browser.tabs.executeScript(tabId, { runAt: "document_start", frameId: frameId, allFrames: allFrames, code: "const DEBUG_STATE = " + DEBUG + ";" }).then(injectPageScript, errorHandler);
+		executeScriptOptions.code = "var DEBUG_STATE = " + DEBUG + ";",
+		browser.tabs.executeScript(tabId, executeScriptOptions).then(injectPageScript, errorHandler);	// (1) callback to another function
+		executeScriptOptions.code = undefined;	// remove "code" field from object
 	} else {
-		injectPageScript();
+		injectPageScript();	// (2) own call
 	}
 }
 
-function onSearchEngineClick(engineObject, clickType, searchText, hostname)
+function onSearchEngineClick(selectedEngine: SearchEngine, clickType: string, searchText: string, hostname: string)
 {
 	// check if it's a special SSS engine
-	if (engineObject.type === "sss")
+	if (selectedEngine.type === SearchEngineType.SSS)
 	{
-		if (engineObject.id === "copyToClipboard") {
+		if (selectedEngine.id === "copyToClipboard") {
 			copyToClipboard();
 		}
-		else if (engineObject.id === "openAsLink") {
-			let link = getOpenAsLinkSearchUrl(searchText);
+		else if (selectedEngine.id === "openAsLink") {
+			let link: string = getOpenAsLinkSearchUrl(searchText);
 
 			if (DEBUG) { log("open as link: " + link); }
 
@@ -657,21 +787,23 @@ function onSearchEngineClick(engineObject, clickType, searchText, hostname)
 			} else if (clickType === "middleClick") {
 				openUrl(link, sss.settings.mouseMiddleButtonBehaviour);
 			} else if (clickType === "ctrlClick") {
-				openUrl(link, consts.MouseButtonBehaviour_NewBgTab);
+				openUrl(link, OpenResultBehaviour.NewBgTab);
 			}
 		}
 	}
 	// here we know it's a normal search engine, so run the search
 	else
 	{
-		let engine = sss.settings.searchEngines.find(engine => engine.searchUrl === engineObject.searchUrl);
+		let engine: SearchEngine_Custom = sss.settings.searchEngines.find(
+			engine => engine.type !== SearchEngineType.SSS && (engine as SearchEngine_Custom).searchUrl === selectedEngine.searchUrl
+		) as SearchEngine_Custom;
 
 		if (clickType === "leftClick") {
 			openUrl(getSearchQuery(engine, searchText, hostname), sss.settings.mouseLeftButtonBehaviour);
 		} else if (clickType === "middleClick") {
 			openUrl(getSearchQuery(engine, searchText, hostname), sss.settings.mouseMiddleButtonBehaviour);
 		} else if (clickType === "ctrlClick") {
-			openUrl(getSearchQuery(engine, searchText, hostname), consts.MouseButtonBehaviour_NewBgTab);
+			openUrl(getSearchQuery(engine, searchText, hostname), OpenResultBehaviour.NewBgTab);
 		}
 	}
 }
@@ -681,7 +813,7 @@ function copyToClipboard()
 	getCurrentTab(tab => browser.tabs.sendMessage(tab.id, { type: "copyToClipboard" }));
 }
 
-function getOpenAsLinkSearchUrl(link)
+function getOpenAsLinkSearchUrl(link: string): string
 {
 	// trim text and add http protocol as default if selected text doesn't have it
 	link = link.trim();
@@ -694,7 +826,7 @@ function getOpenAsLinkSearchUrl(link)
 }
 
 // gets the complete search URL by applying the selected text to the engine's own searchUrl
-function getSearchQuery(engine, searchText, hostname)
+function getSearchQuery(engine: SearchEngine_Custom, searchText: string, hostname: string): string
 {
 	// replace newlines with spaces and encode chars that are not to be used on URLs
 	searchText = encodeURIComponent(searchText.trim().replace("\r\n", " ").replace("\n", " "));
@@ -703,45 +835,45 @@ function getSearchQuery(engine, searchText, hostname)
 	return query;
 }
 
-function openUrl(urlToOpen, openingBehaviour)
+function openUrl(urlToOpen: string, openingBehaviour: OpenResultBehaviour)
 {
 	getCurrentTab(tab =>
 	{
-		const lastTabIndex = 9999;	// "guarantees" tab opens as last for some behaviours
+		const lastTabIndex: number = 9999;	// "guarantees" tab opens as last for some behaviours
 		let options = { url: urlToOpen };
 
 		// "openerTabId" does not exist before Firefox 57
-		if (browserVersion >= 57 && openingBehaviour !== consts.MouseButtonBehaviour_NewWindow && openingBehaviour !== consts.MouseButtonBehaviour_NewBgWindow) {
+		if (browserVersion >= 57 && openingBehaviour !== OpenResultBehaviour.NewWindow && openingBehaviour !== OpenResultBehaviour.NewBgWindow) {
 			options["openerTabId"] = tab.id;
 		}
 
 		switch (openingBehaviour)
 		{
-			case consts.MouseButtonBehaviour_ThisTab:
-				browser.tabs.update(options);
+			case OpenResultBehaviour.ThisTab:
+				browser.tabs.update(undefined, options);
 				break;
-			case consts.MouseButtonBehaviour_NewTab:
+			case OpenResultBehaviour.NewTab:
 				options["index"] = lastTabIndex + 1;
 				browser.tabs.create(options);
 				break;
-			case consts.MouseButtonBehaviour_NewBgTab:
+			case OpenResultBehaviour.NewBgTab:
 				options["index"] = lastTabIndex + 1;
 				options["active"] = false;
 				browser.tabs.create(options);
 				break;
-			case consts.MouseButtonBehaviour_NewTabNextToThis:
+			case OpenResultBehaviour.NewTabNextToThis:
 				options["index"] = tab.index + 1;
 				browser.tabs.create(options);
 				break;
-			case consts.MouseButtonBehaviour_NewBgTabNextToThis:
+			case OpenResultBehaviour.NewBgTabNextToThis:
 				options["index"] = tab.index + 1;
 				options["active"] = false;
 				browser.tabs.create(options);
 				break;
-			case consts.MouseButtonBehaviour_NewWindow:
+			case OpenResultBehaviour.NewWindow:
 				browser.windows.create(options);
 				break;
-			case consts.MouseButtonBehaviour_NewBgWindow:
+			case OpenResultBehaviour.NewBgWindow:
 				// options["focused"] = false;	// crashes because it's unsupported by Firefox
 				browser.windows.create(options);
 				break;
@@ -758,12 +890,12 @@ function getCurrentTab(callback)
 	);
 }
 
-function getFilteredSearchUrl(url, text)
+function getFilteredSearchUrl(url: string, text: string)
 {
 	text = text.trim();
 
-	let searchIndex = 0;
-	let queryParts = [];
+	let searchIndex: number = 0;
+	let queryParts: string[] = [];
 
 	while (true)
 	{
@@ -782,34 +914,37 @@ function getFilteredSearchUrl(url, text)
 	return queryParts.join("");
 }
 
-function getSearchTermsReplacements(url, startIndexForIndexOf)
+enum SearchTermsReplacementState {
+	EXPECT_REPLACE_PAIR_OR_END,
+	EXPECT_REPLACE_SOURCE,
+	EXPECT_REPLACE_RESULT,
+}
+
+function getSearchTermsReplacements(url: string, startIndexForIndexOf: number): [Array<[string, string]>, number, number]
 {
-	let string = "{searchTerms";
-	let startIndex = url.indexOf(string, startIndexForIndexOf);
+	let startString: string = "{searchTerms";
+	let startIndex: number = url.indexOf(startString, startIndexForIndexOf);
 	// if searchTerms not found, quit
 	if (startIndex === -1) {
 		return [[], -1, -1];
 	}
 
-	let index = startIndex + string.length;
+	let index: number = startIndex + startString.length;
 	// if searchTerms ends immediately with no replacements, quit
 	if (url[index] == "}") {
 		return [[], startIndex, index+1];
 	}
 
-	const EXPECT_REPLACE_PAIR_OR_END = 0;
-	const EXPECT_REPLACE_SOURCE = 1;
-	const EXPECT_REPLACE_RESULT = 2;
-
-	let state = EXPECT_REPLACE_PAIR_OR_END;
-	let replacementSource;
-	let replacementResult;
-	let replacements = [];
-	let isEscaped = false;
+	let state: SearchTermsReplacementState = SearchTermsReplacementState.EXPECT_REPLACE_PAIR_OR_END;
+	let replacementSource: string;
+	let replacementResult: string;
+	let replacements: Array<[string, string]> = [];
+	let isEscaped: boolean = false;
 
 	while (index < url.length)
 	{
-		let c = url[index];
+		// get char
+		let c: string = url[index];
 
 		if (!isEscaped && c === "\\") {
 			isEscaped = true;
@@ -819,9 +954,9 @@ function getSearchTermsReplacements(url, startIndexForIndexOf)
 
 		switch (state)
 		{
-			case EXPECT_REPLACE_PAIR_OR_END:
+			case SearchTermsReplacementState.EXPECT_REPLACE_PAIR_OR_END:
 				if (c === "{") {
-					state = EXPECT_REPLACE_SOURCE;
+					state = SearchTermsReplacementState.EXPECT_REPLACE_SOURCE;
 					replacementSource = "";
 				} else if (c === "}") {
 					return [replacements, startIndex, index+1];
@@ -830,9 +965,9 @@ function getSearchTermsReplacements(url, startIndexForIndexOf)
 				}
 				break;
 
-			case EXPECT_REPLACE_SOURCE:
+			case SearchTermsReplacementState.EXPECT_REPLACE_SOURCE:
 				if (!isEscaped && c === "|") {
-					state = EXPECT_REPLACE_RESULT;
+					state = SearchTermsReplacementState.EXPECT_REPLACE_RESULT;
 					replacementResult = "";
 				} else if (!isEscaped && (c === "{" || c === "}")) {
 					return [[], -1, -1];
@@ -841,9 +976,9 @@ function getSearchTermsReplacements(url, startIndexForIndexOf)
 				}
 				break;
 
-			case EXPECT_REPLACE_RESULT:
+			case SearchTermsReplacementState.EXPECT_REPLACE_RESULT:
 				if (!isEscaped && c === "}") {
-					state = EXPECT_REPLACE_PAIR_OR_END;
+					state = SearchTermsReplacementState.EXPECT_REPLACE_PAIR_OR_END;
 					replacements.push([replacementSource, replacementResult]);
 				} else if (!isEscaped && (c === "|" || c === "}")) {
 					return [[], -1, -1];
@@ -863,7 +998,7 @@ function getSearchTermsReplacements(url, startIndexForIndexOf)
 	return [[], -1, -1];
 }
 
-function replace(text, replacements)
+function replace(text: string, replacements: Array<[string, string]>)
 {
 	for (let i = 0; i < replacements.length; i++) {
 		let [replacementSource, replacementResult] = replacements[i];
@@ -875,3 +1010,4 @@ function replace(text, replacements)
 /* ------------------------------------ */
 /* ------------------------------------ */
 /* ------------------------------------ */
+}

@@ -1,7 +1,10 @@
 {
-    "compilerOptions": {
-        "target": "es6",
-        "outDir": "js-build",
-        "typeRoots": ["node_modules/@types", "node_modules/web-ext-types"],
-    }
+	"compilerOptions": {
+		"target": "es6",
+		// "outDir": "js-build",
+		"inlineSourceMap": true,
+		"typeRoots": ["node_modules/@types", "node_modules/web-ext-types"],
+		"newLine": "LF",
+		"removeComments": true,
+	}
 }

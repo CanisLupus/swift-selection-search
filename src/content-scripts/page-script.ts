@@ -1,40 +1,97 @@
-"use strict";
+var DEBUG_STATE;	// avoid TS compilation errors but still get working JS code
+
+namespace ContentScript
+{
+// Subset of enums from the background script (only the ones needed).
+// We duplicate enum definitions because otherwise the generated JS code is incomplete.
+enum SearchEngineType {
+	SSS = "sss",
+}
+enum PopupOpenBehaviour {
+	Auto = "auto",
+	HoldAlt = "hold-alt",
+	MiddleMouse = "middle-mouse",
+}
+enum PopupLocation {
+	Selection = "selection",
+	Cursor = "cursor",
+}
+enum AutoCopyToClipboard {
+	Always = "always",
+}
+enum IconAlignment {
+	Left = "left",
+	Middle = "middle",
+	Right = "right",
+}
+enum ItemHoverBehaviour {
+	Nothing = "nothing",
+	Highlight = "highlight",
+	HighlightAndMove = "highlight-and-move",
+}
+
+class SelectionData
+{
+	isInEditableField: boolean;
+	text: string;
+	element: HTMLElement;
+	selection: Selection;
+}
+
+enum MessageType {
+	EngineClick = "engineClick",
+	Log = "log",
+	GetActivationSettings = "getActivationSettings",
+	GetPopupSettings = "getPopupSettings",
+}
+
+abstract class Message
+{
+	constructor(public type: MessageType) { this.type = type; }
+}
+
+class EngineClickMessage extends Message
+{
+	selection: string;
+	engine: SSS.SearchEngine;
+	hostname: string;
+	clickType: string;
+
+	constructor() { super(MessageType.EngineClick); }
+}
+
+class LogMessage extends Message
+{
+	constructor(public log: any) { super(MessageType.Log); }
+}
+
+class GetActivationSettingsMessage extends Message
+{
+	constructor() { super(MessageType.GetActivationSettings); }
+}
+
+class GetPopupSettingsMessage extends Message
+{
+	constructor() { super(MessageType.GetPopupSettings); }
+}
 
 const DEBUG = typeof DEBUG_STATE !== "undefined" && DEBUG_STATE === true;
 
 if (DEBUG) {
 	// To have all log messages in the same console, we always request the background script to log.
-	// Otherwise content script messages are in the Web Console instead of the Dev Tools Console.
-	var log = msg => browser.runtime.sendMessage({ type: "log", log: msg });
+	// Otherwise content script messages will be in the Web Console instead of the Dev Tools Console.
+	var log = msg => browser.runtime.sendMessage(new LogMessage(msg));
 }
 
-// Subset of needed consts from the background script (avoids having to ask for them).
-const consts = {
-	PopupOpenBehaviour_Auto: "auto",
-	PopupOpenBehaviour_HoldAlt: "hold-alt",
-	PopupOpenBehaviour_MiddleMouse: "middle-mouse",
-
-	PopupLocation_Selection: "selection",
-	PopupLocation_Cursor: "cursor",
-
-	AutoCopyToClipboard_Always: "always",
-
-	IconAlignment_Left: "left",
-	IconAlignment_Middle: "middle",
-	IconAlignment_Right: "right",
-
-	ItemHoverBehaviour_Nothing: "nothing",
-	ItemHoverBehaviour_Highlight: "highlight",
-	ItemHoverBehaviour_HighlightAndMove: "highlight-and-move",
-};
-
-let popup = null;
-let selection = {};
-let mousePositionX = 0;
-let mousePositionY = 0;
-let canMiddleClickEngine = true;
-let activationSettings = null;
-let settings = null;
+// Globals
+let popup: HTMLElement = null;
+let selection: SelectionData = new SelectionData();
+let mousePositionX: number = 0;
+let mousePositionY: number = 0;
+let canMiddleClickEngine: boolean = true;
+let activationSettings: SSS.ActivationSettings = null;
+let settings: SSS.Settings = null;
+let sssIcons: { [id: string] : SSS.SSSIconDefinition; } = null;
 
 // be prepared for messages from background script
 browser.runtime.onMessage.addListener(onMessageReceived);
@@ -48,7 +105,7 @@ requestActivation();
 // asks the background script for activation settings to setup this content script
 function requestActivation()
 {
-	browser.runtime.sendMessage({ type: "getActivationSettings" }).then(
+	browser.runtime.sendMessage(new GetActivationSettingsMessage()).then(
 		activationSettings => activate(activationSettings),	// background script passes a few settings needed for setup
 		getErrorHandler("Error sending getActivationSettings message from content script.")
 	);
@@ -106,22 +163,22 @@ function isObjectEmpty(object)
 	return true;
 }
 
-function activate(_activationSettings)
+function activate(_activationSettings: SSS.ActivationSettings)
 {
 	activationSettings = _activationSettings;
 
 	// now register with events based on user settings
 
-	if (activationSettings.popupLocation === consts.PopupLocation_Cursor) {
+	if (activationSettings.popupLocation === PopupLocation.Cursor) {
 		document.addEventListener("mousemove", onMouseUpdate);
 		document.addEventListener("mouseenter", onMouseUpdate);
 	}
 
-	if (activationSettings.popupOpenBehaviour === consts.PopupOpenBehaviour_Auto || activationSettings.popupOpenBehaviour === consts.PopupOpenBehaviour_HoldAlt) {
+	if (activationSettings.popupOpenBehaviour === PopupOpenBehaviour.Auto || activationSettings.popupOpenBehaviour === PopupOpenBehaviour.HoldAlt) {
 		selectionchange.start();
-		document.addEventListener("customselectionchange", showPopupForSelection);
+		document.addEventListener("customselectionchange", onSelectionChange);
 	}
-	else if (activationSettings.popupOpenBehaviour === consts.PopupOpenBehaviour_MiddleMouse) {
+	else if (activationSettings.popupOpenBehaviour === PopupOpenBehaviour.MiddleMouse) {
 		document.addEventListener("mousedown", onMouseDown);
 		document.addEventListener("mouseup", onMouseUp);
 	}
@@ -137,16 +194,16 @@ function deactivate()
 
 	// unregister with all events (use last activation settings to figure out what registrations were made)
 
-	if (activationSettings.popupLocation === consts.PopupLocation_Cursor) {
+	if (activationSettings.popupLocation === PopupLocation.Cursor) {
 		document.removeEventListener("mousemove", onMouseUpdate);
 		document.removeEventListener("mouseenter", onMouseUpdate);
 	}
 
-	if (activationSettings.popupOpenBehaviour === consts.PopupOpenBehaviour_Auto || activationSettings.popupOpenBehaviour === consts.PopupOpenBehaviour_HoldAlt) {
-		document.removeEventListener("customselectionchange", showPopupForSelection);
+	if (activationSettings.popupOpenBehaviour === PopupOpenBehaviour.Auto || activationSettings.popupOpenBehaviour === PopupOpenBehaviour.HoldAlt) {
+		document.removeEventListener("customselectionchange", onSelectionChange);
 		selectionchange.stop();
 	}
-	else if (activationSettings.popupOpenBehaviour === consts.PopupOpenBehaviour_MiddleMouse) {
+	else if (activationSettings.popupOpenBehaviour === PopupOpenBehaviour.MiddleMouse) {
 		document.removeEventListener("mousedown", onMouseDown);
 		document.removeEventListener("mouseup", onMouseUp);
 	}
@@ -174,8 +231,13 @@ function deactivate()
 	if (DEBUG) { log("content script deactivated"); }
 }
 
+function onSelectionChange(ev: selectionchange.CustomSelectionChangeEvent)
+{
+	showPopupForSelection(ev, false);
+}
+
 // called whenever selection changes or when we want to force the popup to appear for the current selection
-function showPopupForSelection(ev, isForced)
+function showPopupForSelection(ev: Event, isForced: boolean)
 {
 	let hasSelection = saveCurrentSelection();
 	if (!hasSelection) {
@@ -187,9 +249,10 @@ function showPopupForSelection(ev, isForced)
 		tryShowPopup(ev, isForced);
 	} else {
 		// ...otherwise ask the background script for all needed settings, store them, and THEN try to show the popup
-		browser.runtime.sendMessage({ type: "getPopupSettings" }).then(
+		browser.runtime.sendMessage(new GetPopupSettingsMessage()).then(
 			popupSettings => {
-				settings = popupSettings;
+				settings = popupSettings.settings;
+				sssIcons = popupSettings.sssIcons;
 				tryShowPopup(ev, isForced);
 			},
 			getErrorHandler("Error sending getPopupSettings message from content script.")
@@ -199,15 +262,20 @@ function showPopupForSelection(ev, isForced)
 
 function saveCurrentSelection()
 {
-	let elem = document.activeElement;
+	let elem: Element = document.activeElement;
 
-	selection.isInEditableField = (elem.tagName === "TEXTAREA" || (elem.tagName === "INPUT" && elem.type !== "password"));
+	if (elem instanceof HTMLTextAreaElement || (elem instanceof HTMLInputElement && elem.type !== "password"))
+	{
+		selection.isInEditableField = true;
 
-	if (selection.isInEditableField) {
 		// for editable fields, getting the selected text is different
-		selection.text = elem.value.substring(elem.selectionStart, elem.selectionEnd);
+		selection.text = (elem as HTMLTextAreaElement).value.substring(elem.selectionStart, elem.selectionEnd);
 		selection.element = elem;
-	} else {
+	}
+	else
+	{
+		selection.isInEditableField = false;
+
 		// get selection, but exit if there's no text selected after all
 		let selectionObject = window.getSelection();
 		if (selectionObject === null) {
@@ -236,13 +304,13 @@ function saveCurrentSelection()
 }
 
 // shows the popup if the conditions are proper, according to settings
-function tryShowPopup(ev, isForced)
+function tryShowPopup(ev: Event, isForced: boolean)
 {
-	if (settings.popupOpenBehaviour === consts.PopupOpenBehaviour_HoldAlt && !ev.altKey) {
+	if (settings.popupOpenBehaviour === PopupOpenBehaviour.HoldAlt && ev instanceof selectionchange.CustomSelectionChangeEvent && !ev.altKey) {
 		return;
 	}
 
-	if (settings.popupOpenBehaviour === consts.PopupOpenBehaviour_Auto && selection.text.trim().length < settings.minSelectedCharacters) {
+	if (settings.popupOpenBehaviour === PopupOpenBehaviour.Auto && selection.text.trim().length < settings.minSelectedCharacters) {
 		return;
 	}
 
@@ -256,9 +324,10 @@ function tryShowPopup(ev, isForced)
 		// even if this is not an input field, don't show popup in contentEditable elements, such as Gmail's compose window
 		for (let elem = selection.selection.anchorNode; elem !== document; elem = elem.parentNode)
 		{
-			if (elem.isContentEditable === undefined) {
+			let concreteElem = elem as HTMLElement;
+			if (concreteElem.isContentEditable === undefined) {
 				continue;	// check parent for value
-			} else if (elem.isContentEditable) {
+			} else if (concreteElem.isContentEditable) {
 				return;		// quit
 			} else {
 				break;		// show popup
@@ -266,7 +335,7 @@ function tryShowPopup(ev, isForced)
 		}
 	}
 
-	if (settings.autoCopyToClipboard === consts.AutoCopyToClipboard_Always) {
+	if (settings.autoCopyToClipboard === AutoCopyToClipboard.Always) {
 		document.execCommand("copy");
 	}
 
@@ -292,13 +361,17 @@ function showPopup(settings)
 
 	// Animate popup (only if cloneInto exists, which it doesn't in add-on resource pages).
 	// cloneInto fixes a Firefox bug that causes animations to not work (pre-Firefox 60?).
-	if (settings.popupAnimationDuration > 0 && typeof cloneInto === "function") {
-		popup.animate(cloneInto({ transform: ["scale(0.8)", "scale(1)"] }, window), settings.popupAnimationDuration);
-		popup.animate(cloneInto({ opacity: [0, 1] }, window), settings.popupAnimationDuration * 0.5);
+	// if (settings.popupAnimationDuration > 0 && typeof cloneInto === "function") {
+	// 	popup.animate(cloneInto({ transform: ["scale(0.8)", "scale(1)"] }, window), settings.popupAnimationDuration);
+	// 	popup.animate(cloneInto({ opacity: [0, 1] }, window), settings.popupAnimationDuration * 0.5);
+	// }
+	if (settings.popupAnimationDuration > 0) {
+		popup.animate({ transform: ["scale(0.8)", "scale(1)"] } as PropertyIndexedKeyframes, settings.popupAnimationDuration);
+		popup.animate({ opacity: ["0", "1"] } as PropertyIndexedKeyframes, settings.popupAnimationDuration * 0.5);	// TODO: check
 	}
 }
 
-function hidePopup(ev)
+function hidePopup(ev?)
 {
 	if (popup === null) {
 		return;
@@ -352,9 +425,9 @@ fontSize: 0 !important;
 		let icon;
 
 		// special SSS icons with special functions
-		if (engine.type === "sss")
+		if (engine.type === SearchEngineType.SSS)
 		{
-			let sssIcon = settings.sssIcons[engine.id];
+			let sssIcon = sssIcons[engine.id];
 
 			// if (sssIcon.iconPath !== undefined) {
 				let iconImgSource = browser.extension.getURL(sssIcon.iconPath);
@@ -398,9 +471,9 @@ fontSize: 0 !important;
 	}
 }
 
-function setupEngineIcon(engine, iconImgSource, iconTitle, isInteractive, iconCssText, parent, settings)
+function setupEngineIcon(engine: SSS.SearchEngine, iconImgSource: string, iconTitle: string, isInteractive: boolean, iconCssText: string, parent: HTMLElement, settings: SSS.Settings)
 {
-	let icon = document.createElement("img");
+	let icon: HTMLImageElement = document.createElement("img");
 	icon.src = iconImgSource;
 	icon.style.cssText = iconCssText;
 	setProperty(icon, "width", settings.popupItemSize + "px");
@@ -414,7 +487,7 @@ function setupEngineIcon(engine, iconImgSource, iconTitle, isInteractive, iconCs
 		icon.title = iconTitle;	// only interactive icons need a title (for the tooltip)
 
 		// set hover behaviour based on settings
-		if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight || settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_HighlightAndMove)
+		if (settings.popupItemHoverBehaviour === ItemHoverBehaviour.Highlight || settings.popupItemHoverBehaviour === ItemHoverBehaviour.HighlightAndMove)
 		{
 			icon.onmouseover = () => {
 				setProperty(icon, "border-bottom", `2px ${settings.popupHighlightColor} solid`);
@@ -423,7 +496,7 @@ function setupEngineIcon(engine, iconImgSource, iconTitle, isInteractive, iconCs
 				}
 
 				let verticalPaddingStr = (3 + settings.popupItemVerticalPadding - 2) + "px";
-				if (settings.popupItemHoverBehaviour === consts.ItemHoverBehaviour_Highlight) {
+				if (settings.popupItemHoverBehaviour === ItemHoverBehaviour.Highlight) {
 					// remove 2 pixels to counter the added border of 2px
 					setProperty(icon, "padding-bottom", verticalPaddingStr);
 				} else {
@@ -499,7 +572,7 @@ function setupPopupSize(popup, searchEngines, settings)
 		{
 			let engine = searchEngines[j];
 			let iconWidth = settings.popupItemPadding * 2;
-			if (engine.type === "sss" && engine.id === "separator") {
+			if (engine.type === SearchEngineType.SSS && engine.id === "separator") {
 				iconWidth += settings.popupItemSize * settings.popupSeparatorWidth / 100;
 			} else {
 				iconWidth += settings.popupItemSize;
@@ -556,9 +629,9 @@ function setupPopupIconPositions(popup, searchEngines, settings)
 	function positionRowIcons(start, end, rowWidth, y)
 	{
 		let x = settings.popupPaddingX;
-		if (settings.iconAlignmentInGrid === consts.IconAlignment_Middle) {
+		if (settings.iconAlignmentInGrid === IconAlignment.Middle) {
 			x += (popup.width - rowWidth) / 2;
-		} else if (settings.iconAlignmentInGrid === consts.IconAlignment_Right) {
+		} else if (settings.iconAlignmentInGrid === IconAlignment.Right) {
 			x += popup.width - rowWidth;
 		}
 
@@ -593,7 +666,7 @@ function setPopupPosition(popup, searchEngines, settings)
 	let positionTop;
 
 	// decide popup position based on settings
-	if (settings.popupLocation === consts.PopupLocation_Selection) {
+	if (settings.popupLocation === PopupLocation.Selection) {
 		let rect;
 		if (selection.isInEditableField) {
 			rect = selection.element.getBoundingClientRect();
@@ -605,7 +678,7 @@ function setPopupPosition(popup, searchEngines, settings)
 		positionLeft = rect.right + window.pageXOffset;
 		positionTop = rect.bottom + window.pageYOffset;
 	}
-	else if (settings.popupLocation === consts.PopupLocation_Cursor) {
+	else if (settings.popupLocation === PopupLocation.Cursor) {
 		// right above the mouse position
 		positionLeft = mousePositionX;
 		positionTop = mousePositionY - popup.height - 10;	// 10 is forced padding to avoid popup being too close to cursor
@@ -654,7 +727,7 @@ function onMouseUpdate(ev)
 	mousePositionY = ev.pageY;
 }
 
-function onSearchEngineClick(engineObject, settings)
+function onSearchEngineClick(engine: SSS.SearchEngine, settings: SSS.Settings)
 {
 	return ev => {
 		// if using middle mouse and can't, early out so we don't hide popup
@@ -668,12 +741,17 @@ function onSearchEngineClick(engineObject, settings)
 
 		if (ev.button === 0 || ev.button === 1)
 		{
-			let message = {
-				type: "engineClick",
-				selection: selection.text,
-				engine: engineObject,
-				hostname: window.location ? window.location.hostname : "",
-			};
+			let message = new EngineClickMessage();
+			message.selection = selection.text;
+			message.engine = engine;
+			message.hostname = window.location ? window.location.hostname : "";
+
+			if (DEBUG) {
+				log("engine clicked with button " + ev.button + ": "
+					+ (engine.type === SearchEngineType.SSS
+						? (engine as SSS.SearchEngine_SSS).id
+						: (engine as SSS.SearchEngine_Custom).searchUrl));
+			}
 
 			if (ev[selectionchange.modifierKey]) {
 				message.clickType = "ctrlClick";
@@ -688,18 +766,18 @@ function onSearchEngineClick(engineObject, settings)
 	};
 }
 
-function onMouseDown(ev)
+function onMouseDown(ev: MouseEvent)
 {
 	if (ev.button !== 1) {
 		return;
 	}
 
-	let selection = window.getSelection();
+	let selection: Selection = window.getSelection();
 
 	// for selections inside editable elements
-	let elem = document.activeElement;
+	let elem: Element = document.activeElement;
 
-	if (elem.tagName === "TEXTAREA" || (elem.tagName === "INPUT" && elem.type !== "password")) {
+	if (elem instanceof HTMLTextAreaElement || (elem instanceof HTMLInputElement && elem.type !== "password")) {
 		if (forceSelectionIfWithinRect(ev, elem.getBoundingClientRect())) {
 			return false;
 		}
@@ -708,15 +786,15 @@ function onMouseDown(ev)
 	// for normal text selections
 	for (let i = 0; i < selection.rangeCount; ++i)
 	{
-		let range = selection.getRangeAt(i); // get the text range
-		let bounds = range.getBoundingClientRect();
-		if (bounds.width > 0 && bounds.height > 0 && forceSelectionIfWithinRect(ev, range.getBoundingClientRect())) {
+		let range: Range = selection.getRangeAt(i); // get the text range
+		let bounds: ClientRect | DOMRect = range.getBoundingClientRect();
+		if (bounds.width > 0 && bounds.height > 0 && forceSelectionIfWithinRect(ev, bounds)) {
 			return false;
 		}
 	}
 }
 
-function onMouseUp(ev)
+function onMouseUp(ev: MouseEvent)
 {
 	if (ev.button === 1) {
 		// return value to normal to allow clicking engines again with middle mouse
@@ -725,7 +803,7 @@ function onMouseUp(ev)
 }
 
 // if ev position is within the given rect plus margin, try to show popup for the selection
-function forceSelectionIfWithinRect(ev, rect)
+function forceSelectionIfWithinRect(ev: MouseEvent, rect: ClientRect | DOMRect)
 {
 	let margin = activationSettings.middleMouseSelectionClickMargin;
 
@@ -735,7 +813,7 @@ function forceSelectionIfWithinRect(ev, rect)
 		// We got it! Event shouldn't do anything else.
 		ev.preventDefault();
 		ev.stopPropagation();
-		showPopupForSelection(ev);
+		showPopupForSelection(ev, false);
 
 		// blocks same middle click from triggering popup on down and then a search on up (on an engine icon)
 		canMiddleClickEngine = false;
@@ -744,12 +822,13 @@ function forceSelectionIfWithinRect(ev, rect)
 	return false;
 }
 
-function setProperty(elem, property, value)
+function setProperty(elem: HTMLElement, property: string, value: string)
 {
 	elem.style.setProperty(property, value, "important");
 }
 
-function removeProperty(elem, property)
+function removeProperty(elem: HTMLElement, property: string)
 {
 	elem.style.removeProperty(property);
+}
 }

@@ -1,13 +1,49 @@
-"use strict";
+var Sortable;	// avoid TS compilation errors but still get working JS code
 
-const page = {};
+namespace SSS
+{
+// Subset of enums from the background script (only the ones needed).
+// We duplicate enum definitions because otherwise the generated JS code is incomplete.
+enum SearchEngineType {
+	SSS = "sss",
+	Custom = "custom",
+	Browser = "browser",
+}
+enum PopupOpenBehaviour {
+	MiddleMouse = "middle-mouse",
+}
+
+const page = {
+	container: undefined,
+	engines: undefined,
+	inputs: undefined,
+	importBrowserEnginesFileButton: undefined,
+	importBrowserEnginesFileButton_real: undefined,
+	exportSettingsToFileButton: undefined,
+	importSettingsFromFileButton: undefined,
+	importSettingsFromFileButton_real: undefined,
+	popupBackgroundColorPicker: undefined,
+	popupBackgroundColor: undefined,
+	popupHighlightColorPicker: undefined,
+	popupHighlightColor: undefined,
+	addEngineButton: undefined,
+	addSeparatorButton: undefined,
+	saveSettingsToSyncButton: undefined,
+	resetSearchEnginesButton: undefined,
+	resetSearchEnginesButton_real: undefined,
+	resetSettingsButton: undefined,
+	resetSettingsButton_real: undefined,
+	loadSettingsFromSyncButton: undefined,
+	loadSettingsFromSyncButton_real: undefined,
+};
+
 let settings;
 let hasPageLoaded = false;
 let isFocused = true;
 let pendingSettings = false;
 
 let DEBUG;
-let consts;
+let sssIcons;
 let defaultSettings;
 let browserVersion;
 let log;
@@ -21,7 +57,7 @@ browser.runtime.sendMessage({ type: "getDataForSettingsPage" }).then(
 	data => {
 		DEBUG = data.DEBUG;
 		browserVersion = data.browserVersion;
-		consts = data.consts;
+		sssIcons = data.sssIcons;
 		defaultSettings = data.defaultSettings;
 
 		// now we can initialize things
@@ -62,7 +98,7 @@ function createDefaultEngine(engine)
 
 // This method's code was taken from node-lz4 by Pierre Curto. MIT license.
 // CHANGES: Added ; to all lines. Reformated one-liners. Removed n = eIdx. Fixed eIdx skipping end bytes if sIdx != 0. Changed "var" to "let".
-function decodeLz4Block(input, output, sIdx, eIdx)
+function decodeLz4Block(input, output, sIdx?, eIdx?)
 {
 	sIdx = sIdx || 0;
 	eIdx = eIdx || input.length;
@@ -125,13 +161,13 @@ function decodeLz4Block(input, output, sIdx, eIdx)
 }
 
 // reads a .mozlz4 compressed file and returns its bytes
-function readMozlz4File(file, onRead, onError)
+function readMozlz4File(file, onRead, onError?)
 {
 	let reader = new FileReader();
 
 	// prepare onload function before actually trying to read the file
 	reader.onload = () => {
-		let input = new Uint8Array(reader.result);
+		let input = new Uint8Array(reader.result as ArrayBuffer);
 		let output;
 		let uncompressedSize = input.length*3;	// size _estimate_ for uncompressed data!
 
@@ -161,7 +197,7 @@ function updateBrowserEnginesFromSearchJson(browserSearchEngines)
 	// "hash set" of search URLs (will help avoiding duplicates of previously imported browser engines)
 	let searchUrls = {};
 	for (let engine of settings.searchEngines) {
-		if (engine.type === "browser") {
+		if (engine.type === SearchEngineType.Browser) {
 			searchUrls[engine.searchUrl] = true;
 		}
 	}
@@ -204,7 +240,7 @@ function updateBrowserEnginesFromSearchJson(browserSearchEngines)
 			// finally add the engine to the user's engines
 
 			settings.searchEngines.push(createDefaultEngine({
-				type: "browser",
+				type: SearchEngineType.Browser,
 				name: engine._name,
 				iconUrl: engine._iconURL,
 				searchUrl: url,
@@ -265,8 +301,8 @@ function getDataUriFromImgUrl(imageUrl, callback)
 
 function onDOMContentLoaded()
 {
-	// if we have the consts already, it means we have everything from the background script
-	if (consts !== undefined) {
+	// if we have the defaultSettings already, it means we have everything from the background script
+	if (defaultSettings !== undefined) {
 		onPageLoaded();
 	}
 	hasDOMContentLoaded = true;
@@ -313,7 +349,7 @@ function onPageLoaded()
 		{
 			let reader = new FileReader();
 			reader.onload = () => {
-				let importedSettings = JSON.parse(reader.result);
+				let importedSettings = JSON.parse(reader.result as string);
 				importSettings(importedSettings);
 				// alert("All settings were imported!");
 			};
@@ -375,7 +411,7 @@ function onPageLoaded()
 	for (let sectionNameElement of sectionNameElements)
 	{
 		// toggle entire section on clicking the title, and save in settings the resulting state (open/closed)
-		sectionNameElement.onclick = () => {
+		(sectionNameElement as HTMLElement).onclick = () => {
 			if (settings.sectionsExpansionState === undefined) {
 				settings.sectionsExpansionState = {};
 			}
@@ -417,15 +453,15 @@ function onPageLoaded()
 	if (browserVersion < 60)
 	{
 		for (let elem of document.getElementsByClassName("command")) {
-			elem.classList.add("disabled", true);
+			elem.classList.add("disabled");
 		}
 
 		for (let elem of document.getElementsByClassName("pre-ff-60")) {
-			elem.style.display = "initial";
+			(elem as HTMLElement).style.display = "initial";
 		}
 
 		for (let elem of document.getElementsByClassName("post-ff-60")) {
-			elem.style.display = "none";
+			(elem as HTMLElement).style.display = "none";
 		}
 	}
 
@@ -449,7 +485,7 @@ function onPageLoaded()
 		let searchUrl = "https://www.google.com/search?q={searchTerms}";	// use google as an example
 
 		settings.searchEngines.push(createDefaultEngine({
-			type: "custom",
+			type: SearchEngineType.Custom,
 			name: "New Search Engine",
 			searchUrl: searchUrl,
 			iconUrl: getFaviconForUrl(searchUrl),	// by default try to get a favicon for the domain
@@ -461,7 +497,7 @@ function onPageLoaded()
 
 	page.addSeparatorButton.onclick = () => {
 		settings.searchEngines.push(createDefaultEngine({
-			type: "sss",
+			type: SearchEngineType.SSS,
 			id: "separator",
 		}));
 
@@ -658,7 +694,7 @@ function updateUIWithSettings()
 		document.onclick = ev => {
 			if (currentlyExpandedEngineOptions !== null) {
 				// hide if neither itself or any parent has the "section" class
-				if (ev.target.closest(".section") === null) {
+				if ((ev.target as Element).closest(".section") === null) {
 					currentlyExpandedEngineOptions.style.display = "none";
 				}
 			}
@@ -705,11 +741,11 @@ function calculateAndShowSettingsSize()
 	let storageSize = runActionOnDietSettings(settings, settings => JSON.stringify(settings).length * 2);	// times 2 because each char has size 2 bytes
 	if (storageSize > 100 * 1024) {
 		for (let elem of document.getElementsByClassName("warn-when-over-storage-limit")) {
-			elem.style.color = "red";
+			(elem as HTMLElement).style.color = "red";
 		}
 	} else {
 		for (let elem of document.getElementsByClassName("warn-when-over-storage-limit")) {
-			elem.style.color = "";
+			(elem as HTMLElement).style.color = "";
 		}
 	}
 	let storageSizeElement = document.getElementById("storage-size");
@@ -779,10 +815,10 @@ function buildSearchEngineRow(engine, i)
 
 	let icon;
 
-	if (engine.type === "sss")
+	if (engine.type === SearchEngineType.SSS)
 	{
 		// special SSS icons have data that never changes, so just get it from constants
-		let sssIcon = consts.sssIcons[engine.id];
+		let sssIcon = sssIcons[engine.id];
 
 		if (sssIcon.iconPath !== undefined) {
 			let iconImgSource = browser.extension.getURL(sssIcon.iconPath);
@@ -798,11 +834,11 @@ function buildSearchEngineRow(engine, i)
 
 	engineRow.appendChild(iconElem);
 
-	if (engine.type === "sss")
+	if (engine.type === SearchEngineType.SSS)
 	{
 		// create columns for this row, most disabled because special SSS icons can't be edited
 
-		let sssIcon = consts.sssIcons[engine.id];
+		let sssIcon = sssIcons[engine.id];
 
 		// name
 
@@ -828,9 +864,9 @@ function buildSearchEngineRow(engine, i)
 	{
 		// create columns for normal icons
 		engineRow.appendChild(createEngineName(engine));
-		let searchUrlElem = createEngineSearchLink(engine);
-		engineRow.appendChild(searchUrlElem);
-		engineRow.appendChild(createEngineIconLink(engine, icon, searchUrlElem));
+		let references = {};
+		engineRow.appendChild(createEngineSearchLink(engine, references));
+		engineRow.appendChild(createEngineIconLink(engine, icon, references));
 		engineRow.appendChild(createDeleteButton(i));
 	}
 
@@ -974,7 +1010,7 @@ function createEngineName(engine)
 }
 
 // sets the search URL field for a search engine in the engines table
-function createEngineSearchLink(engine)
+function createEngineSearchLink(engine, references)
 {
 	let parent = document.createElement("div");
 	parent.className = "engine-search-link";
@@ -982,7 +1018,8 @@ function createEngineSearchLink(engine)
 	let searchLinkInput = document.createElement("input");
 	searchLinkInput.type = "text";
 	searchLinkInput.value = engine.searchUrl;
-	searchLinkInput.previousValue = engine.searchUrl;	// custom attribute that keeps the previous value before a change
+
+	let previousSearchLinkInputValue = engine.searchUrl;	// keeps the previous value when it changes
 
 	searchLinkInput.onchange = () => {
 		// trim search url and prepend "http://" if it doesn't begin with a protocol
@@ -991,14 +1028,14 @@ function createEngineSearchLink(engine)
 			url = "http://" + url;
 		}
 
-		if (searchLinkInput.previousValue !== url) {
+		if (previousSearchLinkInputValue !== url) {
 			// if we're using the default favicon search for the previous search url, update it
-			if (engine.iconUrl.length == 0 || engine.iconUrl === getFaviconForUrl(searchLinkInput.previousValue)) {
+			if (engine.iconUrl.length == 0 || engine.iconUrl === getFaviconForUrl(previousSearchLinkInputValue)) {
 				let iconUrl = getFaviconForUrl(url);
-				parent.iconLinkInput.value = iconUrl;	// doesn't trigger oninput or onchange
-				setIconUrlInput(engine, parent.iconLinkInput, parent.icon);
+				references.iconLinkInput.value = iconUrl;	// doesn't trigger oninput or onchange
+				setIconUrlInput(engine, references.iconLinkInput, references.icon);
 			}
-			searchLinkInput.previousValue = url;
+			previousSearchLinkInputValue = url;
 		}
 
 		// if trimming and checks changed the url, set it on the input element
@@ -1012,12 +1049,12 @@ function createEngineSearchLink(engine)
 	};
 
 	parent.appendChild(searchLinkInput);
-	parent.searchLinkInput = searchLinkInput;	// save reference in element
+	references.searchLinkInput = searchLinkInput;	// save reference in element
 	return parent;
 }
 
 // sets the icon URL field for a search engine in the engines table
-function createEngineIconLink(engine, icon, searchUrlElem)
+function createEngineIconLink(engine, icon, references)
 {
 	let parent = document.createElement("div");
 	parent.className = "engine-icon-link";
@@ -1032,7 +1069,7 @@ function createEngineIconLink(engine, icon, searchUrlElem)
 
 	iconLinkInput.onchange = () => {
 		if (iconLinkInput.value.length == 0) {
-			iconLinkInput.value = getFaviconForUrl(searchUrlElem.searchLinkInput.value);
+			iconLinkInput.value = getFaviconForUrl(references.searchLinkInput.value);
 			setIconUrlInput(engine, iconLinkInput, icon);
 		}
 		trimSearchEnginesCache(settings);
@@ -1041,8 +1078,8 @@ function createEngineIconLink(engine, icon, searchUrlElem)
 	};
 
 	// save the reference to the icon and input field in the search input's parent, as we'll need them to update the default favicon
-	searchUrlElem.icon = icon;
-	searchUrlElem.iconLinkInput = iconLinkInput;
+	references.icon = icon;
+	references.iconLinkInput = iconLinkInput;
 
 	parent.appendChild(iconLinkInput);
 	return parent;
@@ -1166,7 +1203,7 @@ function updatePickerColor(picker, value)
 function updateSetting_middleMouseSelectionClickMargin(popupOpenBehaviour)
 {
 	let middleMouseSelectionClickMarginSetting = page["middleMouseSelectionClickMargin"].closest(".setting");
-	if (popupOpenBehaviour === consts.PopupOpenBehaviour_MiddleMouse) {
+	if (popupOpenBehaviour === PopupOpenBehaviour.MiddleMouse) {
 		middleMouseSelectionClickMarginSetting.classList.remove("hidden");
 	} else {
 		middleMouseSelectionClickMarginSetting.classList.add("hidden");
@@ -1271,4 +1308,5 @@ function getDomainFromUrl(url)
 	url = url.split(":")[0];	// port
 	url = url.split("?")[0];	// args
 	return url;
+}
 }
