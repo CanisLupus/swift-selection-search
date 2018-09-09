@@ -1,10 +1,5 @@
 Thumbs.db
 .vscode
-/web-ext-artifacts
-/package.json
-*eslint*
-*.bat
 /tests*
 /node_modules
-/js-build
 *.js

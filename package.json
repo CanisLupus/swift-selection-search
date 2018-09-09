@@ -1,0 +1,16 @@
+{
+  "name": "swift-selection-search",
+  "version": "1.0.0",
+  "description": "Swift Selection Search (SSS) is a simple Firefox add-on that lets you quickly search for some text in a page using your favorite search engines.",
+  "main": "swift-selection-search.js",
+  "homepage": "https://github.com/CanisLupus/swift-selection-search",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Daniel Lobo",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^3.0.1",
+    "web-ext-types": "^2.1.0"
+  }
+}
