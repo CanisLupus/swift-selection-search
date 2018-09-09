@@ -243,7 +243,7 @@ function updateBrowserEnginesFromSearchJson(browserSearchEngines)
 			settings.searchEngines.push(createDefaultEngine({
 				type: SearchEngineType.Browser,
 				name: engine._name,
-				iconUrl: engine._iconURL,
+				iconUrl: getFaviconForUrl(url),
 				searchUrl: url,
 			}));
 		}
@@ -387,7 +387,7 @@ function onPageLoaded()
 	page.importBrowserEnginesFileButton.onclick = () => page.importBrowserEnginesFileButton_real.click();
 	page.exportSettingsToFileButton.onclick = () => {
 		// remove useless stuff that doesn't need to be stored
-		var blob = runActionOnDietSettings(settings, settings => new Blob([JSON.stringify(settings)]));
+		var blob = runActionOnDietSettings(settings, (settings: Settings) => new Blob([JSON.stringify(settings)]));
 		// save with current date and time
 		let filename = "SSS settings backup (" + new Date(Date.now()).toJSON().replace(/:/g, ".") + ").json";
 
@@ -510,8 +510,9 @@ function onPageLoaded()
 	// saves settings to Firefox Sync
 	page.saveSettingsToSyncButton.onclick = () => {
 		if (DEBUG) { log("saving!"); }
+
 		// remove useless stuff that doesn't need to be stored
-		let settingsStr = runActionOnDietSettings(settings, settings => JSON.stringify(settings));
+		var settingsStr = runActionOnDietSettings(settings, (settings: Settings) => JSON.stringify(settings));
 
 		// divide into different fields so as not to trigger Firefox's "Maximum bytes per object exceeded ([number of bytes] > 16384 Bytes.)"
 		let chunks = {};
@@ -582,9 +583,12 @@ function onPageLoaded()
 			}
 			let settingsStr = chunksList.join("");
 
+			if (DEBUG) { log("settings from sync, as string: " + settingsStr); }
+
 			// now parse and import the settings
 			importSettings(JSON.parse(settingsStr));
-		}, getErrorHandler("Error getting settings from sync.")));
+		}, getErrorHandler("Error getting settings from sync."))
+	);
 
 	// finish and set elements based on settings, if they are already loaded
 
@@ -737,8 +741,6 @@ function updateUIWithSettings()
 // estimates size of settings in bytes and shows warning messages if this is a problem when using Firefox Sync
 function calculateAndShowSettingsSize()
 {
-	if (true) return;	// we don't care about this code until Sync is bug-free
-
 	// let storageSize = runActionOnDietSettings(settings, settings => roughSizeOfObject(settings));
 	let storageSize = runActionOnDietSettings(settings, settings => JSON.stringify(settings).length * 2);	// times 2 because each char has size 2 bytes
 	if (storageSize > 100 * 1024) {
