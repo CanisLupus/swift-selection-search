@@ -15,7 +15,6 @@ enum PopupOpenBehaviour {
 }
 
 const page = {
-	container: undefined,
 	engines: undefined,
 	inputs: undefined,
 	importBrowserEnginesFileButton: undefined,
@@ -36,6 +35,10 @@ const page = {
 	resetSettingsButton_real: undefined,
 	loadSettingsFromSyncButton: undefined,
 	loadSettingsFromSyncButton_real: undefined,
+	minSelectedCharacters: undefined,
+	middleMouseSelectionClickMargin: undefined,
+	nPopupIconsPerRow: undefined,
+	iconAlignmentInGrid: undefined,
 };
 
 let settings: SSS.Settings;
@@ -315,7 +318,6 @@ function onPageLoaded()
 {
 	// save all form elements for easy access
 
-	page.container = document.getElementById("settings");
 	page.engines = document.getElementById("engines");
 	page.inputs = document.querySelectorAll("input, select");
 
@@ -325,12 +327,10 @@ function onPageLoaded()
 
 	// register change event for anything in the form
 
-	page.container.onchange = ev => {
+	let container: any = document.getElementById("settings");
+
+	container.onchange = ev => {
 		let item = ev.target;
-		// skip changes to color fields, since we have hexadecimal text fields for them, and they also change
-		if (item.type === "color") {
-			return;
-		}
 
 		if (DEBUG) { log("onFormChanged target: " + item.name + ", value: " + item.value); }
 
@@ -358,30 +358,8 @@ function onPageLoaded()
 			reader.readAsText(ev.target.files[0]);
 		}
 		// otherwise, if not a "special thing", this is a field
-		else if (item.name in settings)
-		{
-			// certain fields cause other fields to show/hide when changed, so check those
-			if (item.name === "popupOpenBehaviour") {
-				updateSetting_minSelectedCharacters(item.value);
-				updateSetting_middleMouseSelectionClickMargin(item.value);
-			} else if (item.name === "useSingleRow") {
-				updateSetting_nPopupIconsPerRow(item.checked);
-				updateSetting_iconAlignmentInGrid(item.checked);
-			}
-
-			// different fields have different ways to get their value
-			let value;
-			if (item.type === "checkbox") {
-				value = item.checked;
-			} else if (item.type === "number") {
-				value = parseInt(item.value);
-			} else {
-				value = item.value;
-			}
-
-			// register the change and save in storage
-			settings[item.name] = value;
-			saveSettings({ [item.name]: value });
+		else {
+			saveElementValueToSettings(item, true);
 		}
 	};
 
@@ -406,6 +384,24 @@ function onPageLoaded()
 	page.popupBackgroundColor.oninput       = () => updatePickerColor(page.popupBackgroundColorPicker, page.popupBackgroundColor.value);
 	page.popupHighlightColorPicker.oninput  = () => updateColorText  (page.popupHighlightColor,        page.popupHighlightColorPicker.value);
 	page.popupHighlightColor.oninput        = () => updatePickerColor(page.popupHighlightColorPicker,  page.popupHighlightColor.value);
+
+	// setup reset buttons for each option
+
+	for (let elem of document.getElementsByClassName("setting-reset"))
+	{
+		elem.getElementsByTagName("input")[0].onclick = _ => {
+			let parent = elem.closest(".setting");
+			let formElement = parent.querySelector(".setting-input") as HTMLFormElement;
+			let settingName = formElement.name;
+
+			// register the change and save in storage
+			let defaultValue = defaultSettings[settingName];
+			settings[settingName] = defaultValue;
+			saveSettings({ [settingName]: defaultValue });
+
+			loadSettingValueIntoElement(formElement);
+		};
+	}
 
 	// sections' collapse/expand code
 
@@ -628,34 +624,9 @@ function updateUIWithSettings()
 
 	// load UI values from settings
 
-	for (let item of page.inputs)
-	{
-		// all settings are saved with the same name as the input elements in the page
-		if (!(item.name in settings)) {
-			continue;
-		}
-
-		// each kind of input element has a different value to set
-		if (item.type === "select-one") {
-			item.value = settings[item.name];
-		} else if (item.type !== "color" && item.type !== "button" && item.type !== "reset" && item.type !== "file") {
-			if (item.type === "checkbox") {
-				item.checked = settings[item.name];
-			} else {
-				item.value = settings[item.name];
-			}
-		}
+	for (let item of page.inputs) {
+		loadSettingValueIntoElement(item);
 	}
-
-	// update color pickers from their hexadecimal text
-	updatePickerColor(page.popupBackgroundColorPicker, page.popupBackgroundColor.value);
-	updatePickerColor(page.popupHighlightColorPicker, page.popupHighlightColor.value);
-
-	// some options only appear if some other option has a certain value
-	updateSetting_minSelectedCharacters(settings.popupOpenBehaviour);
-	updateSetting_middleMouseSelectionClickMargin(settings.popupOpenBehaviour);
-	updateSetting_nPopupIconsPerRow(settings.useSingleRow);
-	updateSetting_iconAlignmentInGrid(settings.useSingleRow);
 
 	// calculate storage size (helpful for Firefox Sync)
 
@@ -738,6 +709,97 @@ function updateUIWithSettings()
 			classList.toggle("collapsed-section", !isExpanded);
 		}
 	}
+}
+
+function saveElementValueToSettings(item: HTMLFormElement, didElementValueChange: boolean = false): boolean
+{
+	let name = item.name;
+
+	if (!(name in settings)) {
+		return false;
+	}
+
+	// different fields have different ways to get their value
+	let value;
+	if (item.type === "checkbox") {
+		value = item.checked;
+	} else if (item.type === "number") {
+		value = parseInt(item.value);
+	} else {
+		value = item.value;
+	}
+
+	if (didElementValueChange)
+	{
+		switch (name)
+		{
+			// update color pickers from their hexadecimal text
+			case "popupBackgroundColor":
+				updatePickerColor(page.popupBackgroundColorPicker, value);
+				break;
+			case "popupHighlightColor":
+				updatePickerColor(page.popupHighlightColorPicker, value);
+				break;
+
+			// some options only appear if some other option has a certain value
+			case "popupOpenBehaviour":
+				updateSetting_minSelectedCharacters(value);
+				updateSetting_middleMouseSelectionClickMargin(value);
+				break;
+			case "useSingleRow":
+				updateSetting_nPopupIconsPerRow(value);
+				updateSetting_iconAlignmentInGrid(value);
+				break;
+		}
+	}
+
+	// register the change and save in storage
+	settings[name] = value;
+	saveSettings({ [name]: value });
+
+	return true;
+}
+
+function loadSettingValueIntoElement(item: HTMLFormElement): boolean
+{
+	let name = item.name;
+
+	// all settings are saved with the same name as the input elements in the page
+	if (!(name in settings)) {
+		return false;
+	}
+
+	let value = settings[name];
+
+	// each kind of input element has a different value to set
+	if (item.type === "checkbox") {
+		item.checked = value;
+	} else {
+		item.value = value;
+	}
+
+	switch (name)
+	{
+		// update color pickers from their hexadecimal text
+		case "popupBackgroundColor":
+			updatePickerColor(page.popupBackgroundColorPicker, value);
+			break;
+		case "popupHighlightColor":
+			updatePickerColor(page.popupHighlightColorPicker, value);
+			break;
+
+		// some options only appear if some other option has a certain value
+		case "popupOpenBehaviour":
+			updateSetting_minSelectedCharacters(settings.popupOpenBehaviour);
+			updateSetting_middleMouseSelectionClickMargin(settings.popupOpenBehaviour);
+			break;
+		case "useSingleRow":
+			updateSetting_nPopupIconsPerRow(settings.useSingleRow);
+			updateSetting_iconAlignmentInGrid(settings.useSingleRow);
+			break;
+	}
+
+	return true;
 }
 
 // estimates size of settings in bytes and shows warning messages if this is a problem when using Firefox Sync
@@ -1208,7 +1270,7 @@ function updatePickerColor(picker, value)
 
 function updateSetting_minSelectedCharacters(popupOpenBehaviour)
 {
-	let minSelectedCharactersSetting = page["minSelectedCharacters"].closest(".setting");
+	let minSelectedCharactersSetting = page.minSelectedCharacters.closest(".setting");
 	if (popupOpenBehaviour === PopupOpenBehaviour.Auto) {
 		minSelectedCharactersSetting.classList.remove("hidden");
 	} else {
@@ -1218,7 +1280,7 @@ function updateSetting_minSelectedCharacters(popupOpenBehaviour)
 
 function updateSetting_middleMouseSelectionClickMargin(popupOpenBehaviour)
 {
-	let middleMouseSelectionClickMarginSetting = page["middleMouseSelectionClickMargin"].closest(".setting");
+	let middleMouseSelectionClickMarginSetting = page.middleMouseSelectionClickMargin.closest(".setting");
 	if (popupOpenBehaviour === PopupOpenBehaviour.MiddleMouse) {
 		middleMouseSelectionClickMarginSetting.classList.remove("hidden");
 	} else {
@@ -1228,7 +1290,7 @@ function updateSetting_middleMouseSelectionClickMargin(popupOpenBehaviour)
 
 function updateSetting_nPopupIconsPerRow(useSingleRow)
 {
-	let nPopupIconsPerRowSetting = page["nPopupIconsPerRow"].closest(".setting");
+	let nPopupIconsPerRowSetting = page.nPopupIconsPerRow.closest(".setting");
 	if (useSingleRow === true) {
 		nPopupIconsPerRowSetting.classList.add("hidden");
 	} else {
@@ -1238,7 +1300,7 @@ function updateSetting_nPopupIconsPerRow(useSingleRow)
 
 function updateSetting_iconAlignmentInGrid(useSingleRow)
 {
-	let iconAlignmentInGrid = page["iconAlignmentInGrid"].closest(".setting");
+	let iconAlignmentInGrid = page.iconAlignmentInGrid.closest(".setting");
 	if (useSingleRow === true) {
 		iconAlignmentInGrid.classList.add("hidden");
 	} else {

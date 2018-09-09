@@ -132,6 +132,12 @@
 		color: #3399FF;
 		cursor: pointer;
 	}
+	.setting-reset {
+		visibility: hidden;
+	}
+	.setting:hover .setting-reset {
+		visibility: visible;
+	}
 	.setting.disabled .setting-value {
 		font-size: 0.8rem;
 	}
@@ -361,7 +367,7 @@
 			<div class="setting">
 				<div class="setting-name">Opening behaviour</div>
 				<div class="setting-value">
-					<select name="popupOpenBehaviour">
+					<select class="setting-input" name="popupOpenBehaviour">
 						<option value="off">Off (never)</option>
 						<option value="auto">Auto (opens on text selection)</option>
 						<option value="hold-alt">Hold Alt (hold the Alt key [Option on Mac] when selecting)</option>
@@ -369,40 +375,44 @@
 						<option value="middle-mouse">Middle mouse button (press the middle button on the selected text)</option>
 					</select>
 				</div>
-				<div class="setting-description">When to open the popup.<br>(default: Auto)</div>
+				<div class="setting-description">When to open the popup.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting hidden indent">
 				<div class="setting-name">Middle mouse click margin</div>
 				<div class="setting-value">
-					<input type="number" name="middleMouseSelectionClickMargin" min="0" value="14">
+					<input class="setting-input" type="number" name="middleMouseSelectionClickMargin" min="0">
 				</div>
-				<div class="setting-description">Adds a margin in pixels so you can middle-click near the selection as well as on it.<br>(default: 14)</div>
+				<div class="setting-description">Adds a margin in pixels so you can middle-click near the selection as well as on it.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting hidden indent">
 				<div class="setting-name">Minimum selected characters</div>
 				<div class="setting-value">
-					<input type="number" name="minSelectedCharacters" min="0" value="200">
+					<input class="setting-input" type="number" name="minSelectedCharacters" min="0">
 				</div>
-				<div class="setting-description">In "Auto" opening behaviour, only shows popup if you have at least this number of characters selected (discarding surrounding spaces). Setting to 0 always shows.<br>(default: 0)</div>
+				<div class="setting-description">In "Auto" opening behaviour, only shows popup if you have at least this number of characters selected (discarding surrounding spaces). Setting to 0 always shows.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting">
 				<div class="setting-name">Popup location</div>
 				<div class="setting-value">
-					<select name="popupLocation">
+					<select class="setting-input" name="popupLocation">
 						<option value="selection">Bottom right corner of selection "rectangle"</option>
 						<option value="cursor">At cursor location</option>
 					</select>
 				</div>
-				<div class="setting-description">Where the popup should appear after selecting text.<br>(default: At cursor location)</div>
+				<div class="setting-description">Where the popup should appear after selecting text.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting">
 				<div class="setting-name">Left mouse button click</div>
 				<div class="setting-value">
-					<select name="mouseLeftButtonBehaviour">
+					<select class="setting-input" name="mouseLeftButtonBehaviour">
 						<option value="this-tab">Open in this tab</option>
 						<option value="new-tab">Open in new tab</option>
 						<option value="new-bg-tab">Open in new background tab</option>
@@ -412,13 +422,14 @@
 						<option value="new-bg-window">(unsupported in Firefox) Open in new background window</option>
 					</select>
 				</div>
-				<div class="setting-description">What to do when a search engine is clicked with the left mouse button.<br>(default: Open in this tab)</div>
+				<div class="setting-description">What to do when a search engine is clicked with the left mouse button.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting">
 				<div class="setting-name">Middle mouse button click</div>
 				<div class="setting-value">
-					<select name="mouseMiddleButtonBehaviour">
+					<select class="setting-input" name="mouseMiddleButtonBehaviour">
 						<option value="this-tab">Open in this tab</option>
 						<option value="new-tab">Open in new tab</option>
 						<option value="new-bg-tab">Open in new background tab</option>
@@ -428,39 +439,44 @@
 						<option value="new-bg-window">(unsupported in Firefox) Open in new background window</option>
 					</select>
 				</div>
-				<div class="setting-description">What to do when a search engine is clicked with the middle mouse button.<br>(default: Open in new background tab)</div>
+				<div class="setting-description">What to do when a search engine is clicked with the middle mouse button.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting">
 				<div class="setting-name">Allow popup on editable fields</div>
 				<div class="setting-value">
-					<input type="checkbox" name="allowPopupOnEditableFields" autocomplete="off">
+					<input class="setting-input" type="checkbox" name="allowPopupOnEditableFields" autocomplete="off">
 				</div>
-				<div class="setting-description">Show the popup when text is selected with the mouse on an editable text field, such as a login form, a search bar, or an email composing window. NOTE: "Shortcut to open popup" ignores this setting and always works on editable fields.<br>(default: Off)</div>
+				<div class="setting-description">Show the popup when text is selected with the mouse on an editable text field, such as a login form, a search bar, or an email composing window. NOTE: "Shortcut to open popup" ignores this setting and always works on editable fields.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting">
 				<div class="setting-name">Hide popup on page scroll</div>
 				<div class="setting-value">
-					<input type="checkbox" name="hidePopupOnPageScroll" autocomplete="off">
+					<input class="setting-input" type="checkbox" name="hidePopupOnPageScroll" autocomplete="off">
 				</div>
-				<div class="setting-description">Hides the popup when the page moves.<br>(default: On)</div>
+				<div class="setting-description">Hides the popup when the page moves.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting">
 				<div class="setting-name">Hide popup on right click</div>
 				<div class="setting-value">
-					<input type="checkbox" name="hidePopupOnRightClick" autocomplete="off" checked>
+					<input class="setting-input" type="checkbox" name="hidePopupOnRightClick" autocomplete="off" checked>
 				</div>
-				<div class="setting-description">Hides the popup when the right mouse button is pressed outside the popup. NOTE: Left or middle clicks always hide it regardless.<br>(default: On)</div>
+				<div class="setting-description">Hides the popup when the right mouse button is pressed outside the popup. NOTE: Left or middle clicks always hide it regardless.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting">
 				<div class="setting-name">Hide popup on search engine click</div>
 				<div class="setting-value">
-					<input type="checkbox" name="hidePopupOnSearch" autocomplete="off" checked>
+					<input class="setting-input" type="checkbox" name="hidePopupOnSearch" autocomplete="off" checked>
 				</div>
-				<div class="setting-description">Hides the popup when a search engine is clicked.<br>(default: On)</div>
+				<div class="setting-description">Hides the popup when a search engine is clicked.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting command">
@@ -471,7 +487,7 @@
 						<span class="os-mac">Cmd+Shift+Space</span>
 					</span>
 					<span class="post-ff-60">
-						<input type="text" name="popupOpenCommand" value="Ctrl+Shift+Space">
+						<input class="setting-input" type="text" name="popupOpenCommand">
 					</span>
 				</div>
 				<div class="setting-description">
@@ -483,9 +499,9 @@
 							Use Ctrl (it means Command on Mac), Alt, <span class="os-mac">MacCtrl (actual Control key on Mac), </span>Shift and the desired key. Check <a target="_blank" href="https://developer.mozilla.org/Add-ons/WebExtensions/manifest.json/commands#Shortcut_values">this link</a> for more details.
 							<br>NOTE: Many shortcuts are reserved for the browser. If yours doesn't work please try another combination!
 						</details>
-						(default: Ctrl+Shift+Space)
 					</span>
 				</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting command">
@@ -496,7 +512,7 @@
 						<span class="os-mac">Cmd+Shift+U</span>
 					</span>
 					<span class="post-ff-60">
-						<input type="text" name="popupDisableCommand" value="Ctrl+Shift+U">
+						<input class="setting-input" type="text" name="popupDisableCommand">
 					</span>
 				</div>
 				<div class="setting-description">
@@ -508,28 +524,30 @@
 							Use Ctrl (it means Command on Mac), Alt, <span class="os-mac">MacCtrl (actual Control key on Mac), </span>Shift and the desired key. Check <a target="_blank" href="https://developer.mozilla.org/Add-ons/WebExtensions/manifest.json/commands#Shortcut_values">this link</a> for more details.
 							<br>NOTE: Many shortcuts are reserved for the browser. If yours doesn't work please try another combination!
 						</details>
-						(default: Ctrl+Shift+U)
 					</span>
 				</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting">
 				<div class="setting-name">Popup animation duration</div>
 				<div class="setting-value">
-					<input type="number" name="popupAnimationDuration" min="0" value="100">
+					<input class="setting-input" type="number" name="popupAnimationDuration" min="0">
 				</div>
-				<div class="setting-description">Duration of popup animation, in milliseconds. Use 0 to make the popup show instantly.<br>(default: 100)</div>
+				<div class="setting-description">Duration of popup animation, in milliseconds. Use 0 to make the popup show instantly.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting">
 				<div class="setting-name">Auto copy to clipboard</div>
 				<div class="setting-value">
-					<select name="autoCopyToClipboard">
+					<select class="setting-input" name="autoCopyToClipboard">
 						<option value="off">Off</option>
 						<option value="always">Always</option>
 					</select>
 				</div>
-				<div class="setting-description">Automatically copy selected text to clipboard when popup opens.<br>(default: Off)</div>
+				<div class="setting-description">Automatically copy selected text to clipboard when popup opens.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 		</div>
 	</div>
@@ -541,139 +559,155 @@
 			<div class="setting">
 				<div class="setting-name">Display in a single row</div>
 				<div class="setting-value">
-					<input type="checkbox" name="useSingleRow" autocomplete="off" checked>
+					<input class="setting-input" type="checkbox" name="useSingleRow" autocomplete="off" checked>
 				</div>
-				<div class="setting-description">Places all search engines in a single row, instead of a grid.<br>(default: On)</div>
+				<div class="setting-description">Places all search engines in a single row, instead of a grid.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting hidden indent">
 				<div class="setting-name">Number of icons per row in grid</div>
 				<div class="setting-value">
-					<input type="number" name="nPopupIconsPerRow" min="1" value="4">
+					<input class="setting-input" type="number" name="nPopupIconsPerRow" min="1">
 				</div>
-				<div class="setting-description">Max number of search engines per row in grid display.<br>(default: 4)</div>
+				<div class="setting-description">Max number of search engines per row in grid display.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting hidden indent">
 				<div class="setting-name">Icon alignment in grid</div>
 				<div class="setting-value">
-					<select name="iconAlignmentInGrid">
+					<select class="setting-input" name="iconAlignmentInGrid">
 						<option value="left">Left</option>
 						<option value="middle">Middle</option>
 						<option value="right">Right</option>
 					</select>
 				</div>
-				<div class="setting-description">Specifies how to align icons when a row is not full in grid display.<br>(default: Middle)</div>
+				<div class="setting-description">Specifies how to align icons when a row is not full in grid display.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting">
 				<div class="setting-name">Icon size</div>
 				<div class="setting-value">
-					<input type="number" name="popupItemSize" value="24">
+					<input class="setting-input" type="number" name="popupItemSize">
 				</div>
-				<div class="setting-description">Search engine icon size in pixels.<br>(default: 24)</div>
+				<div class="setting-description">Search engine icon size in pixels.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting">
 				<div class="setting-name">Separator width</div>
 				<div class="setting-value">
-					<input type="number" name="popupSeparatorWidth" value="60">
+					<input class="setting-input" type="number" name="popupSeparatorWidth">
 				</div>
-				<div class="setting-description">Separator icon width as a percentage of icon size.<br>(default: 60%)</div>
+				<div class="setting-description">Separator icon width as a percentage of icon size.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting">
 				<div class="setting-name">Icon horizontal padding</div>
 				<div class="setting-value">
-					<input type="number" name="popupItemPadding" value="2">
+					<input class="setting-input" type="number" name="popupItemPadding">
 				</div>
-				<div class="setting-description">Search engine icon horizontal padding (left and right) in pixels.<br>(default: 2)</div>
+				<div class="setting-description">Search engine icon horizontal padding (left and right) in pixels.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting">
 				<div class="setting-name">Icon vertical padding</div>
 				<div class="setting-value">
-					<input type="number" name="popupItemVerticalPadding" value="1">
+					<input class="setting-input" type="number" name="popupItemVerticalPadding">
 				</div>
-				<div class="setting-description">Search engine icon vertical padding (top and bottom) in pixels.<br>(default: 1)</div>
+				<div class="setting-description">Search engine icon vertical padding (top and bottom) in pixels.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting">
 				<div class="setting-name">Icon hover behaviour</div>
 				<div class="setting-value">
-					<select name="popupItemHoverBehaviour">
+					<select class="setting-input" name="popupItemHoverBehaviour">
 						<option value="nothing">Nothing (no hover effect)</option>
 						<option value="highlight">Highlight-only</option>
 						<option value="highlight-and-move">Highlight & Move</option>
 					</select>
 				</div>
-				<div class="setting-description">What happens to hovered search engine icons.<br>(default: Highlight & Move)</div>
+				<div class="setting-description">What happens to hovered search engine icons.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting">
 				<div class="setting-name">Icon roundness</div>
 				<div class="setting-value">
-					<input type="number" name="popupItemBorderRadius" min="0" value="0">
+					<input class="setting-input" type="number" name="popupItemBorderRadius" min="0">
 				</div>
-				<div class="setting-description">Icon border radius in pixels. Makes icons more or less round. NOTE: this will likely be unnoticeable on icons without a background.<br>(default: 0)</div>
+				<div class="setting-description">Icon border radius in pixels. Makes icons more or less round. NOTE: this will likely be unnoticeable on icons without a background.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting">
 				<div class="setting-name">Popup background color</div>
 				<div class="setting-value">
-					<input type="color" name="popupBackgroundColorPicker" value="#FFFFFF">
-					<input type="text" name="popupBackgroundColor" value="#FFFFFF">
+					<input type="color" name="popupBackgroundColorPicker">
+					<input class="setting-input" type="text" name="popupBackgroundColor">
 				</div>
-				<div class="setting-description">Color for the popup background. Supports transparency using #rrggbbaa.<br>(default: white, #FFFFFF)</div>
+				<div class="setting-description">Color for the popup background. Supports transparency using #rrggbbaa.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting">
 				<div class="setting-name">Popup highlight color</div>
 				<div class="setting-value">
-					<input type="color" name="popupHighlightColorPicker" value="#3399FF">
-					<input type="text" name="popupHighlightColor" value="#3399FF">
+					<input type="color" name="popupHighlightColorPicker">
+					<input class="setting-input" type="text" name="popupHighlightColor">
 				</div>
-				<div class="setting-description">Color for the popup highlight. Supports transparency using #rrggbbaa.<br>(default: blue, #3399FF)</div>
+				<div class="setting-description">Color for the popup highlight. Supports transparency using #rrggbbaa.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting">
 				<div class="setting-name">Popup horizontal padding</div>
 				<div class="setting-value">
-					<input type="number" name="popupPaddingX" min="0" value="3">
+					<input class="setting-input" type="number" name="popupPaddingX" min="0">
 				</div>
-				<div class="setting-description">Popup left/right padding, in pixels.<br>(default: 3)</div>
+				<div class="setting-description">Popup left/right padding, in pixels.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting">
 				<div class="setting-name">Popup vertical padding</div>
 				<div class="setting-value">
-					<input type="number" name="popupPaddingY" min="0" value="1">
+					<input class="setting-input" type="number" name="popupPaddingY" min="0">
 				</div>
-				<div class="setting-description">Popup top/bottom padding, in pixels.<br>(default: 1)</div>
+				<div class="setting-description">Popup top/bottom padding, in pixels.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting">
 				<div class="setting-name">Popup horizontal offset</div>
 				<div class="setting-value">
-					<input type="number" name="popupOffsetX" value="0">
+					<input class="setting-input" type="number" name="popupOffsetX">
 				</div>
-				<div class="setting-description">Popup horizontal offset from the default position, in pixels (positive values move right).<br>(default: 0)</div>
+				<div class="setting-description">Popup horizontal offset from the default position, in pixels (positive values move right).</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting">
 				<div class="setting-name">Popup vertical offset</div>
 				<div class="setting-value">
-					<input type="number" name="popupOffsetY" value="0">
+					<input class="setting-input" type="number" name="popupOffsetY">
 				</div>
-				<div class="setting-description">Popup vertical offset from the default position, in pixels (positive values move up).<br>(default: 0)</div>
+				<div class="setting-description">Popup vertical offset from the default position, in pixels (positive values move up).</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting">
 				<div class="setting-name">Popup roundness</div>
 				<div class="setting-value">
-					<input type="number" name="popupBorderRadius" min="0" value="2">
+					<input class="setting-input" type="number" name="popupBorderRadius" min="0">
 				</div>
-				<div class="setting-description">Popup border radius in pixels. Makes popup more or less round.<br>(default: 2)</div>
+				<div class="setting-description">Popup border radius in pixels. Makes popup more or less round.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 		</div>
 	</div>
@@ -685,15 +719,16 @@
 			<div class="setting">
 				<div class="setting-name">Is the context menu enabled?</div>
 				<div class="setting-value">
-					<input type="checkbox" name="enableEnginesInContextMenu" autocomplete="off" checked>
+					<input class="setting-input" type="checkbox" name="enableEnginesInContextMenu" autocomplete="off" checked>
 				</div>
-				<div class="setting-description">Enables a "Search for..." context menu with all search engines. Appears when you right click somewhere with text selected.<br>(default: On)</div>
+				<div class="setting-description">Enables a "Search for..." context menu with all search engines. Appears when you right click somewhere with text selected.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
 			<div class="setting">
 				<div class="setting-name">Context menu item click behaviour</div>
 				<div class="setting-value">
-					<select name="contextMenuItemBehaviour">
+					<select class="setting-input" name="contextMenuItemBehaviour">
 						<option value="this-tab">Open in this tab</option>
 						<option value="new-tab">Open in new tab</option>
 						<option value="new-bg-tab">Open in new background tab</option>
@@ -703,7 +738,8 @@
 						<option value="new-bg-window">(unsupported in Firefox) Open in new background window</option>
 					</select>
 				</div>
-				<div class="setting-description">What to do when a search engine is clicked in the context menu. NOTE: This is NOT for clicking a search engine in the popup, only in the context menu. For the former, please see the "Popup/icons behaviour" section.<br>(default: Open in new background tab)</div>
+				<div class="setting-description">What to do when a search engine is clicked in the context menu. NOTE: This is NOT for clicking a search engine in the popup, only in the context menu. For the former, please see the "Popup/icons behaviour" section.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 		</div>
 	</div>
