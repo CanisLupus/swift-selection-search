@@ -378,7 +378,7 @@ function getPopupSettingsForContentScript(settings: Settings): ContentScriptSett
 	// get icon cache for enabled engines
 	for (const engine of contentScriptSettings.settings.searchEngines)
 	{
-		if (engine.type === SearchEngineType.Custom)
+		if (engine.type !== SearchEngineType.SSS)
 		{
 			let iconCache: string = settings.searchEnginesCache[(engine as SearchEngine_Custom).iconUrl];
 			if (iconCache) {
