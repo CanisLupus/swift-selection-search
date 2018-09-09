@@ -10,6 +10,7 @@ enum SearchEngineType {
 	Browser = "browser",
 }
 enum PopupOpenBehaviour {
+	Auto = "auto",
 	MiddleMouse = "middle-mouse",
 }
 
@@ -361,6 +362,7 @@ function onPageLoaded()
 		{
 			// certain fields cause other fields to show/hide when changed, so check those
 			if (item.name === "popupOpenBehaviour") {
+				updateSetting_minSelectedCharacters(item.value);
 				updateSetting_middleMouseSelectionClickMargin(item.value);
 			} else if (item.name === "useSingleRow") {
 				updateSetting_nPopupIconsPerRow(item.checked);
@@ -649,9 +651,9 @@ function updateUIWithSettings()
 	updatePickerColor(page.popupBackgroundColorPicker, page.popupBackgroundColor.value);
 	updatePickerColor(page.popupHighlightColorPicker, page.popupHighlightColor.value);
 
-	// margin option only appears if using middle click for opening behaviour
+	// some options only appear if some other option has a certain value
+	updateSetting_minSelectedCharacters(settings.popupOpenBehaviour);
 	updateSetting_middleMouseSelectionClickMargin(settings.popupOpenBehaviour);
-	// nPopupIconsPerRow and iconAlignmentInGrid options only appear if not using a single row of icons
 	updateSetting_nPopupIconsPerRow(settings.useSingleRow);
 	updateSetting_iconAlignmentInGrid(settings.useSingleRow);
 
@@ -1201,6 +1203,16 @@ function updatePickerColor(picker, value)
 
 	if (picker.value !== value) {
 		picker.value = value;
+	}
+}
+
+function updateSetting_minSelectedCharacters(popupOpenBehaviour)
+{
+	let minSelectedCharactersSetting = page["minSelectedCharacters"].closest(".setting");
+	if (popupOpenBehaviour === PopupOpenBehaviour.Auto) {
+		minSelectedCharactersSetting.classList.remove("hidden");
+	} else {
+		minSelectedCharactersSetting.classList.add("hidden");
 	}
 }
 
