@@ -146,7 +146,7 @@ function onSettingsChanged(changes, area)
 }
 
 // default error handler for promises
-function getErrorHandler(text)
+function getErrorHandler(text: string): (reason: any) => void
 {
 	if (DEBUG) {
 		return error => { log(`${text} (${error})`); };
@@ -155,9 +155,9 @@ function getErrorHandler(text)
 	}
 }
 
-function isObjectEmpty(object)
+function isObjectEmpty(obj: object): boolean
 {
-	for (const key in object) {
+	for (const _ in obj) {
 		return false;	// has at least one element
 	}
 	return true;

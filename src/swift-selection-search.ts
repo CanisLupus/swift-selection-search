@@ -25,10 +25,8 @@ export class SearchEngine_Custom extends SearchEngine
 	iconUrl: string;
 }
 
-enum SearchEngineType {
-	SSS = "sss",
-	Custom = "custom",
-	Browser = "browser",
+export class SearchEngine_Browser extends SearchEngine_Custom
+{
 }
 
 export class Settings
@@ -92,6 +90,19 @@ export class SSSIconDefinition
 	isInteractive: boolean = true;
 }
 
+class SSS
+{
+	settings: Settings;
+	activationSettingsForContentScript: ActivationSettings;
+	settingsForContentScript: ContentScriptSettings;
+}
+
+enum SearchEngineType {
+	SSS = "sss",
+	Custom = "custom",
+	Browser = "browser",
+}
+
 enum PopupOpenBehaviour {
 	Off = "off",
 	Auto = "auto",
@@ -136,13 +147,6 @@ enum ItemHoverBehaviour {
 enum ContextMenuEnginesFilter {
 	All = "all",
 	SameAsPopup = "same-as-popup",
-}
-
-class SSS
-{
-	settings: Settings;
-	activationSettingsForContentScript: ActivationSettings;
-	settingsForContentScript: ContentScriptSettings;
 }
 
 const sssIcons: { [id: string] : SSSIconDefinition; } = {
@@ -385,10 +389,10 @@ function getPopupSettingsForContentScript(settings: Settings): ContentScriptSett
 	return contentScriptSettings;
 }
 
-function runBackwardsCompatibilityUpdates(settings)
+function runBackwardsCompatibilityUpdates(settings: Settings): boolean
 {
 	// add settings that were not available in older versions of SSS
-	let shouldSave = false;
+	let shouldSave: boolean = false;
 	shouldSave = shouldSave || createSettingIfNonExistent(settings, "popupItemVerticalPadding");		// 3.1.0
 	shouldSave = shouldSave || createSettingIfNonExistent(settings, "allowPopupOnEditableFields");		// 3.6.0
 	shouldSave = shouldSave || createSettingIfNonExistent(settings, "popupBorderRadius");				// 3.9.1
@@ -426,7 +430,7 @@ function runBackwardsCompatibilityUpdates(settings)
 	return shouldSave;
 }
 
-function createSettingIfNonExistent(settings, settingName): boolean
+function createSettingIfNonExistent(settings: Settings, settingName: string): boolean
 {
 	if (settings[settingName] === undefined) {
 		settings[settingName] = defaultSettings[settingName];
@@ -450,7 +454,7 @@ function onSettingsChanged(changes: browser.storage.ChangeDict, area: browser.st
 }
 
 // default error handler for promises
-function getErrorHandler(text: string)
+function getErrorHandler(text: string): (reason: any) => void
 {
 	if (DEBUG) {
 		return error => { log(`${text} (${error})`); };
@@ -459,7 +463,7 @@ function getErrorHandler(text: string)
 	}
 }
 
-function isObjectEmpty(obj: object)
+function isObjectEmpty(obj: object): boolean
 {
 	for (const _ in obj) {
 		return false;	// has at least one element
@@ -837,8 +841,7 @@ function getSearchQuery(engine: SearchEngine_Custom, searchText: string, hostnam
 
 function openUrl(urlToOpen: string, openingBehaviour: OpenResultBehaviour)
 {
-	getCurrentTab(tab =>
-	{
+	getCurrentTab(tab => {
 		const lastTabIndex: number = 9999;	// "guarantees" tab opens as last for some behaviours
 		let options = { url: urlToOpen };
 
@@ -890,7 +893,7 @@ function getCurrentTab(callback)
 	);
 }
 
-function getFilteredSearchUrl(url: string, text: string)
+function getFilteredSearchUrl(url: string, text: string): string
 {
 	text = text.trim();
 
@@ -998,7 +1001,7 @@ function getSearchTermsReplacements(url: string, startIndexForIndexOf: number): 
 	return [[], -1, -1];
 }
 
-function replace(text: string, replacements: Array<[string, string]>)
+function replace(text: string, replacements: Array<[string, string]>): string
 {
 	for (let i = 0; i < replacements.length; i++) {
 		let [replacementSource, replacementResult] = replacements[i];

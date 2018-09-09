@@ -37,17 +37,18 @@ const page = {
 	loadSettingsFromSyncButton_real: undefined,
 };
 
-let settings;
-let hasPageLoaded = false;
-let isFocused = true;
-let pendingSettings = false;
+let settings: SSS.Settings;
+let hasPageLoaded: boolean = false;
+let isFocused: boolean = true;
+let isPendingSettings: boolean = false;
 
 let DEBUG;
-let sssIcons;
-let defaultSettings;
-let browserVersion;
 let log;
-let hasDOMContentLoaded = false;
+
+let sssIcons: { [id: string] : SSS.SSSIconDefinition; };
+let defaultSettings: SSS.Settings;
+let browserVersion: number;
+let hasDOMContentLoaded: boolean = false;
 
 document.addEventListener("DOMContentLoaded", onDOMContentLoaded);
 
@@ -80,7 +81,7 @@ browser.runtime.sendMessage({ type: "getDataForSettingsPage" }).then(
 );
 
 // default error handler for promises
-function getErrorHandler(text)
+function getErrorHandler(text: string): (reason: any) => void
 {
 	if (DEBUG) {
 		return error => { log(`${text} (${error})`); };
@@ -98,7 +99,7 @@ function createDefaultEngine(engine)
 
 // This method's code was taken from node-lz4 by Pierre Curto. MIT license.
 // CHANGES: Added ; to all lines. Reformated one-liners. Removed n = eIdx. Fixed eIdx skipping end bytes if sIdx != 0. Changed "var" to "let".
-function decodeLz4Block(input, output, sIdx?, eIdx?)
+function decodeLz4Block(input: Uint8Array, output: Uint8Array, sIdx?: number, eIdx?: number)
 {
 	sIdx = sIdx || 0;
 	eIdx = eIdx || input.length;
@@ -161,7 +162,7 @@ function decodeLz4Block(input, output, sIdx?, eIdx?)
 }
 
 // reads a .mozlz4 compressed file and returns its bytes
-function readMozlz4File(file, onRead, onError?)
+function readMozlz4File(file: Blob, onRead, onError?)
 {
 	let reader = new FileReader();
 
@@ -198,7 +199,7 @@ function updateBrowserEnginesFromSearchJson(browserSearchEngines)
 	let searchUrls = {};
 	for (let engine of settings.searchEngines) {
 		if (engine.type === SearchEngineType.Browser) {
-			searchUrls[engine.searchUrl] = true;
+			searchUrls[(engine as SearchEngine_Browser).searchUrl] = true;
 		}
 	}
 
@@ -469,7 +470,7 @@ function onPageLoaded()
 
 	window.onfocus = () => {
 		// if settings changed while page was not focused, reload settings and UI
-		if (pendingSettings) {
+		if (isPendingSettings) {
 			browser.storage.local.get().then(onSettingsAcquired, getErrorHandler("Error getting settings in settings page."));
 		}
 		isFocused = true;
@@ -483,12 +484,13 @@ function onPageLoaded()
 
 	page.addEngineButton.onclick = () => {
 		let searchUrl = "https://www.google.com/search?q={searchTerms}";	// use google as an example
+		let iconUrl = getFaviconForUrl(searchUrl);	// by default try to get a favicon for the domain
 
 		settings.searchEngines.push(createDefaultEngine({
 			type: SearchEngineType.Custom,
 			name: "New Search Engine",
 			searchUrl: searchUrl,
-			iconUrl: getFaviconForUrl(searchUrl),	// by default try to get a favicon for the domain
+			iconUrl: iconUrl
 		}));
 
 		saveSettings({ searchEngines: settings.searchEngines });
@@ -610,7 +612,7 @@ function onSettingsAcquired(_settings)
 function onSettingsChanged()
 {
 	if (!isFocused) {
-		pendingSettings = true;
+		isPendingSettings = true;
 	}
 }
 
