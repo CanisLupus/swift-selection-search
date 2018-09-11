@@ -69,11 +69,11 @@
 		cursor: pointer;
 	}
 	.section-name::before {
-		content: "▽\00a0\00a0";
+		content: "\00a0▽\00a0\00a0";
 		font-size: 85%;
 	}
 	.collapsed-section .section-name::before {
-		content: "▷\00a0\00a0";
+		content: "\00a0▷\00a0\00a0";
 	}
 	.section-settings {
 		border-left: 5px #c6e3ff solid;
@@ -452,7 +452,7 @@
 				<div class="setting-value">
 					<input class="setting-input" type="checkbox" name="allowPopupOnEditableFields" autocomplete="off">
 				</div>
-				<div class="setting-description">Show the popup when text is selected with the mouse on an editable text field, such as a login form, a search bar, or an email composing window. NOTE: "Shortcut to open popup" ignores this setting and always works on editable fields.</div>
+				<div class="setting-description">Show the popup when text is selected with the mouse on an editable text field, such as a login form, a search bar, or an email composing window. NOTE: "Shortcut to open popup" ignores this option and always works on editable fields.</div>
 				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
@@ -470,7 +470,7 @@
 				<div class="setting-value">
 					<input class="setting-input" type="checkbox" name="hidePopupOnRightClick" autocomplete="off" checked>
 				</div>
-				<div class="setting-description">Hides the popup when the right mouse button is pressed outside the popup. NOTE: Left or middle clicks always hide it regardless.</div>
+				<div class="setting-description">Hides the popup when the right mouse button is pressed outside of the popup. NOTE: Left or middle clicks always hide it regardless.</div>
 				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
@@ -521,7 +521,7 @@
 				</div>
 				<div class="setting-description">
 					<span class="pre-ff-60">[NOTE: Only configurable in Firefox 60+]<br></span>
-					Toggles "Opening behaviour" setting between Auto and Keyboard-only modes (if not Off). Use this when the popup is getting in your way.
+					Toggles "Opening behaviour" option between Auto and Keyboard-only modes (if not Off). Use this when the popup is getting in your way.
 					<span class="post-ff-60">
 						<details>
 							<summary>[Press for details on how to write the shortcut]</summary>
@@ -758,54 +758,54 @@
 					<span id="storage-size" class="warn-when-over-storage-limit"></span>
 				</div>
 				<div class="setting-description">
-					This is an estimate size of your SSS engines and settings. <span class="warn-when-over-storage-limit">Engines with "data:image" icons tend to occupy a lot of space</span>. WARNING: Actual size will very likely be above or below the displayed value.
+					This is an estimate size of your SSS engines and options. <span class="warn-when-over-storage-limit">Engines with "data:image" icons tend to occupy a lot of space</span>. WARNING: Actual size will very likely be above or below the displayed value.
 				</div>
 				<div class="setting-reset"></div>
 			</div>
 
 			<div class="setting">
-				<div class="setting-name">Sync settings (upload)</div>
+				<div class="setting-name">Sync options (upload)</div>
 				<div class="setting-value">
 					<input type="button" name="saveSettingsToSyncButton" value="Save to Sync" class="warn-when-over-storage-limit">
 				</div>
 				<div class="setting-description">
-					Saves all SSS settings and engines in Firefox Sync. This does not force upload, so you may have to wait for Firefox to sync or force the sync yourself from Firefox's menu. <span class="warn-when-over-storage-limit">Beware that storage size should be below 100KB for this to work. If above the limit, start by deleting any "data:image" URLs in your engines, or any other extremely long URLs.</span> Estimate size is not exact, so it may still work if above the limit, or fail if below it.
+					Saves all SSS options and engines in Firefox Sync. This does not force upload, so you may have to wait for Firefox to sync or force the sync yourself from Firefox's menu. <span class="warn-when-over-storage-limit">Beware that storage size should be below 100KB for this to work. If above the limit, start by deleting any "data:image" URLs in your engines, or any other extremely long URLs.</span> Estimate size is not exact, so it may still work if above the limit, or fail if below it.
 				</div>
 				<div class="setting-reset"></div>
 			</div>
 
 			<div class="setting">
-				<div class="setting-name">Sync settings (download)</div>
+				<div class="setting-name">Sync options (download)</div>
 				<div class="setting-value">
 					<input type="button" name="loadSettingsFromSyncButton" value="Load from Sync">
 					<input type="button" name="loadSettingsFromSyncButton_real" value="Really load from Sync" style="display: none">
 				</div>
 				<div class="setting-description">
-					Downloads previously saved SSS settings and engines from Firefox Sync. This will override all existing settings and engines!
+					Downloads previously saved SSS options and engines from Firefox Sync. This will override all existing options and engines!
 				</div>
 				<div class="setting-reset"></div>
 			</div>
 
 			<div class="setting">
-				<div class="setting-name">Export settings to file</div>
+				<div class="setting-name">Export options to file</div>
 				<div class="setting-value">
 					<input type="button" name="exportSettingsToFileButton" value="Export to file">
 					<input name="exportSettingsToFileButton_real" type="file" accept=".json" style="display: none"/>
 				</div>
 				<div class="setting-description">
-					Exports all SSS settings and engines to a file.
+					Exports all SSS options and engines to a file.
 				</div>
 				<div class="setting-reset"></div>
 			</div>
 
 			<div class="setting">
-				<div class="setting-name">Import settings from file</div>
+				<div class="setting-name">Import options from file</div>
 				<div class="setting-value">
 					<input type="button" name="importSettingsFromFileButton" value="Import from file">
 					<input name="importSettingsFromFileButton_real" type="file" accept=".json" style="display: none"/>
 				</div>
 				<div class="setting-description">
-					Imports SSS settings and engines from a file (previously exported). This will override all existing settings and engines!
+					Imports SSS options and engines from a file (previously exported). This will override all existing options and engines!
 				</div>
 				<div class="setting-reset"></div>
 			</div>
@@ -817,10 +817,10 @@
 
 		<div class="section-settings">
 			<div class="setting">
-				<div class="setting-name">Reset settings</div>
+				<div class="setting-name">Reset all options</div>
 				<div class="setting-value">
-					<input type="button" name="resetSettingsButton" value="Reset settings">
-					<input type="button" name="resetSettingsButton_real" value="Really reset settings" style="display: none">
+					<input type="button" name="resetSettingsButton" value="Reset options">
+					<input type="button" name="resetSettingsButton_real" value="Really reset options" style="display: none">
 				</div>
 				<div class="setting-description">Resets all options except search engines to their defaults (as if running SSS for the first time).</div>
 				<div class="setting-reset"></div>
