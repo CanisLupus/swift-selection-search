@@ -389,7 +389,12 @@ function onPageLoaded()
 
 	for (let elem of document.getElementsByClassName("setting-reset"))
 	{
-		elem.getElementsByTagName("input")[0].onclick = _ => {
+		let inputElements = elem.getElementsByTagName("input");
+		if (inputElements.length == 0) {
+			continue;
+		}
+
+		inputElements[0].onclick = _ => {
 			let parent = elem.closest(".setting");
 			let formElement = parent.querySelector(".setting-input") as HTMLFormElement;
 			let settingName = formElement.name;

@@ -69,11 +69,11 @@
 		cursor: pointer;
 	}
 	.section-name::before {
-		content: "▽ ";
+		content: "▽\00a0\00a0";
 		font-size: 85%;
 	}
 	.collapsed-section .section-name::before {
-		content: "▷ ";
+		content: "▷\00a0\00a0";
 	}
 	.section-settings {
 		border-left: 5px #c6e3ff solid;
@@ -134,6 +134,7 @@
 	}
 	.setting-reset {
 		visibility: hidden;
+		min-width: 65px;
 	}
 	.setting:hover .setting-reset {
 		visibility: visible;
@@ -158,6 +159,7 @@
 
 	#engines-table {
 		width: 100%;
+		padding-bottom: 20px;
 	}
 	#engines-table * {
 		font-size: 0.8rem;
@@ -339,6 +341,7 @@
 					<br>NOTE: The folder<span class="os-mac">s</span> may be hidden. Please refer to <a target="_blank" href="http://kb.mozillazine.org/Profile_folder_-_Firefox">this page</a>.
 					<br>NOTE: Some icons may not appear if they are "resource://" links.
 				</div>
+				<div class="setting-reset"></div>
 			</div>
 
 			<div class="setting">
@@ -348,6 +351,7 @@
 					<input type="button" name="resetSearchEnginesButton_real" value="Really reset engines" style="display: none">
 				</div>
 				<div class="setting-description">Resets search engines to the defaults (as if running SSS for the first time).</div>
+				<div class="setting-reset"></div>
 			</div>
 
 			<!-- <div class="setting">
@@ -756,6 +760,7 @@
 				<div class="setting-description">
 					This is an estimate size of your SSS engines and settings. <span class="warn-when-over-storage-limit">Engines with "data:image" icons tend to occupy a lot of space</span>. WARNING: Actual size will very likely be above or below the displayed value.
 				</div>
+				<div class="setting-reset"></div>
 			</div>
 
 			<div class="setting">
@@ -766,6 +771,7 @@
 				<div class="setting-description">
 					Saves all SSS settings and engines in Firefox Sync. This does not force upload, so you may have to wait for Firefox to sync or force the sync yourself from Firefox's menu. <span class="warn-when-over-storage-limit">Beware that storage size should be below 100KB for this to work. If above the limit, start by deleting any "data:image" URLs in your engines, or any other extremely long URLs.</span> Estimate size is not exact, so it may still work if above the limit, or fail if below it.
 				</div>
+				<div class="setting-reset"></div>
 			</div>
 
 			<div class="setting">
@@ -777,6 +783,7 @@
 				<div class="setting-description">
 					Downloads previously saved SSS settings and engines from Firefox Sync. This will override all existing settings and engines!
 				</div>
+				<div class="setting-reset"></div>
 			</div>
 
 			<div class="setting">
@@ -788,6 +795,7 @@
 				<div class="setting-description">
 					Exports all SSS settings and engines to a file.
 				</div>
+				<div class="setting-reset"></div>
 			</div>
 
 			<div class="setting">
@@ -799,6 +807,7 @@
 				<div class="setting-description">
 					Imports SSS settings and engines from a file (previously exported). This will override all existing settings and engines!
 				</div>
+				<div class="setting-reset"></div>
 			</div>
 		</div>
 	</div>
@@ -814,6 +823,7 @@
 					<input type="button" name="resetSettingsButton_real" value="Really reset settings" style="display: none">
 				</div>
 				<div class="setting-description">Resets all options except search engines to their defaults (as if running SSS for the first time).</div>
+				<div class="setting-reset"></div>
 			</div>
 		</div>
 	</div>
