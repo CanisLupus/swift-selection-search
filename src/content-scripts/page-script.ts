@@ -1,4 +1,5 @@
 var DEBUG_STATE;	// avoid TS compilation errors but still get working JS code
+var cloneInto;	// avoid TS compilation errors but still get working JS code
 
 namespace ContentScript
 {
@@ -359,15 +360,20 @@ function showPopup(settings)
 	setProperty(popup, "display", "inline-block");
 	setPopupPosition(popup, settings.searchEngines, settings);
 
-	// Animate popup (only if cloneInto exists, which it doesn't in add-on resource pages).
-	// cloneInto fixes a Firefox bug that causes animations to not work (pre-Firefox 60?).
-	// if (settings.popupAnimationDuration > 0 && typeof cloneInto === "function") {
-	// 	popup.animate(cloneInto({ transform: ["scale(0.8)", "scale(1)"] }, window), settings.popupAnimationDuration);
-	// 	popup.animate(cloneInto({ opacity: [0, 1] }, window), settings.popupAnimationDuration * 0.5);
-	// }
-	if (settings.popupAnimationDuration > 0) {
-		popup.animate({ transform: ["scale(0.8)", "scale(1)"] } as PropertyIndexedKeyframes, settings.popupAnimationDuration);
-		popup.animate({ opacity: ["0", "1"] } as PropertyIndexedKeyframes, settings.popupAnimationDuration * 0.5);	// TODO: check
+	if (settings.popupAnimationDuration > 0)
+	{
+		// Animate popup
+		if (activationSettings.browserVersion < 60) {
+			// On pre-Firefox 60, only animate if cloneInto exists (it doesn't in the add-on options page or other resource pages).
+			// cloneInto fixes a Firefox bug that causes animations to not work in that version.
+			if (typeof cloneInto === "function") {
+				popup.animate(cloneInto({ transform: ["scale(0.8)", "scale(1)"] }, window), settings.popupAnimationDuration);
+				popup.animate(cloneInto({ opacity: [0, 1] }, window), settings.popupAnimationDuration * 0.5);
+			}
+		} else {
+			popup.animate({ transform: ["scale(0.8)", "scale(1)"] } as PropertyIndexedKeyframes, settings.popupAnimationDuration);
+			popup.animate({ opacity: ["0", "1"] } as PropertyIndexedKeyframes, settings.popupAnimationDuration * 0.5);
+		}
 	}
 }
 

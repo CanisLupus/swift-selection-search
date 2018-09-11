@@ -74,6 +74,8 @@ export class ActivationSettings
 	popupLocation: PopupLocation;
 	popupOpenBehaviour: PopupOpenBehaviour;
 	middleMouseSelectionClickMargin: number;
+	// not a "setting", but needed info for content script
+	browserVersion: number;
 }
 
 export class ContentScriptSettings
@@ -363,6 +365,7 @@ function getActivationSettingsForContentScript(settings: Settings): ActivationSe
 	activationSettings.popupLocation = settings.popupLocation;
 	activationSettings.popupOpenBehaviour = settings.popupOpenBehaviour;
 	activationSettings.middleMouseSelectionClickMargin = settings.middleMouseSelectionClickMargin;
+	activationSettings.browserVersion = browserVersion;
 	return activationSettings;
 }
 
