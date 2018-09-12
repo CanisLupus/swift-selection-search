@@ -1,7 +1,7 @@
 {
 	"manifest_version": 2,
 	"name": "Swift Selection Search",
-	"version": "3.26.3",
+	"version": "3.27.0",
 
 	"description": "Swiftly access your search engines in a popup panel when you select text in a webpage. Context search menu also included!",
 	"homepage_url": "https://github.com/CanisLupus/swift-selection-search",
