@@ -4,6 +4,11 @@ namespace SSS
 /* ====== Swift Selection Search ====== */
 /* ==================================== */
 
+const DEBUG = true;
+if (DEBUG) {
+	var log = console.log;
+}
+
 export abstract class SearchEngine
 {
 	[key: string]: browser.storage.StorageValue;
@@ -283,11 +288,6 @@ const defaultSettings: Settings = {
 	}
 };
 
-const DEBUG = false;
-if (DEBUG) {
-	var log = console.log;
-}
-
 let isFirstLoad: boolean = true;
 let browserVersion: number = 0;
 const sss: SSS = new SSS();
@@ -566,10 +566,10 @@ function setup_ContextMenu()
 			id: undefined,
 			title: undefined,
 			type: undefined,
-			icons: undefined,
 			parentId: "sss",
 			contexts: ["selection" as browser.contextMenus.ContextType],
 		};
+		// "icons" is also part of contextMenuOption, but only on Firefox 56+, so don't declare it
 
 		if (engine.type === SearchEngineType.SSS) {
 			let concreteEngine = engine as SearchEngine_SSS;
@@ -605,7 +605,7 @@ function setup_ContextMenu()
 				}
 			}
 
-			contextMenuOption.icons = {
+			contextMenuOption["icons"] = {
 				"32": icon,
 			};
 		}
@@ -668,8 +668,21 @@ function setup_Commands()
 	}
 
 	if (browserVersion >= 60) {
-		browser.commands.update({ name: "open-popup",        shortcut: sss.settings.popupOpenCommand.trim() });
-		browser.commands.update({ name: "toggle-auto-popup", shortcut: sss.settings.popupDisableCommand.trim() });
+		updateCommand("open-popup", sss.settings.popupOpenCommand);
+		updateCommand("toggle-auto-popup", sss.settings.popupDisableCommand);
+
+		function updateCommand(name, shortcut)
+		{
+			shortcut = shortcut.trim();
+
+			try {
+				browser.commands.update({ name: name, shortcut: shortcut });
+			} catch {
+				// Since WebExtensions don't provide a way (that I know of) to simply disable a shortcut,
+				// if the combination is invalid pick something that is reserved for the browser and so won't work.
+				browser.commands.update({ name: name, shortcut: "Ctrl+P" });
+			}
+		}
 	}
 }
 
