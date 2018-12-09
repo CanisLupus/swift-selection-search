@@ -307,7 +307,9 @@ function saveCurrentSelection()
 // shows the popup if the conditions are proper, according to settings
 function tryShowPopup(ev: Event, isForced: boolean)
 {
-	if (settings.popupOpenBehaviour === PopupOpenBehaviour.HoldAlt && ev instanceof selectionchange.CustomSelectionChangeEvent && !ev.altKey) {
+	// Usually we would check for the altKey only if "ev instanceof selectionchange.CustomSelectionChangeEvent",
+	// but ev has an undefined class type in pages outside the options page, so it doesn't match. We use ev["altKey"].
+	if (settings.popupOpenBehaviour === PopupOpenBehaviour.HoldAlt && !ev["altKey"]) {
 		return;
 	}
 
