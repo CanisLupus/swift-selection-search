@@ -257,6 +257,20 @@ const defaultSettings: Settings = {
 		}),
 		createDefaultEngine({
 			type: SearchEngineType.Custom,
+			name: "Amazon.com",
+			searchUrl: "http://www.amazon.com/s?url=search-alias%3Daps&field-keywords={searchTerms}",
+			iconUrl: "https://api.faviconkit.com/www.amazon.com/64",
+			isEnabled: true,
+		}),
+		createDefaultEngine({
+			type: SearchEngineType.Custom,
+			name: "Amazon.co.uk",
+			searchUrl: "http://www.amazon.co.uk/s?url=search-alias%3Daps&field-keywords={searchTerms}",
+			iconUrl: "https://api.faviconkit.com/www.amazon.co.uk/64",
+			isEnabled: false,
+		}),
+		createDefaultEngine({
+			type: SearchEngineType.Custom,
 			name: "(Example) Search current site on Google",
 			searchUrl: "https://www.google.com/search?q={searchTerms} site:{hostname}",
 			iconUrl: "https://www.google.com/favicon.ico",
@@ -848,8 +862,8 @@ function getOpenAsLinkSearchUrl(link: string): string
 // gets the complete search URL by applying the selected text to the engine's own searchUrl
 function getSearchQuery(engine: SearchEngine_Custom, searchText: string, hostname: string): string
 {
-	// replace newlines with spaces and encode chars that are not to be used on URLs
-	searchText = encodeURIComponent(searchText.trim().replace("\r\n", " ").replace("\n", " "));
+	// replace newlines with spaces
+	searchText = searchText.trim().replace("\r\n", " ").replace("\n", " ");
 	let query = getFilteredSearchUrl(engine.searchUrl, searchText);
 	query = query.replace(/\{hostname\}/gi, hostname);	// use regex with "g" flag to match all occurences, "i" ignores case
 	return query;
@@ -925,7 +939,8 @@ function getFilteredSearchUrl(url: string, text: string): string
 		}
 
 		queryParts.push(url.substring(searchIndex, startIndex));
-		queryParts.push(replace(text, replacements));
+		// encode chars after replacement
+		queryParts.push(encodeURIComponent(replace(text, replacements)));
 		searchIndex = endIndex;
 	}
 
