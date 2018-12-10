@@ -258,14 +258,14 @@ const defaultSettings: Settings = {
 		createDefaultEngine({
 			type: SearchEngineType.Custom,
 			name: "Amazon.com",
-			searchUrl: "http://www.amazon.com/s?url=search-alias%3Daps&field-keywords={searchTerms}",
+			searchUrl: "https://www.amazon.com/s?url=search-alias%3Daps&field-keywords={searchTerms}",
 			iconUrl: "https://api.faviconkit.com/www.amazon.com/64",
 			isEnabled: true,
 		}),
 		createDefaultEngine({
 			type: SearchEngineType.Custom,
 			name: "Amazon.co.uk",
-			searchUrl: "http://www.amazon.co.uk/s?url=search-alias%3Daps&field-keywords={searchTerms}",
+			searchUrl: "https://www.amazon.co.uk/s?url=search-alias%3Daps&field-keywords={searchTerms}",
 			iconUrl: "https://api.faviconkit.com/www.amazon.co.uk/64",
 			isEnabled: false,
 		}),
