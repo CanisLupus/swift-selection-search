@@ -288,10 +288,9 @@ function saveCurrentSelection()
 		// if selection.toString() is empty, try to get string from the ranges instead (this can happen!)
 		if (selectedText.length === 0)
 		{
-			selectedText = selectionObject.getRangeAt(0).toString();
-			for (let i = 1; i < selectionObject.rangeCount; i++) {
-				let range = selectionObject.getRangeAt(i);
-				selectedText += range.toString();
+			selectedText = "";
+			for (let i = 0; i < selectionObject.rangeCount; i++) {
+				selectedText += selectionObject.getRangeAt(i).toString();
 			}
 		}
 

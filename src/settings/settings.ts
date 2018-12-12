@@ -1041,6 +1041,7 @@ function setupEngineIcon(iconImgSource, parent, settings)
 		getDataUriFromImgUrl(iconImgSource, function(base64Img) {
 			icon.src = base64Img;
 			settings.searchEnginesCache[iconImgSource] = base64Img;
+			// console.log("\"" + iconImgSource + "\": \"" + base64Img + "\",");
 			saveSettings({ searchEnginesCache: settings.searchEnginesCache });
 		});
 	} else {
