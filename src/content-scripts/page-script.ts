@@ -93,6 +93,7 @@ let canMiddleClickEngine: boolean = true;
 let activationSettings: SSS.ActivationSettings = null;
 let settings: SSS.Settings = null;
 let sssIcons: { [id: string] : SSS.SSSIconDefinition; } = null;
+let popupShowTimeout: number = null;
 
 // be prepared for messages from background script
 browser.runtime.onMessage.addListener(onMessageReceived);
@@ -122,7 +123,9 @@ function onMessageReceived(msg, sender, callbackFunc)
 			break;
 
 		case "showPopup":
-			showPopupForSelection(null, true);
+			if (saveCurrentSelection()) {
+				showPopupForSelection(null, true);
+			}
 			break;
 
 		case "copyToClipboard":
@@ -234,16 +237,28 @@ function deactivate()
 
 function onSelectionChange(ev: selectionchange.CustomSelectionChangeEvent)
 {
-	showPopupForSelection(ev, false);
+	if (activationSettings.popupOpenBehaviour === PopupOpenBehaviour.Auto && activationSettings.popupDelay > 0)
+	{
+		clearPopupShowTimeout();
+
+		if (saveCurrentSelection()) {
+			popupShowTimeout = setTimeout(() => {
+				showPopupForSelection(ev, false);
+			}, activationSettings.popupDelay);
+		}
+	}
+	else
+	{
+		if (saveCurrentSelection()) {
+			showPopupForSelection(ev, false);
+		}
+	}
 }
 
 // called whenever selection changes or when we want to force the popup to appear for the current selection
 function showPopupForSelection(ev: Event, isForced: boolean)
 {
-	let hasSelection = saveCurrentSelection();
-	if (!hasSelection) {
-		return;
-	}
+	clearPopupShowTimeout();
 
 	if (settings !== null) {
 		// if we have settings already, use them...
@@ -258,6 +273,14 @@ function showPopupForSelection(ev: Event, isForced: boolean)
 			},
 			getErrorHandler("Error sending getPopupSettings message from content script.")
 		);
+	}
+}
+
+function clearPopupShowTimeout()
+{
+	if (popupShowTimeout !== null) {
+		clearTimeout(popupShowTimeout);
+		popupShowTimeout = null;
 	}
 }
 
@@ -525,7 +548,7 @@ function setupEngineIcon(engine: SSS.SearchEngine, iconImgSource: string, iconTi
 		}
 
 		// essential event for clicking the engines
-		icon.addEventListener("mouseup", onSearchEngineClick(engine, settings)); // "mouse up" instead of "click" to support middle click
+		icon.addEventListener("mouseup", ev => onSearchEngineClick(ev, engine, settings)); // "mouse up" instead of "click" to support middle click
 
 		// these would be in the CSS format block for the icons, but only interactive icons can have them
 		setProperty(icon, "cursor", "pointer");
@@ -728,49 +751,47 @@ function setPopupPosition(popup, searchEngines, settings)
 	setProperty(popup, "top",  positionTop + "px");
 }
 
-function onMouseUpdate(ev)
+function onMouseUpdate(ev: MouseEvent)
 {
 	mousePositionX = ev.pageX;
 	mousePositionY = ev.pageY;
 }
 
-function onSearchEngineClick(engine: SSS.SearchEngine, settings: SSS.Settings)
+function onSearchEngineClick(ev: MouseEvent, engine: SSS.SearchEngine, settings: SSS.Settings)
 {
-	return ev => {
-		// if using middle mouse and can't, early out so we don't hide popup
-		if (ev.button === 1 && !canMiddleClickEngine) {
-			return;
+	// if using middle mouse and can't, early out so we don't hide popup
+	if (ev.button === 1 && !canMiddleClickEngine) {
+		return;
+	}
+
+	if (settings.hidePopupOnSearch) {
+		hidePopup();
+	}
+
+	if (ev.button === 0 || ev.button === 1)
+	{
+		let message = new EngineClickMessage();
+		message.selection = selection.text;
+		message.engine = engine;
+		message.hostname = window.location ? window.location.hostname : "";
+
+		if (DEBUG) {
+			log("engine clicked with button " + ev.button + ": "
+				+ (engine.type === SearchEngineType.SSS
+					? (engine as SSS.SearchEngine_SSS).id
+					: (engine as SSS.SearchEngine_Custom).searchUrl));
 		}
 
-		if (settings.hidePopupOnSearch) {
-			hidePopup();
+		if (ev[selectionchange.modifierKey]) {
+			message.clickType = "ctrlClick";
+		} else if (ev.button === 0) {
+			message.clickType = "leftClick";
+		} else {
+			message.clickType = "middleClick";
 		}
 
-		if (ev.button === 0 || ev.button === 1)
-		{
-			let message = new EngineClickMessage();
-			message.selection = selection.text;
-			message.engine = engine;
-			message.hostname = window.location ? window.location.hostname : "";
-
-			if (DEBUG) {
-				log("engine clicked with button " + ev.button + ": "
-					+ (engine.type === SearchEngineType.SSS
-						? (engine as SSS.SearchEngine_SSS).id
-						: (engine as SSS.SearchEngine_Custom).searchUrl));
-			}
-
-			if (ev[selectionchange.modifierKey]) {
-				message.clickType = "ctrlClick";
-			} else if (ev.button === 0) {
-				message.clickType = "leftClick";
-			} else {
-				message.clickType = "middleClick";
-			}
-
-			browser.runtime.sendMessage(message);
-		}
-	};
+		browser.runtime.sendMessage(message);
+	}
 }
 
 function onMouseDown(ev: MouseEvent)
@@ -820,7 +841,10 @@ function forceSelectionIfWithinRect(ev: MouseEvent, rect: ClientRect | DOMRect)
 		// We got it! Event shouldn't do anything else.
 		ev.preventDefault();
 		ev.stopPropagation();
-		showPopupForSelection(ev, false);
+
+		if (saveCurrentSelection()) {
+			showPopupForSelection(ev, false);
+		}
 
 		// blocks same middle click from triggering popup on down and then a search on up (on an engine icon)
 		canMiddleClickEngine = false;

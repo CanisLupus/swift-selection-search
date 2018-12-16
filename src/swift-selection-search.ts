@@ -41,6 +41,7 @@ export class Settings
 	popupOpenBehaviour: PopupOpenBehaviour;
 	middleMouseSelectionClickMargin: number;
 	popupLocation: PopupLocation;
+	popupDelay: number;
 	minSelectedCharacters: number;
 	allowPopupOnEditableFields: boolean;
 	hidePopupOnPageScroll: boolean;
@@ -79,6 +80,7 @@ export class ActivationSettings
 	popupLocation: PopupLocation;
 	popupOpenBehaviour: PopupOpenBehaviour;
 	middleMouseSelectionClickMargin: number;
+	popupDelay: number;
 	// not a "setting", but needed info for content script
 	browserVersion: number;
 }
@@ -182,6 +184,7 @@ const defaultSettings: Settings = {
 	popupOpenBehaviour: PopupOpenBehaviour.Auto,
 	middleMouseSelectionClickMargin: 14,
 	popupLocation: PopupLocation.Cursor,
+	popupDelay: 0,
 	minSelectedCharacters: 0,
 	allowPopupOnEditableFields: false,
 	hidePopupOnPageScroll: true,
@@ -403,6 +406,7 @@ function getActivationSettingsForContentScript(settings: Settings): ActivationSe
 	activationSettings.popupLocation = settings.popupLocation;
 	activationSettings.popupOpenBehaviour = settings.popupOpenBehaviour;
 	activationSettings.middleMouseSelectionClickMargin = settings.middleMouseSelectionClickMargin;
+	activationSettings.popupDelay = settings.popupDelay;
 	activationSettings.browserVersion = browserVersion;
 	return activationSettings;
 }
@@ -445,6 +449,7 @@ function runBackwardsCompatibilityUpdates(settings: Settings): boolean
 	shouldSave = shouldSave || createSettingIfNonExistent(settings, "popupOpenCommand");				// 3.22.0
 	shouldSave = shouldSave || createSettingIfNonExistent(settings, "popupDisableCommand");				// 3.22.0
 	shouldSave = shouldSave || createSettingIfNonExistent(settings, "iconAlignmentInGrid");				// 3.25.0
+	shouldSave = shouldSave || createSettingIfNonExistent(settings, "popupDelay");						// 3.29.0
 
 	// 3.7.0
 	// convert old unchangeable browser-imported engines to normal ones

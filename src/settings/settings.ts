@@ -1,3 +1,18 @@
+// How to add a new setting:
+// - swift-selection-search.ts
+	// - add to "class Settings"
+	// - add default value to "const defaultSettings"
+	// - add to "function runBackwardsCompatibilityUpdates" along with SSS version where it's going to be added
+	// - [extra] if needed, add to "class ActivationSettings" and "function getActivationSettingsForContentScript"
+// - settings.html
+	// - create a new setting
+	// - [extra] if dependent on another setting, add "hidden" (and perhaps "indent") as a class
+// - settings.ts
+	// - [extra] if dependent on another setting, add to "const page" object
+	// - [extra] if dependent on another setting, create a new "updateSetting_??" function and add it to "function updateSetting"
+// - page-script.ts
+	// - implement!
+
 var Sortable;	// avoid TS compilation errors but still get working JS code
 
 namespace SSS
@@ -36,6 +51,7 @@ const page = {
 	loadSettingsFromSyncButton: undefined,
 	loadSettingsFromSyncButton_real: undefined,
 	minSelectedCharacters: undefined,
+	popupDelay: undefined,
 	middleMouseSelectionClickMargin: undefined,
 	nPopupIconsPerRow: undefined,
 	iconAlignmentInGrid: undefined,
@@ -736,26 +752,7 @@ function saveElementValueToSettings(item: HTMLFormElement, didElementValueChange
 
 	if (didElementValueChange)
 	{
-		switch (name)
-		{
-			// update color pickers from their hexadecimal text
-			case "popupBackgroundColor":
-				updatePickerColor(page.popupBackgroundColorPicker, value);
-				break;
-			case "popupHighlightColor":
-				updatePickerColor(page.popupHighlightColorPicker, value);
-				break;
-
-			// some options only appear if some other option has a certain value
-			case "popupOpenBehaviour":
-				updateSetting_minSelectedCharacters(value);
-				updateSetting_middleMouseSelectionClickMargin(value);
-				break;
-			case "useSingleRow":
-				updateSetting_nPopupIconsPerRow(value);
-				updateSetting_iconAlignmentInGrid(value);
-				break;
-		}
+		updateSetting(name, value);
 	}
 
 	// register the change and save in storage
@@ -783,8 +780,14 @@ function loadSettingValueIntoElement(item: HTMLFormElement): boolean
 		item.value = value;
 	}
 
-	switch (name)
-	{
+	updateSetting(name, value);
+
+	return true;
+}
+
+function updateSetting(name: string, value: any)
+{
+	switch (name) {
 		// update color pickers from their hexadecimal text
 		case "popupBackgroundColor":
 			updatePickerColor(page.popupBackgroundColorPicker, value);
@@ -792,19 +795,17 @@ function loadSettingValueIntoElement(item: HTMLFormElement): boolean
 		case "popupHighlightColor":
 			updatePickerColor(page.popupHighlightColorPicker, value);
 			break;
-
 		// some options only appear if some other option has a certain value
 		case "popupOpenBehaviour":
-			updateSetting_minSelectedCharacters(settings.popupOpenBehaviour);
-			updateSetting_middleMouseSelectionClickMargin(settings.popupOpenBehaviour);
+			updateSetting_popupDelay(value);
+			updateSetting_minSelectedCharacters(value);
+			updateSetting_middleMouseSelectionClickMargin(value);
 			break;
 		case "useSingleRow":
-			updateSetting_nPopupIconsPerRow(settings.useSingleRow);
-			updateSetting_iconAlignmentInGrid(settings.useSingleRow);
+			updateSetting_nPopupIconsPerRow(value);
+			updateSetting_iconAlignmentInGrid(value);
 			break;
 	}
-
-	return true;
 }
 
 // estimates size of settings in bytes and shows warning messages if this is a problem when using Firefox Sync
@@ -1274,43 +1275,38 @@ function updatePickerColor(picker, value)
 	}
 }
 
+function updateSetting_popupDelay(popupOpenBehaviour)
+{
+	updateSetting_specific(page.popupDelay, popupOpenBehaviour === PopupOpenBehaviour.Auto);
+}
+
 function updateSetting_minSelectedCharacters(popupOpenBehaviour)
 {
-	let minSelectedCharactersSetting = page.minSelectedCharacters.closest(".setting");
-	if (popupOpenBehaviour === PopupOpenBehaviour.Auto) {
-		minSelectedCharactersSetting.classList.remove("hidden");
-	} else {
-		minSelectedCharactersSetting.classList.add("hidden");
-	}
+	updateSetting_specific(page.minSelectedCharacters, popupOpenBehaviour === PopupOpenBehaviour.Auto);
 }
 
 function updateSetting_middleMouseSelectionClickMargin(popupOpenBehaviour)
 {
-	let middleMouseSelectionClickMarginSetting = page.middleMouseSelectionClickMargin.closest(".setting");
-	if (popupOpenBehaviour === PopupOpenBehaviour.MiddleMouse) {
-		middleMouseSelectionClickMarginSetting.classList.remove("hidden");
-	} else {
-		middleMouseSelectionClickMarginSetting.classList.add("hidden");
-	}
+	updateSetting_specific(page.middleMouseSelectionClickMargin, popupOpenBehaviour === PopupOpenBehaviour.MiddleMouse);
 }
 
 function updateSetting_nPopupIconsPerRow(useSingleRow)
 {
-	let nPopupIconsPerRowSetting = page.nPopupIconsPerRow.closest(".setting");
-	if (useSingleRow === true) {
-		nPopupIconsPerRowSetting.classList.add("hidden");
-	} else {
-		nPopupIconsPerRowSetting.classList.remove("hidden");
-	}
+	updateSetting_specific(page.nPopupIconsPerRow, useSingleRow === false);
 }
 
 function updateSetting_iconAlignmentInGrid(useSingleRow)
 {
-	let iconAlignmentInGrid = page.iconAlignmentInGrid.closest(".setting");
-	if (useSingleRow === true) {
-		iconAlignmentInGrid.classList.add("hidden");
+	updateSetting_specific(page.iconAlignmentInGrid, useSingleRow === false);
+}
+
+function updateSetting_specific(element: HTMLElement, enabled: boolean)
+{
+	let setting = element.closest(".setting");
+	if (enabled) {
+		setting.classList.remove("hidden");
 	} else {
-		iconAlignmentInGrid.classList.remove("hidden");
+		setting.classList.add("hidden");
 	}
 }
 
@@ -1318,35 +1314,35 @@ function updateSetting_iconAlignmentInGrid(useSingleRow)
 // by thomas-peter
 // License: https://creativecommons.org/licenses/by-sa/3.0/legalcode
 // Changes: formatting, double quotes
-function roughSizeOfObject(object)
-{
-	var objectList = [];
-	var stack = [object];
-	var bytes = 0;
+// function roughSizeOfObject(object)
+// {
+// 	var objectList = [];
+// 	var stack = [object];
+// 	var bytes = 0;
 
-	while (stack.length)
-	{
-		var value = stack.pop();
+// 	while (stack.length)
+// 	{
+// 		var value = stack.pop();
 
-		if (typeof value === "boolean") {
-			bytes += 4;
-		}
-		else if (typeof value === "string") {
-			bytes += value.length * 2;
-		}
-		else if (typeof value === "number") {
-			bytes += 8;
-		}
-		else if (typeof value === "object" && objectList.indexOf(value) === -1) {
-			objectList.push(value);
+// 		if (typeof value === "boolean") {
+// 			bytes += 4;
+// 		}
+// 		else if (typeof value === "string") {
+// 			bytes += value.length * 2;
+// 		}
+// 		else if (typeof value === "number") {
+// 			bytes += 8;
+// 		}
+// 		else if (typeof value === "object" && objectList.indexOf(value) === -1) {
+// 			objectList.push(value);
 
-			for (var i in value) {
-				stack.push(value[i]);
-			}
-		}
-	}
-	return bytes;
-}
+// 			for (var i in value) {
+// 				stack.push(value[i]);
+// 			}
+// 		}
+// 	}
+// 	return bytes;
+// }
 
 // gets a much more readable string for a size in bytes (ex.: 25690112 bytes is "24.5MB")
 function getSizeWithUnit(size)
