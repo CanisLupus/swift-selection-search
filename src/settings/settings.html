@@ -240,6 +240,30 @@
 	.pre-ff-60 {
 		display: none;
 	}
+
+	/* specifics */
+
+	#section_instructions li,
+	#section_instructions summary {
+		padding-top: 3px;
+		padding-bottom: 3px;
+	}
+
+	#section_instructions ul li ul {
+		padding-left: 20px;
+	}
+
+	/* emphasizes text */
+	pop,
+	popm {
+		background: #eee;
+		white-space: nowrap;
+	}
+
+	/* emphasizes text, but monospaced */
+	popm {
+		font-family: 'Courier New', Courier, mono;
+	}
 </style>
 <title>SSS Options</title>
 <link rel="shortcut icon" type="image/png" href="/icons/icon48.png"/>
@@ -260,19 +284,9 @@
 				<div class="setting-name" style="max-width: 160px;">Quick setup</div>
 				<div class="setting-description">
 					<ol>
-						<li>Add new search engines using the "Add engine" button in the "Search engines" section. You can also load your search bar engines from Firefox. Engines will appear in the SSS popup and context menu when you select text on a page. SSS comes with a few examples!</li>
-						<li>You can change the engine names, search URLs, and icon URLs. When you click a search engine in the popup or context menu, <i>{searchTerms}</i> (in the search URL) gets replaced by the selected text.
-							<details style="padding-left: 1rem;">
-								<summary>[Press to see advanced usage]</summary>
-								<ul>
-									<li>If {hostname} is present, it will be replaced by the website domain you are on.</li>
-									<li>{searchTerms} supports text substitutions, in the format {searchTerms{OriginalText|TargetText}}, supporting multiple pairs of {OriginalText|TargetText}. So if in a certain search engine you want to always replace spaces in your search with "+" and "@" with "at" you can use {searchTerms{ |+}{@|at}}</li>
-									<li>Since SSS uses the special characters \, {, |, or } for delimiting the substitutions, if you want to use these characters in the substitution itself, you should precede them with a \. For example, {searchTerms{\{|\}}} replaces { with } in your text and {searchTerms{ |\\} replaces spaces with a \.</li>
-								</ul>
-							</details>
-						</li>
-						<li>Having trouble finding icons? Maybe try <a target="_blank" href="https://faviconkit.com">this favicon finder</a> or <a target="_blank" href="https://besticon-demo.herokuapp.com">this one</a>. :)</li>
-						<li>For customizing the popup look, context menu, click behaviour, etc, please check the other options in this page.</li>
+						<li>Add new search engines using the <pop>Add engine</pop> button in the <pop>Search engines</pop> section below. SSS comes with a few examples! You can also load engines from Firefox (the ones used in the search bar).</li>
+						<li>Engines appear in a popup and/or context menu when you select text on a page. When you click one, the search URL you defined is called and <popm>{searchTerms}</popm> gets replaced by whatever text is selected.</li>
+						<li>For customizing popup look, context menu, click behaviour, etc, please explore the options in this page. ;)</li>
 					</ol>
 				</div>
 			</div>
@@ -281,11 +295,49 @@
 				<div class="setting-name" style="max-width: 160px;">Problems?</div>
 				<div class="setting-description">
 					<ul>
-						<li>If an icon doesn't display but the URL is correct, please try disabling your ad blocker and adding the icon URL again. Some blocking lists in your ad blocker can stop certain images or names from downloading! (ex.: YouTube may be blocked by "Fanboy's Annoyance List". Sometimes simply renaming "YouTube" to something else like "YouTub" works too!)</li>
-						<li>Some search engine icons may not appear if they are "resource://" links (some imported engines have those). This is normal, unfortunately. Please try finding another icon for the engine <a target="_blank" href="https://faviconkit.com">here</a>! (Or delete the icon link and SSS will try getting it for you.)</li>
-						<li>Does the popup not appear at all on some websites or frames of a website? It may be a website content policy or an incompatibility with SSS. For example, addons.mozilla.org disables page modifications, and bugzilla.mozilla.org blocks most images. If you find another site, please report it using the <a target="_blank" href="https://github.com/CanisLupus/swift-selection-search/issues">issues page</a> and I'll see what I can do!</li>
+						<li>Some blocking lists in your ad blocker can stop certain search engine icons or names from loading! If an icon doesn't show up, please check that. (ex.: YouTube may be blocked by <pop>Fanboy's Annoyance List</pop>. Sometimes simply renaming "YouTube" to something else like "YouTub" works too!)</li>
+						<li>Some search engine icons may not appear if they are <popm>resource://</popm> links (some imported engines have those). This is normal, unfortunately. Please try finding another icon for the engine, or delete the icon link and SSS will try getting it for you.</li>
+						<li>If the popup does not appear at all on a website or parts of a website, it may be due to that site's content policy. For example, <pop>addons.mozilla.org</pop> disables page modifications, and <pop>bugzilla.mozilla.org</pop> can block images. If, however, you think this may be an incompatibility with SSS, please report it using the <a target="_blank" href="https://github.com/CanisLupus/swift-selection-search/issues">issues page</a> and I'll see what I can do!</li>
 						<li>Is your problem not here? Or maybe you found a bug? Contact me or post an issue <a target="_blank" href="https://github.com/CanisLupus/swift-selection-search/issues">here</a>.</li>
 					</ul>
+				</div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name" style="max-width: 160px;">I don't know how to add a particular site...</div>
+				<div class="setting-description">
+					<details>
+						<summary>[Press to expand]</summary>
+						<ul>
+							<li>It's not always easy to figure out! I'll try to help. :)</li>
+							<li>After using a search bar on a website, the site will usually place what you searched for in the URL somewhere. For example, if you search for <pop>Firefox Add-ons</pop> on Google, Google adds <popm>q=Firefox+Add-ons</popm> to the URL (among probably a lot of other things). <popm>q</popm> is the parameter Google uses for user queries. Other sites will use different structures, but what you wrote should be there (unless the site uses POST requests, but that's another story!).</li>
+							<li>SSS needs a search URL that says <popm>{searchTerms}</popm> in the part where your query usually goes. In the previous example, that means replacing <popm>q=Firefox+Add-ons</popm> with <popm>q={searchTerms}</popm>.</li>
+							<li>Tips
+								<ul>
+									<li>Check the search URLs of the search engines that come with SSS! They may help.</li>
+									<li>Many websites use the <popm>?</popm> symbol and then add a lot of parameters separated with the <popm>&</popm> symbol. You'll usually be looking for the parameter that represents your query and replacing that with <popm>{searchTerms}</popm>.</li>
+									<li>Most of the time, the URL also contains a lot of unnecessary parameters. Removing them is mostly trial and error.</li>
+									<li>Sometimes it's not a parameter, and sometimes it's in another place in the URL. Sometimes websites are complicated. :(</li>
+								</ul>
+							</li>
+						</ul>
+					</details>
+				</div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name" style="max-width: 160px;">Advanced usage</div>
+				<div class="setting-description">
+					<details>
+						<summary>[Press to expand]</summary>
+						<ul>
+							<li>SSS supports a few more advanced things in search URLs.</li>
+							<li>If <popm>{hostname}</popm> is present, it will be replaced by the website domain you are on (ex.: <popm>google.com</popm>).</li>
+							<li><popm>{searchTerms}</popm> supports text replacements, in the format <popm>{searchTerms{original text|new text}}</popm>, supporting multiple pairs of <popm>{original text|new text}</popm>. So if you want to always replace spaces in your search with "+", and "@" with "at", you can use <popm>{searchTerms{ |+}{@|at}}</popm> in your search engine.</li>
+							<li>Since SSS uses the special characters <popm>\</popm>, <popm>{</popm>, <popm>|</popm>, or <popm>}</popm> for delimiting the replacements, if you want to use these characters in the substitution itself, you should precede them with a <popm>\</popm>. For example, <popm>{searchTerms{\{|\}}}</popm> replaces <popm>{</popm> with <popm>}</popm> in your text and <popm>{searchTerms{ |\\}}</popm> replaces spaces with a <popm>\</popm>.
+							</li>
+						</ul>
+					</details>
 				</div>
 			</div>
 		</div>
