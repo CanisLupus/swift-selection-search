@@ -249,7 +249,7 @@ const defaultSettings: Settings = {
 		createDefaultEngine({
 			type: SearchEngineType.Custom,
 			name: "IMDB",
-			searchUrl: "http://www.imdb.com/find?s=all&q={searchTerms}",
+			searchUrl: "https://www.imdb.com/find?s=all&q={searchTerms}",
 			iconUrl: "https://www.imdb.com/favicon.ico",
 		}),
 		createDefaultEngine({
@@ -275,14 +275,14 @@ const defaultSettings: Settings = {
 		createDefaultEngine({
 			type: SearchEngineType.Custom,
 			name: "eBay.com",
-			searchUrl: "http://www.ebay.com/sch/{searchTerms}",
+			searchUrl: "https://www.ebay.com/sch/{searchTerms}",
 			iconUrl: "https://api.faviconkit.com/www.ebay.com/64",
 			isEnabled: true,
 		}),
 		createDefaultEngine({
 			type: SearchEngineType.Custom,
 			name: "eBay.co.uk",
-			searchUrl: "http://www.ebay.com/sch/{searchTerms}",
+			searchUrl: "https://www.ebay.com/sch/{searchTerms}",
 			iconUrl: "https://api.faviconkit.com/www.ebay.com/64",
 			isEnabled: false,
 		}),
