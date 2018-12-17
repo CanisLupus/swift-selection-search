@@ -55,8 +55,8 @@ class EngineClickMessage extends Message
 {
 	selection: string;
 	engine: SSS.SearchEngine;
-	hostname: string;
 	clickType: string;
+	href: string;
 
 	constructor() { super(MessageType.EngineClick); }
 }
@@ -773,7 +773,10 @@ function onSearchEngineClick(ev: MouseEvent, engine: SSS.SearchEngine, settings:
 		let message = new EngineClickMessage();
 		message.selection = selection.text;
 		message.engine = engine;
-		message.hostname = window.location ? window.location.hostname : "";
+
+		if (window.location) {
+			message.href = window.location.href;
+		}
 
 		if (DEBUG) {
 			log("engine clicked with button " + ev.button + ": "

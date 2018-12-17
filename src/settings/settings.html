@@ -331,8 +331,7 @@
 					<details>
 						<summary>[Press to expand]</summary>
 						<ul>
-							<li>SSS supports a few more advanced things in search URLs.</li>
-							<li>If <popm>{hostname}</popm> is present, it will be replaced by the website domain you are on (ex.: <popm>google.com</popm>).</li>
+							<li>Most <a href="https://developer.mozilla.org/docs/Web/API/URL#Properties">JavaScript URL properties</a> are available for search URLs as <popm>{hash}</popm>, <popm>{host}</popm>, <popm>{hostname}</popm>, <popm>{href}</popm>, <popm>{origin}</popm>, <popm>{password}</popm>, <popm>{pathname}</popm>, <popm>{port}</popm>, <popm>{protocol}</popm>, <popm>{search}</popm> and <popm>{username}</popm>. For example, if <popm>{hostname}</popm> is present in the search URL when searching, it will be replaced by the website domain you are on (ex.: <popm>google.com</popm>).</li>
 							<li><popm>{searchTerms}</popm> supports text replacements, in the format <popm>{searchTerms{original text|new text}}</popm>, supporting multiple pairs of <popm>{original text|new text}</popm>. So if you want to always replace spaces in your search with "+", and "@" with "at", you can use <popm>{searchTerms{ |+}{@|at}}</popm> in your search engine.</li>
 							<li>Since SSS uses the special characters <popm>\</popm>, <popm>{</popm>, <popm>|</popm>, or <popm>}</popm> for delimiting the replacements, if you want to use these characters in the substitution itself, you should precede them with a <popm>\</popm>. For example, <popm>{searchTerms{\{|\}}}</popm> replaces <popm>{</popm> with <popm>}</popm> in your text and <popm>{searchTerms{ |\\}}</popm> replaces spaces with a <popm>\</popm>.
 							</li>

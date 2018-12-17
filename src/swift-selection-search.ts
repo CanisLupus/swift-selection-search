@@ -539,7 +539,7 @@ function onContentScriptMessage(msg, sender, callbackFunc)
 			break;
 
 		case "engineClick":
-			onSearchEngineClick(msg.engine, msg.clickType, msg.selection, msg.hostname);
+			onSearchEngineClick(msg.engine, msg.clickType, msg.selection, msg.href);
 			break;
 
 		case "log":
@@ -688,8 +688,8 @@ function onContextMenuItemClicked(info, tab)
 	else
 	{
 		// search using the engine
-		let hostname = new URL(info.pageUrl).hostname;
-		let searchUrl = getSearchQuery(engine as SearchEngine_Custom, info.selectionText, hostname);
+		let url = new URL(info.pageUrl);
+		let searchUrl = getSearchQuery(engine as SearchEngine_Custom, info.selectionText, url);
 		openUrl(searchUrl, sss.settings.contextMenuItemBehaviour);
 	}
 }
@@ -832,7 +832,7 @@ function injectContentScript(tabId: number, frameId?: number, allFrames: boolean
 	}
 }
 
-function onSearchEngineClick(selectedEngine: SearchEngine, clickType: string, searchText: string, hostname: string)
+function onSearchEngineClick(selectedEngine: SearchEngine, clickType: string, searchText: string, href: string)
 {
 	// check if it's a special SSS engine
 	if (selectedEngine.type === SearchEngineType.SSS)
@@ -862,11 +862,11 @@ function onSearchEngineClick(selectedEngine: SearchEngine, clickType: string, se
 		) as SearchEngine_Custom;
 
 		if (clickType === "leftClick") {
-			openUrl(getSearchQuery(engine, searchText, hostname), sss.settings.mouseLeftButtonBehaviour);
+			openUrl(getSearchQuery(engine, searchText, new URL(href)), sss.settings.mouseLeftButtonBehaviour);
 		} else if (clickType === "middleClick") {
-			openUrl(getSearchQuery(engine, searchText, hostname), sss.settings.mouseMiddleButtonBehaviour);
+			openUrl(getSearchQuery(engine, searchText, new URL(href)), sss.settings.mouseMiddleButtonBehaviour);
 		} else if (clickType === "ctrlClick") {
-			openUrl(getSearchQuery(engine, searchText, hostname), OpenResultBehaviour.NewBgTab);
+			openUrl(getSearchQuery(engine, searchText, new URL(href)), OpenResultBehaviour.NewBgTab);
 		}
 	}
 }
@@ -889,12 +889,25 @@ function getOpenAsLinkSearchUrl(link: string): string
 }
 
 // gets the complete search URL by applying the selected text to the engine's own searchUrl
-function getSearchQuery(engine: SearchEngine_Custom, searchText: string, hostname: string): string
+function getSearchQuery(engine: SearchEngine_Custom, searchText: string, url: URL): string
 {
 	// replace newlines with spaces
 	searchText = searchText.trim().replace("\r\n", " ").replace("\n", " ");
 	let query = getFilteredSearchUrl(engine.searchUrl, searchText);
-	query = query.replace(/\{hostname\}/gi, hostname);	// use regex with "g" flag to match all occurences, "i" ignores case
+
+	// use regex with "g" flag to match all occurences, "i" ignores case
+	query = query.replace(/\{hash\}/gi, url.hash);
+	query = query.replace(/\{host\}/gi, url.host);
+	query = query.replace(/\{hostname\}/gi, url.hostname);
+	query = query.replace(/\{href\}/gi, url.href);
+	query = query.replace(/\{origin\}/gi, url.origin);
+	query = query.replace(/\{password\}/gi, url.password);
+	query = query.replace(/\{pathname\}/gi, url.pathname);
+	query = query.replace(/\{port\}/gi, url.port);
+	query = query.replace(/\{protocol\}/gi, url.protocol);
+	query = query.replace(/\{search\}/gi, url.search);
+	query = query.replace(/\{username\}/gi, url.username);
+
 	return query;
 }
 
