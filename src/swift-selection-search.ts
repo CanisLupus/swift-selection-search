@@ -896,17 +896,17 @@ function getSearchQuery(engine: SearchEngine_Custom, searchText: string, url: UR
 	let query = getFilteredSearchUrl(engine.searchUrl, searchText, true);
 
 	// use regex with "g" flag to match all occurences, "i" ignores case
-	query = query.replace(/\{hash\}/gi, url.hash);
-	query = query.replace(/\{host\}/gi, url.host);
-	query = query.replace(/\{hostname\}/gi, url.hostname);
-	query = query.replace(/\{href\}/gi, url.href);
-	query = query.replace(/\{origin\}/gi, url.origin);
-	query = query.replace(/\{password\}/gi, url.password);
-	query = query.replace(/\{pathname\}/gi, url.pathname);
-	query = query.replace(/\{port\}/gi, url.port);
-	query = query.replace(/\{protocol\}/gi, url.protocol);
-	query = query.replace(/\{search\}/gi, url.search);
-	query = query.replace(/\{username\}/gi, url.username);
+	query = query.replace(/\{hash\}/gi,     encodeURIComponent(url.hash));
+	query = query.replace(/\{host\}/gi,     encodeURIComponent(url.host));
+	query = query.replace(/\{hostname\}/gi, encodeURIComponent(url.hostname));
+	query = query.replace(/\{href\}/gi,     encodeURIComponent(url.href));
+	query = query.replace(/\{origin\}/gi,   encodeURIComponent(url.origin));
+	query = query.replace(/\{password\}/gi, encodeURIComponent(url.password));
+	query = query.replace(/\{pathname\}/gi, encodeURIComponent(url.pathname));
+	query = query.replace(/\{port\}/gi,     encodeURIComponent(url.port));
+	query = query.replace(/\{protocol\}/gi, encodeURIComponent(url.protocol));
+	query = query.replace(/\{search\}/gi,   encodeURIComponent(url.search));
+	query = query.replace(/\{username\}/gi, encodeURIComponent(url.username));
 
 	return query;
 }
