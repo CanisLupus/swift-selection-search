@@ -1077,7 +1077,6 @@ class SearchTermsFunction extends SearchTermsModification
 		{
 			case "lowercase": return text.toLowerCase();
 			case "uppercase": return text.toUpperCase();
-			// case "alphanumeric": return text.replace(/[^0-9a-z]/gi, '');	// "g" flag matches all occurences, "i" ignores case
 			default: return text;
 		}
 	}

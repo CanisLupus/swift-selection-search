@@ -54,7 +54,7 @@ namespace selectionchange
 		let code = ev.keyCode;
 
 		if ((code === 65 && ev[modifierKey] && !ev.shiftKey && !ev.altKey) // Ctrl-A or Cmd-A
-			|| (code >= 35 && code <= 40) // home, end and arrow keys
+			|| (code >= 35 && code <= 40 && (ev[modifierKey] || ev.shiftKey)) // home, end and arrow keys
 			|| (ev.ctrlKey && MAC && MAC_MOVE_KEYS.has(code)))
 		{
 			if (!isInputField(ev.target)) {	// comment to enable selections with keyboard
