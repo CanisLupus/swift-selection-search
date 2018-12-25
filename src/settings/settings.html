@@ -331,9 +331,68 @@
 					<details>
 						<summary>[Press to expand]</summary>
 						<ul>
-							<li>Most <a href="https://developer.mozilla.org/docs/Web/API/URL#Properties">JavaScript URL properties</a> are available for search URLs as <popm>{hash}</popm>, <popm>{host}</popm>, <popm>{hostname}</popm>, <popm>{href}</popm>, <popm>{origin}</popm>, <popm>{password}</popm>, <popm>{pathname}</popm>, <popm>{port}</popm>, <popm>{protocol}</popm>, <popm>{search}</popm> and <popm>{username}</popm>. For example, if <popm>{hostname}</popm> is present in the search URL when searching, it will be replaced by the website domain you are on (ex.: <popm>google.com</popm>).</li>
-							<li><popm>{searchTerms}</popm> supports text replacements, in the format <popm>{searchTerms{original text|new text}}</popm>, supporting multiple pairs of <popm>{original text|new text}</popm>. So if you want to always replace spaces in your search with "+", and "@" with "at", you can use <popm>{searchTerms{ |+}{@|at}}</popm> in your search engine.</li>
-							<li>Since SSS uses the special characters <popm>\</popm>, <popm>{</popm>, <popm>|</popm>, or <popm>}</popm> for delimiting the replacements, if you want to use these characters in the substitution itself, you should precede them with a <popm>\</popm>. For example, <popm>{searchTerms{\{|\}}}</popm> replaces <popm>{</popm> with <popm>}</popm> in your text and <popm>{searchTerms{ |\\}}</popm> replaces spaces with a <popm>\</popm>.
+							<li>
+								Most <a href="https://developer.mozilla.org/docs/Web/API/URL#Properties">JavaScript URL properties</a> are available for search URLs as <popm>{hash}</popm>, <popm>{host}</popm>, <popm>{hostname}</popm>, <popm>{href}</popm>, <popm>{origin}</popm>, <popm>{password}</popm>, <popm>{pathname}</popm>, <popm>{port}</popm>, <popm>{protocol}</popm>, <popm>{search}</popm> and <popm>{username}</popm>. For example, if <popm>{hostname}</popm> is present in the search URL when searching, it will be replaced by the website domain you are on (ex.: <popm>google.com</popm>).
+							</li>
+
+							<li>
+								<popm>{searchTerms}</popm> supports text replacements in the format <popm>{searchTerms{original text|new text}}</popm>, allowing multiple pairs of <popm>{original text|new text}</popm>.
+
+								<ul>
+									<li>
+										So if you want to always replace spaces in your search with "+", and "@" with "at", you can use <popm>{searchTerms{ |+}{@|at}}</popm> in your search engine.
+									</li>
+
+									<li>
+										Since SSS uses the special characters <popm>\</popm>, <popm>{</popm>, <popm>|</popm>, and <popm>}</popm> for delimiting the replacements, if you want to use these characters in the replacement itself, you should precede them with a <popm>\</popm>. This is called "escaping characters". For example, <popm>{searchTerms{\{|\}}}</popm> replaces <popm>{</popm> with <popm>}</popm> in your text and <popm>{searchTerms{ |\\}}</popm> replaces spaces with a <popm>\</popm>.
+									</li>
+
+									<li>
+									Replacements can also be <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Regular_Expressions">regular expressions</a>. If you don't know these, it's okay. It's way beyond the scope of these instructions to explain them.
+									<ul>
+										<li>
+											These come in the form of either <popm>{searchTerms{re/your_regex_here/flags_here}}</popm>, where the selected text will be replaced with only the characters that match the expression, or <popm>{searchTerms{re/your_regex_here/flags_here|replacement}}</popm>, where the match will be replaced with the replacement. If you use the <popm>g</popm> flag that matches all occurrences, each of them will be replaced with the replacement.
+										</li>
+
+										<li>
+											Replacements support match groups, so $1 in the replacement corresponds to the first match, $2 to the second, etc.
+										</li>
+
+										<li>
+											As examples, if you want to remove all non-alphanumeric characters from the searchTerms you can use <popm>{searchTerms{re/[0-9a-z]/gi}}</popm> (<popm>g</popm> finds all matches and <popm>i</popm> is case insensitiveness). To find words separated by spaces and switch them you can use <popm>{searchTerms{re/(\w+)\s+(\w+)/g|$2 $1}}</popm>. This will any two words like "John Smith" into "Smith John".
+										</li>
+									</ul>
+								</ul>
+							</li>
+							<li>
+								<popm>{searchTerms}</popm> supports using only part of the selected text with the indexing format <popm>{searchTerms[index]}</popm> or <popm>{searchTerms[start:end]}</popm> (start and end both optional).
+								<ul>
+									<li>
+										<popm>{searchTerms[index]}</popm> allows selecting a character at a certain position (zero based), so if you search for "Firefox" and use <popm>{searchTerms[0]}</popm> you will get "F", and if you use <popm>{searchTerms[2]}</popm> you will get "r".
+									</li>
+
+									<li>
+										<popm>{searchTerms[start:end]}</popm> is for multiple characters, so <popm>{searchTerms[0:2]}</popm> for "Firefox" gives you "Fi", <popm>{searchTerms[2:5]}</popm> gives you "ref", <popm>{searchTerms[2:]}</popm> gives you "refox", and <popm>{searchTerms[:5]}</popm> gives you "Firef".
+									</li>
+
+									<li>
+										Indexing with negative numbers is also allowed, where <popm>{searchTerms[-1]}</popm> gives the last character of the selected text, and <popm>{searchTerms[-3:]}</popm> gives the last three.
+									</li>
+								</ul>
+							</li>
+
+							<li>
+								<popm>{searchTerms}</popm> support functions. These are in the format <popm>{searchTerms(function_name)}</popm>.
+
+								<ul>
+									<li>
+										Currently, <popm>{searchTerms(lowercase)}</popm> and <popm>{searchTerms(uppercase)}</popm> are available, which respectively convert the text to <pop>lower case</pop> and <pop>UPPER CASE</pop>.
+									</li>
+								</ul>
+							</li>
+
+							<li>
+								Any <popm>{searchTerms}</popm> modifications (replacements, indexing, functions) can be used in conjunction. So something like <popm>{searchTerms[2:5]{ |+}{@|at}(lowercase)}</popm> is valid and will apply each modification in the given order, so first selecting only characters 2, 3 and 4, then converting any spaces and @, and then converting the result to lowercase.
 							</li>
 						</ul>
 					</details>
@@ -355,8 +414,8 @@
 							<div class="engine-is-enabled-in-context-menu" title="Show in context menu">C</div>
 							<div class="engine-icon-img"></div>
 							<div class="engine-name">Name</div>
-							<div class="engine-search-link">Search link</div>
-							<div class="engine-icon-link">Icon link</div>
+							<div class="engine-search-link">Search URL</div>
+							<div class="engine-icon-link">Icon URL</div>
 							<div class="engine-delete"></div>
 						</div>
 					</div>
