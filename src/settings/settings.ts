@@ -1,8 +1,8 @@
 // How to add a new setting:
 // - swift-selection-search.ts
-	// - add to "class Settings"
+	// - add variable to "class Settings"
 	// - add default value to "const defaultSettings"
-	// - add to "function runBackwardsCompatibilityUpdates" along with SSS version where it's going to be added
+	// - add to "function runBackwardsCompatibilityUpdates" and write down the first SSS version where the setting is going to exist
 	// - [extra] if needed, add to "class ActivationSettings" and "function getActivationSettingsForContentScript"
 // - settings.html
 	// - create a new setting
@@ -51,6 +51,7 @@ const page = {
 	loadSettingsFromSyncButton: undefined,
 	loadSettingsFromSyncButton_real: undefined,
 	minSelectedCharacters: undefined,
+	maxSelectedCharacters: undefined,
 	popupDelay: undefined,
 	middleMouseSelectionClickMargin: undefined,
 	nPopupIconsPerRow: undefined,
@@ -799,6 +800,7 @@ function updateSetting(name: string, value: any)
 		case "popupOpenBehaviour":
 			updateSetting_popupDelay(value);
 			updateSetting_minSelectedCharacters(value);
+			updateSetting_maxSelectedCharacters(value);
 			updateSetting_middleMouseSelectionClickMargin(value);
 			break;
 		case "useSingleRow":
@@ -1283,6 +1285,11 @@ function updateSetting_popupDelay(popupOpenBehaviour)
 function updateSetting_minSelectedCharacters(popupOpenBehaviour)
 {
 	updateSetting_specific(page.minSelectedCharacters, popupOpenBehaviour === PopupOpenBehaviour.Auto);
+}
+
+function updateSetting_maxSelectedCharacters(popupOpenBehaviour)
+{
+	updateSetting_specific(page.maxSelectedCharacters, popupOpenBehaviour === PopupOpenBehaviour.Auto);
 }
 
 function updateSetting_middleMouseSelectionClickMargin(popupOpenBehaviour)

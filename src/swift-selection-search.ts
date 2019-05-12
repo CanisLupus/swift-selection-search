@@ -43,6 +43,7 @@ export class Settings
 	popupLocation: PopupLocation;
 	popupDelay: number;
 	minSelectedCharacters: number;
+	maxSelectedCharacters: number;
 	allowPopupOnEditableFields: boolean;
 	hidePopupOnPageScroll: boolean;
 	hidePopupOnRightClick: boolean;
@@ -186,6 +187,7 @@ const defaultSettings: Settings = {
 	popupLocation: PopupLocation.Cursor,
 	popupDelay: 0,
 	minSelectedCharacters: 0,
+	maxSelectedCharacters: 0;
 	allowPopupOnEditableFields: false,
 	hidePopupOnPageScroll: true,
 	hidePopupOnRightClick: true,
@@ -450,6 +452,7 @@ function runBackwardsCompatibilityUpdates(settings: Settings): boolean
 	shouldSave = shouldSave || createSettingIfNonExistent(settings, "popupDisableCommand");				// 3.22.0
 	shouldSave = shouldSave || createSettingIfNonExistent(settings, "iconAlignmentInGrid");				// 3.25.0
 	shouldSave = shouldSave || createSettingIfNonExistent(settings, "popupDelay");						// 3.29.0
+	shouldSave = shouldSave || createSettingIfNonExistent(settings, "maxSelectedCharacters");			// 3.30.0
 
 	// 3.7.0
 	// convert old unchangeable browser-imported engines to normal ones

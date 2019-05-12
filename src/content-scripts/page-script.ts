@@ -335,8 +335,14 @@ function tryShowPopup(ev: Event, isForced: boolean)
 		return;
 	}
 
-	if (settings.popupOpenBehaviour === PopupOpenBehaviour.Auto && selection.text.trim().length < settings.minSelectedCharacters) {
-		return;
+	if (settings.popupOpenBehaviour === PopupOpenBehaviour.Auto)
+	{
+		let trimmedSelectionLength = selection.text.trim().length;
+		if ((settings.minSelectedCharacters > 0 && trimmedSelectionLength < settings.minSelectedCharacters)
+		 || (settings.maxSelectedCharacters > 0 && trimmedSelectionLength > settings.maxSelectedCharacters))
+		{
+			return;
+		}
 	}
 
 	// Checks for showing popup in editable fields. If this is a forced selection or editable fields are allowed, always show.
