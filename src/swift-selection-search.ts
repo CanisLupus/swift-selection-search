@@ -284,7 +284,7 @@ const defaultSettings: Settings = {
 		createDefaultEngine({
 			type: SearchEngineType.Custom,
 			name: "eBay.co.uk",
-			searchUrl: "https://www.ebay.com/sch/{searchTerms}",
+			searchUrl: "https://www.ebay.co.uk/sch/{searchTerms}",
 			iconUrl: "https://api.faviconkit.com/www.ebay.com/64",
 			isEnabled: false,
 		}),
