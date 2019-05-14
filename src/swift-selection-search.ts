@@ -187,7 +187,7 @@ const defaultSettings: Settings = {
 	popupLocation: PopupLocation.Cursor,
 	popupDelay: 0,
 	minSelectedCharacters: 0,
-	maxSelectedCharacters: 0;
+	maxSelectedCharacters: 0,
 	allowPopupOnEditableFields: false,
 	hidePopupOnPageScroll: true,
 	hidePopupOnRightClick: true,
