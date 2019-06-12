@@ -1,5 +1,5 @@
-var DEBUG_STATE;	// avoid TS compilation errors but still get working JS code
-var cloneInto;	// avoid TS compilation errors but still get working JS code
+var DEBUG_STATE: boolean;	// avoid TS compilation errors but still get working JS code
+var cloneInto;
 
 namespace ContentScript
 {
@@ -337,31 +337,32 @@ function tryShowPopup(ev: Event, isForced: boolean)
 
 	if (settings.popupOpenBehaviour === PopupOpenBehaviour.Auto)
 	{
-		let trimmedSelectionLength = selection.text.trim().length;
-		if ((settings.minSelectedCharacters > 0 && trimmedSelectionLength < settings.minSelectedCharacters)
-		 || (settings.maxSelectedCharacters > 0 && trimmedSelectionLength > settings.maxSelectedCharacters))
+		if ((settings.minSelectedCharacters > 0 && selection.text.length < settings.minSelectedCharacters)
+		 || (settings.maxSelectedCharacters > 0 && selection.text.length > settings.maxSelectedCharacters))
 		{
 			return;
 		}
 	}
 
-	// Checks for showing popup in editable fields. If this is a forced selection or editable fields are allowed, always show.
-	if (!isForced && !settings.allowPopupOnEditableFields)
+	if (!isForced)
 	{
-		if (selection.isInEditableField) {
-			return;
-		}
-
-		// even if this is not an input field, don't show popup in contentEditable elements, such as Gmail's compose window
-		for (let elem = selection.selection.anchorNode; elem !== document; elem = elem.parentNode)
+		// If showing popup for editable fields is not allowed, check if selection is in an editable field.
+		if (!settings.allowPopupOnEditableFields)
 		{
-			let concreteElem = elem as HTMLElement;
-			if (concreteElem.isContentEditable === undefined) {
-				continue;	// check parent for value
-			} else if (concreteElem.isContentEditable) {
-				return;		// quit
-			} else {
-				break;		// show popup
+			if (selection.isInEditableField) {
+				return;
+			}
+
+			// even if this is not an input field, don't show popup in contentEditable elements, such as Gmail's compose window
+			if (isInEditableField(selection.selection.anchorNode)) {
+				return;
+			}
+		}
+		// If editable fields are allowed, they are still not allowed for keyboard selections
+		else
+		{
+			if (!ev["isMouse"] && isInEditableField(selection.selection.anchorNode)) {
+				return;
 			}
 		}
 	}
@@ -379,6 +380,21 @@ function tryShowPopup(ev: Event, isForced: boolean)
 	}
 
 	showPopup(settings);
+}
+
+function isInEditableField(node): boolean
+{
+	// to find if this element is editable, we go up the hierarchy until an element that specifies "isContentEditable" (or the root)
+	for (let elem = node; elem !== document; elem = elem.parentNode)
+	{
+		let concreteElem = elem as HTMLElement;
+		if (concreteElem.isContentEditable === undefined) {
+			continue;		// check parent for value
+		}
+		return concreteElem.isContentEditable;
+	}
+
+	return false;
 }
 
 function showPopup(settings)

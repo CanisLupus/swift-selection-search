@@ -26,6 +26,7 @@ namespace selectionchange
 
 	export class CustomSelectionChangeEvent extends CustomEvent<any> {
 		altKey: boolean;
+		isMouse: boolean;
 	}
 
 	function getSelectedRanges()
@@ -45,7 +46,7 @@ namespace selectionchange
 	function onInput(ev)
 	{
 		if (!isInputField(ev.target)) {
-			dispatchEventIfSelectionChanged(true, ev);
+			dispatchEventIfSelectionChanged(true, ev, false);
 		}
 	}
 
@@ -58,7 +59,7 @@ namespace selectionchange
 			|| (ev.ctrlKey && MAC && MAC_MOVE_KEYS.has(code)))
 		{
 			if (!isInputField(ev.target)) {	// comment to enable selections with keyboard
-				setTimeout(() => dispatchEventIfSelectionChanged(true, ev), 0);
+				setTimeout(() => dispatchEventIfSelectionChanged(true, ev, false), 0);
 			}
 		}
 	}
@@ -66,11 +67,11 @@ namespace selectionchange
 	function onMouseUp(ev)
 	{
 		if (ev.button === 0) {
-			setTimeout(() => dispatchEventIfSelectionChanged(isInputField(ev.target), ev), 0);
+			setTimeout(() => dispatchEventIfSelectionChanged(isInputField(ev.target), ev, true), 0);
 		}
 	}
 
-	function dispatchEventIfSelectionChanged(force, ev)
+	function dispatchEventIfSelectionChanged(force, ev, isMouse)
 	{
 		let newRanges = getSelectedRanges();
 
@@ -78,6 +79,7 @@ namespace selectionchange
 			ranges = newRanges;
 			let event = new CustomSelectionChangeEvent("customselectionchange");
 			event.altKey = ev.altKey;
+			event.isMouse = isMouse;
 			setTimeout(() => document.dispatchEvent(event), 0);
 		}
 	}
