@@ -23,6 +23,11 @@ export class SearchEngine_SSS extends SearchEngine
 	id: string;
 }
 
+export class SearchEngine_SSS_Copy extends SearchEngine_SSS
+{
+	isPlainText: boolean;
+}
+
 export class SearchEngine_Custom extends SearchEngine
 {
 	name: string;
@@ -223,15 +228,16 @@ const defaultSettings: Settings = {
 
 		createDefaultEngine({
 			type: SearchEngineType.SSS,
-			id: "copyToClipboard"
+			id: "copyToClipboard",
+			isPlainText: false,
 		}),
 		createDefaultEngine({
 			type: SearchEngineType.SSS,
-			id: "openAsLink"
+			id: "openAsLink",
 		}),
 		createDefaultEngine({
 			type: SearchEngineType.SSS,
-			id: "separator"
+			id: "separator",
 		}),
 
 		// actual search engines
@@ -680,7 +686,7 @@ function onContextMenuItemClicked(info, tab)
 	if (engine.type === SearchEngineType.SSS)
 	{
 		if (engine.id === "copyToClipboard") {
-			copyToClipboard();
+			copyToClipboard(engine);
 		}
 		else if (engine.id === "openAsLink") {
 			let searchUrl = getOpenAsLinkSearchUrl(info.selectionText);
@@ -841,7 +847,7 @@ function onSearchEngineClick(selectedEngine: SearchEngine, clickType: string, se
 	if (selectedEngine.type === SearchEngineType.SSS)
 	{
 		if (selectedEngine.id === "copyToClipboard") {
-			copyToClipboard();
+			copyToClipboard(selectedEngine);
 		}
 		else if (selectedEngine.id === "openAsLink") {
 			let link: string = getOpenAsLinkSearchUrl(searchText);
@@ -874,9 +880,23 @@ function onSearchEngineClick(selectedEngine: SearchEngine, clickType: string, se
 	}
 }
 
-function copyToClipboard()
+function copyToClipboard(engine)
 {
-	getCurrentTab(tab => browser.tabs.sendMessage(tab.id, { type: "copyToClipboard" }));
+	if (engine.isPlainText) {
+		copyToClipboardAsPlainText();
+	} else {
+		copyToClipboardAsHtml();
+	}
+}
+
+function copyToClipboardAsHtml()
+{
+	getCurrentTab(tab => browser.tabs.sendMessage(tab.id, { type: "copyToClipboardAsHtml" }));
+}
+
+function copyToClipboardAsPlainText()
+{
+	getCurrentTab(tab => browser.tabs.sendMessage(tab.id, { type: "copyToClipboardAsPlainText" }));
 }
 
 function getOpenAsLinkSearchUrl(link: string): string

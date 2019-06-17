@@ -957,50 +957,65 @@ function buildSearchEngineOptionsTableRow(engine, i)
 
 	// "is enabled" element
 
-	let isEnabledCheckboxParent = document.createElement("div");
+	let isEnabledCheckboxParent = createCheckbox(
+		"Show in popup",
+		`engine-is-enabled-${i}`,
+		engine.isEnabled,
+		isOn => setEnabledInPopup(engine, i, isOn)
+	);
 
-	let isEnabledCheckbox = document.createElement("input");
-	isEnabledCheckbox.type = "checkbox";
-	isEnabledCheckbox.id = `engine-is-enabled-${i}`;
-	isEnabledCheckbox.checked = engine.isEnabled;
-	isEnabledCheckbox.autocomplete = "off";
-	isEnabledCheckbox.onchange = () => {
-		setEnabledInPopup(engine, i, isEnabledCheckbox.checked);
-	};
-	isEnabledCheckboxParent.appendChild(isEnabledCheckbox);
-
-	let isEnabledLabel = document.createElement("label");
-	isEnabledLabel.htmlFor = isEnabledCheckbox.id;
-	isEnabledLabel.textContent = " Show in popup";
-
-	isEnabledCheckboxParent.appendChild(isEnabledLabel);
+	engineOptions.appendChild(isEnabledCheckboxParent);
 
 	// "is enabled in context menu" element
 
-	let isEnabledInContextMenuCheckboxParent = document.createElement("div");
+	let isEnabledInContextMenuCheckboxParent = createCheckbox(
+		"Show in context menu",
+		`engine-is-enabled-in-context-menu-${i}`,
+		engine.isEnabledInContextMenu,
+		isOn => setEnabledInContextMenu(engine, i, isOn)
+	);
 
-	let isEnabledInContextMenuCheckbox = document.createElement("input");
-	isEnabledInContextMenuCheckbox.type = "checkbox";
-	isEnabledInContextMenuCheckbox.id = `engine-is-enabled-in-context-menu-${i}`;
-	isEnabledInContextMenuCheckbox.checked = engine.isEnabledInContextMenu;
-	isEnabledInContextMenuCheckbox.autocomplete = "off";
-	isEnabledInContextMenuCheckbox.onchange = () => {
-		setEnabledInContextMenu(engine, i, isEnabledInContextMenuCheckbox.checked);
-	};
-	isEnabledInContextMenuCheckboxParent.appendChild(isEnabledInContextMenuCheckbox);
-
-	let isEnabledInContextMenuLabel = document.createElement("label");
-	isEnabledInContextMenuLabel.htmlFor = isEnabledInContextMenuCheckbox.id;
-	isEnabledInContextMenuLabel.textContent = " Show in context menu";
-
-	isEnabledInContextMenuCheckboxParent.appendChild(isEnabledInContextMenuLabel);
-
-	// final stuff
-
-	engineOptions.appendChild(isEnabledCheckboxParent);
 	engineOptions.appendChild(isEnabledInContextMenuCheckboxParent);
 
+	//
+
+	if (engine.id === "copyToClipboard")
+	{
+		let isPlainTextCheckboxParent = createCheckbox(
+			"Copy as plain-text",
+			`copy-as-plain-text`,
+			engine.isPlainText,
+			isOn => {
+				engine.isPlainText = isOn;
+				saveSettings({ searchEngines: settings.searchEngines });
+			}
+		);
+
+		engineOptions.appendChild(isPlainTextCheckboxParent);
+	}
+
 	return engineOptions;
+}
+
+function createCheckbox(labelText: string, elementId: string, checked: boolean, onChange: { (isOn: boolean): void; })
+{
+	let checkboxParent = document.createElement("div");
+
+	let checkbox = document.createElement("input");
+	checkbox.type = "checkbox";
+	checkbox.id = elementId;
+	checkbox.checked = checked;
+	checkbox.autocomplete = "off";
+	checkbox.onchange = () => onChange(checkbox.checked);
+	checkboxParent.appendChild(checkbox);
+
+	let isEnabledLabel = document.createElement("label");
+	isEnabledLabel.htmlFor = checkbox.id;
+	isEnabledLabel.textContent = " " + labelText;	// space adds padding between checkbox and label
+
+	checkboxParent.appendChild(isEnabledLabel);
+
+	return checkboxParent;
 }
 
 function setEnabledInPopup(engine, i, value)
