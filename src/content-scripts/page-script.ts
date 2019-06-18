@@ -147,50 +147,16 @@ function copyToClipboardAsHtml()
 
 function copyToClipboardAsPlainText()
 {
-	// backup existing selections
-
-	let ranges: Range[] = [];
-	let currentSelection = document.getSelection();
-
-	for (let i = 0; i < currentSelection.rangeCount; ++i) {
-		let range: Range = currentSelection.getRangeAt(i); // get the text range
-		ranges.push(range);
-	}
-
-	let editableField: Element = document.activeElement;
-	let editableFieldSelectionStart: number;
-	let editableFieldSelectionEnd: number;
-
-	if (editableField instanceof HTMLTextAreaElement || editableField instanceof HTMLInputElement) {
-		editableFieldSelectionStart = editableField.selectionStart;
-		editableFieldSelectionEnd = editableField.selectionEnd;
-		// this can fail for certain input elements like number fields, and values will be null in that case
-	}
-
-	// create a temporary text field to receive the text and then copy everything
-
-	var textField = document.createElement('textarea');
-	saveCurrentSelection();
-	textField.innerText = selection.text;
-	document.body.appendChild(textField);
-	textField.select();
+	document.addEventListener('copy', copyToClipboardAsPlainText_Listener);
 	document.execCommand('copy');
-	textField.remove();
+	document.removeEventListener('copy', copyToClipboardAsPlainText_Listener);
+}
 
-	// restore original selections
-
-	currentSelection.removeAllRanges();
-
-	for (let i = 0; i < ranges.length; ++i) {
-		let range: Range = ranges[i];
-		currentSelection.addRange(range);
-	}
-
-	if (editableField instanceof HTMLTextAreaElement || editableField instanceof HTMLInputElement) {
-		if (editableFieldSelectionStart != null && editableFieldSelectionEnd != null) {
-			editableField.setSelectionRange(editableFieldSelectionStart, editableFieldSelectionEnd);
-			editableField.focus();
-		}
+function copyToClipboardAsPlainText_Listener(e: ClipboardEvent)
+{
+	if (saveCurrentSelection()) {
+		e.clipboardData.setData('text/plain', selection.text);
+		e.preventDefault();
 	}
 }
 
