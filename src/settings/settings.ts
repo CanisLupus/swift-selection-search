@@ -541,6 +541,7 @@ function onPageLoaded()
 			chunks["p"+chunkIndex] = settingsStr.substring(i, i + 1000);
 		}
 
+		browser.storage.sync.clear();
 		browser.storage.sync.set(chunks).then(
 			() => { if (DEBUG) { log("All settings and engines were saved in Sync!"); } },
 			() => { if (DEBUG) { log("Uploading to Sync failed! Is your network working? Are you under the 100KB size limit?"); } }
@@ -595,18 +596,20 @@ function onPageLoaded()
 		() => browser.storage.sync.get().then(chunks => {
 			if (DEBUG) { log(chunks); }
 
-			// join all chunks of data we uploaded to sync
+			// join all chunks of data we uploaded to sync in a list
 			let chunksList = [];
 			let p;
 			for (let i = 0; (p = chunks["p"+i]) !== undefined; i++) {
 				chunksList.push(p);
 			}
-			let settingsStr = chunksList.join("");
 
-			if (DEBUG) { log("settings from sync, as string: " + settingsStr); }
+			// parse the chunks into an actual object
+			let parsedSettings = parseSyncChunksList(chunksList);
 
-			// now parse and import the settings
-			importSettings(JSON.parse(settingsStr));
+			// finally try importing the read settings
+			if (parsedSettings !== null) {
+				importSettings(parsedSettings);
+			}
 		}, getErrorHandler("Error getting settings from sync."))
 	);
 
@@ -622,6 +625,36 @@ function onPageLoaded()
 	setTimeout(() => {
 		document.body.style.display = "inherit";
 	}, 0);
+}
+
+function parseSyncChunksList(chunksList: string[])
+{
+	// NOTE: due to an old SSS bug (now fixed), there can be chunks in Sync that are not actually part of the last "Save to Sync".
+	// (For example if the last save uploaded only chunks p0 and p1, but Sync already had chunks p0, p1 AND p2 in there.)
+	// Due to this, parsing the concatenated chunks would result in JSON errors, so if they happen we try removing the last chunks
+	// one by one until parsing works.
+	// The origin of the bug was fixed by clearing all Sync storage before setting new data.
+	let settingsStr: string = "";
+	let parsedSettings = null;
+
+	while (chunksList.length > 0)
+	{
+		// compact the list into a large string and try parsing it
+		settingsStr = chunksList.join("");
+
+		try {
+			parsedSettings = JSON.parse(settingsStr);
+			break;	// break from loop if successful
+		} catch {
+			if (DEBUG) { log("error parsing settings from sync: " + settingsStr); }
+			if (DEBUG) { log("trying again with one chunk fewer"); }
+			chunksList.pop();
+		}
+	}
+
+	if (DEBUG) { log("settings from sync, as string: " + settingsStr); }
+
+	return parsedSettings;
 }
 
 function onSettingsAcquired(_settings)

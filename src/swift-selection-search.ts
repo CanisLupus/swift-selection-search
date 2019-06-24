@@ -77,6 +77,7 @@ export class Settings
 	popupBorderRadius: number;
 	enableEnginesInContextMenu: boolean;
 	contextMenuItemBehaviour: OpenResultBehaviour;
+	contextMenuString: string;
 	searchEngines: SearchEngine[];
 	searchEnginesCache: { [id: string] : string; };
 }
@@ -221,6 +222,7 @@ const defaultSettings: Settings = {
 	popupBorderRadius: 2,
 	enableEnginesInContextMenu: true,
 	contextMenuItemBehaviour: OpenResultBehaviour.NewBgTab,
+	contextMenuString: "Search for “%s”",
 
 	searchEngines: [
 
@@ -446,19 +448,21 @@ function runBackwardsCompatibilityUpdates(settings: Settings): boolean
 {
 	// add settings that were not available in older versions of SSS
 	let shouldSave: boolean = false;
-	shouldSave = shouldSave || createSettingIfNonExistent(settings, "popupItemVerticalPadding");		// 3.1.0
-	shouldSave = shouldSave || createSettingIfNonExistent(settings, "allowPopupOnEditableFields");		// 3.6.0
-	shouldSave = shouldSave || createSettingIfNonExistent(settings, "popupBorderRadius");				// 3.9.1
-	shouldSave = shouldSave || createSettingIfNonExistent(settings, "popupItemBorderRadius");			// 3.12.0
-	shouldSave = shouldSave || createSettingIfNonExistent(settings, "minSelectedCharacters");			// 3.13.0
-	shouldSave = shouldSave || createSettingIfNonExistent(settings, "middleMouseSelectionClickMargin");	// 3.14.1
-	shouldSave = shouldSave || createSettingIfNonExistent(settings, "hidePopupOnRightClick");			// 3.15.0
-	shouldSave = shouldSave || createSettingIfNonExistent(settings, "popupSeparatorWidth");				// 3.21.0
-	shouldSave = shouldSave || createSettingIfNonExistent(settings, "popupOpenCommand");				// 3.22.0
-	shouldSave = shouldSave || createSettingIfNonExistent(settings, "popupDisableCommand");				// 3.22.0
-	shouldSave = shouldSave || createSettingIfNonExistent(settings, "iconAlignmentInGrid");				// 3.25.0
-	shouldSave = shouldSave || createSettingIfNonExistent(settings, "popupDelay");						// 3.29.0
-	shouldSave = shouldSave || createSettingIfNonExistent(settings, "maxSelectedCharacters");			// 3.30.0
+
+	if (createSettingIfNonExistent(settings, "popupItemVerticalPadding"))        shouldSave = true; // 3.1.0
+	if (createSettingIfNonExistent(settings, "allowPopupOnEditableFields"))      shouldSave = true; // 3.6.0
+	if (createSettingIfNonExistent(settings, "popupBorderRadius"))               shouldSave = true; // 3.9.1
+	if (createSettingIfNonExistent(settings, "popupItemBorderRadius"))           shouldSave = true; // 3.12.0
+	if (createSettingIfNonExistent(settings, "minSelectedCharacters"))           shouldSave = true; // 3.13.0
+	if (createSettingIfNonExistent(settings, "middleMouseSelectionClickMargin")) shouldSave = true; // 3.14.1
+	if (createSettingIfNonExistent(settings, "hidePopupOnRightClick"))           shouldSave = true; // 3.15.0
+	if (createSettingIfNonExistent(settings, "popupSeparatorWidth"))             shouldSave = true; // 3.21.0
+	if (createSettingIfNonExistent(settings, "popupOpenCommand"))                shouldSave = true; // 3.22.0
+	if (createSettingIfNonExistent(settings, "popupDisableCommand"))             shouldSave = true; // 3.22.0
+	if (createSettingIfNonExistent(settings, "iconAlignmentInGrid"))             shouldSave = true; // 3.25.0
+	if (createSettingIfNonExistent(settings, "popupDelay"))                      shouldSave = true; // 3.29.0
+	if (createSettingIfNonExistent(settings, "maxSelectedCharacters"))           shouldSave = true; // 3.30.0
+	if (createSettingIfNonExistent(settings, "contextMenuString"))               shouldSave = true; // 3.32.0
 
 	// 3.7.0
 	// convert old unchangeable browser-imported engines to normal ones
@@ -607,7 +611,7 @@ function setup_ContextMenu()
 	// define parent menu
 	browser.contextMenus.create({
 		id: "sss",
-		title: "Search for “%s”",
+		title: sss.settings.contextMenuString,
 		contexts: ["selection"],
 	});
 
