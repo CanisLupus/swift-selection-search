@@ -892,6 +892,7 @@ function forceSelectionIfWithinRect(ev: MouseEvent, rect: ClientRect | DOMRect)
 		ev.stopPropagation();
 
 		if (saveCurrentSelection()) {
+			ev["isMouse"] = true;
 			showPopupForSelection(ev, false);
 		}
 
