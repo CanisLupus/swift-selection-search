@@ -307,7 +307,7 @@
 				<div class="setting-name" style="max-width: 160px;">I don't know how to add a particular site...</div>
 				<div class="setting-description">
 					<details>
-						<summary>[Press to expand]</summary>
+						<summary>[Press to expand/collapse]</summary>
 						<ul>
 							<li>It's not always easy to figure out! I'll try to help. :)</li>
 							<li>After using a search bar on a website, the site will usually place what you searched for in the URL somewhere. For example, if you search for <pop>Firefox Add-ons</pop> on Google, Google adds <popm>q=Firefox+Add-ons</popm> to the URL (among probably a lot of other things). <popm>q</popm> is the parameter Google uses for user queries. Other sites will use different structures, but what you wrote should be there (unless the site uses POST requests, but that's another story!).</li>
@@ -329,7 +329,7 @@
 				<div class="setting-name" style="max-width: 160px;">Advanced usage</div>
 				<div class="setting-description">
 					<details>
-						<summary>[Press to expand]</summary>
+						<summary>[Press to expand/collapse]</summary>
 						<ul>
 							<li>
 								Most <a href="https://developer.mozilla.org/docs/Web/API/URL#Properties">JavaScript URL properties</a> are available for search URLs as <popm>{hash}</popm>, <popm>{host}</popm>, <popm>{hostname}</popm>, <popm>{href}</popm>, <popm>{origin}</popm>, <popm>{password}</popm>, <popm>{pathname}</popm>, <popm>{port}</popm>, <popm>{protocol}</popm>, <popm>{search}</popm> and <popm>{username}</popm>. For example, if <popm>{hostname}</popm> is present in the search URL when searching, it will be replaced by the website domain you are on (ex.: <popm>google.com</popm>).
@@ -359,7 +359,7 @@
 										</li>
 
 										<li>
-											As examples, if you want to remove all non-alphanumeric characters from the searchTerms you can use <popm>{searchTerms{re/[0-9a-z]/gi}}</popm> (<popm>g</popm> finds all matches and <popm>i</popm> is case insensitiveness). To find words separated by spaces and switch them you can use <popm>{searchTerms{re/(\w+)\s+(\w+)/g|$2 $1}}</popm>. This will any two words like "John Smith" into "Smith John".
+											As examples, if you want to remove all non-alphanumeric characters from the searchTerms you can use <popm>{searchTerms{re/[0-9a-z]/gi}}</popm> (<popm>g</popm> finds all matches and <popm>i</popm> is case insensitiveness). To find words separated by spaces and switch them you can use <popm>{searchTerms{re/(\w+)\s+(\w+)/g|$2 $1}}</popm>. This will transform any two words like "John Smith" into "Smith John".
 										</li>
 									</ul>
 								</ul>
@@ -386,7 +386,10 @@
 
 								<ul>
 									<li>
-										Currently, <popm>{searchTerms(lowercase)}</popm> and <popm>{searchTerms(uppercase)}</popm> are available, which respectively convert the text to <pop>lower case</pop> and <pop>UPPER CASE</pop>.
+										<popm>{searchTerms(lowercase)}</popm> and <popm>{searchTerms(uppercase)}</popm> respectively convert the text to <pop>lower case</pop> and <pop>UPPER CASE</pop>.
+									</li>
+									<li>
+										<popm>{searchTerms(encodeURIComponent)}</popm> applies URL encoding to the text, replacing forbidden URL characters with their escaped versions. For example, % is replaced by %25, / is replaced by %2F, etc. NOTE: SSS <pop>always</pop> applies URL encoding after all replacements happen (otherwise the URL could have invalid characters), so this function should be used only for the rare sites that apply encoding more than once, or apply encoding and then do additional modifications.
 									</li>
 								</ul>
 							</li>

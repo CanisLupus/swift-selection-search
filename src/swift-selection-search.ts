@@ -1104,6 +1104,7 @@ class SearchTermsFunction extends SearchTermsModification
 		{
 			case "lowercase": return text.toLowerCase();
 			case "uppercase": return text.toUpperCase();
+			case "encodeuricomponent": return encodeURIComponent(text);
 			default: return text;
 		}
 	}
