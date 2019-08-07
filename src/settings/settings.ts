@@ -1051,7 +1051,7 @@ function createCheckbox(labelText: string, elementId: string, checked: boolean, 
 	return checkboxParent;
 }
 
-function setEnabledInPopup(engine, i, value)
+function setEnabledInPopup(engine: SearchEngine, i: number, value: boolean)
 {
 	let engineRow = page.engines.children[i];
 
@@ -1065,7 +1065,7 @@ function setEnabledInPopup(engine, i, value)
 	saveSettings({ searchEngines: settings.searchEngines });
 }
 
-function setEnabledInContextMenu(engine, i, value)
+function setEnabledInContextMenu(engine: SearchEngine, i: number, value: boolean)
 {
 	let engineRow = page.engines.children[i];
 
@@ -1149,7 +1149,7 @@ function createEngineSearchLink(engine, references)
 	searchLinkInput.onchange = () => {
 		// trim search url and prepend "http://" if it doesn't begin with a protocol
 		let url = searchLinkInput.value.trim();
-		if (url.length > 0 && !url.match(/^[0-9a-zA-Z\-+]+:\/\//)) {
+		if (url.length > 0 && !url.match(/^[0-9a-zA-Z\-+]+:(\/\/)?/)) {
 			url = "http://" + url;
 		}
 
