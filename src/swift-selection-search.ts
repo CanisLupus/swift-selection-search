@@ -11,7 +11,7 @@ if (DEBUG) {
 
 export abstract class SearchEngine
 {
-	[key: string]: browser.storage.StorageValue;
+	[key: string]: any;	// needed to keep old variables like iconSrc and id
 
 	type: SearchEngineType;
 	isEnabled: boolean;
@@ -41,7 +41,7 @@ export class SearchEngine_Browser extends SearchEngine_Custom
 
 export class Settings
 {
-	[key: string]: browser.storage.StorageValue;
+	[key: string]: any;	// needed to keep old variables like contextMenuEnginesFilter
 
 	popupOpenBehaviour: PopupOpenBehaviour;
 	middleMouseSelectionClickMargin: number;
@@ -80,6 +80,7 @@ export class Settings
 	contextMenuString: string;
 	searchEngines: SearchEngine[];
 	searchEnginesCache: { [id: string] : string; };
+	// sectionsExpansionState: { [id: string] : boolean; };
 }
 
 export class ActivationSettings
@@ -223,6 +224,7 @@ const defaultSettings: Settings = {
 	enableEnginesInContextMenu: true,
 	contextMenuItemBehaviour: OpenResultBehaviour.NewBgTab,
 	contextMenuString: "Search for “%s”",
+	// sectionsExpansionState: {},
 
 	searchEngines: [
 
@@ -500,7 +502,7 @@ function createSettingIfNonExistent(settings: Settings, settingName: string): bo
 
 // whenever settings change, we re-aquire all settings and setup everything again as if just starting
 // (definitely not performant, but very robust)
-function onSettingsChanged(changes: browser.storage.ChangeDict, area: browser.storage.StorageName)
+function onSettingsChanged(changes: object, area: string)
 {
 	if (area !== "local" || isObjectEmpty(changes)) {
 		return;
@@ -689,10 +691,12 @@ function onContextMenuItemClicked(info, tab)
 	// check if it's a special SSS engine
 	if (engine.type === SearchEngineType.SSS)
 	{
-		if (engine.id === "copyToClipboard") {
-			copyToClipboard(engine);
+		let engine_SSS = engine as SearchEngine_SSS;
+
+		if (engine_SSS.id === "copyToClipboard") {
+			copyToClipboard(engine as SearchEngine_SSS_Copy);
 		}
-		else if (engine.id === "openAsLink") {
+		else if (engine_SSS.id === "openAsLink") {
 			let searchUrl = getOpenAsLinkSearchUrl(info.selectionText);
 			openUrl(searchUrl, sss.settings.contextMenuItemBehaviour);
 		}
@@ -850,10 +854,12 @@ function onSearchEngineClick(selectedEngine: SearchEngine, clickType: string, se
 	// check if it's a special SSS engine
 	if (selectedEngine.type === SearchEngineType.SSS)
 	{
-		if (selectedEngine.id === "copyToClipboard") {
-			copyToClipboard(selectedEngine);
+		let engine_SSS = selectedEngine as SearchEngine_SSS;
+
+		if (engine_SSS.id === "copyToClipboard") {
+			copyToClipboard(engine_SSS as SearchEngine_SSS_Copy);
 		}
-		else if (selectedEngine.id === "openAsLink") {
+		else if (engine_SSS.id === "openAsLink") {
 			let link: string = getOpenAsLinkSearchUrl(searchText);
 
 			if (DEBUG) { log("open as link: " + link); }
@@ -868,10 +874,12 @@ function onSearchEngineClick(selectedEngine: SearchEngine, clickType: string, se
 		}
 	}
 	// here we know it's a normal search engine, so run the search
-	else
+	else if (selectedEngine.type === SearchEngineType.Custom)
 	{
-		let engine: SearchEngine_Custom = sss.settings.searchEngines.find(
-			engine => engine.type !== SearchEngineType.SSS && (engine as SearchEngine_Custom).searchUrl === selectedEngine.searchUrl
+		let engine_Custom = selectedEngine as SearchEngine_Custom;
+
+		let engine = sss.settings.searchEngines.find(
+			eng => eng.type === SearchEngineType.Custom && (eng as SearchEngine_Custom).searchUrl === engine_Custom.searchUrl
 		) as SearchEngine_Custom;
 
 		if (clickType === "leftClick") {
@@ -884,7 +892,7 @@ function onSearchEngineClick(selectedEngine: SearchEngine, clickType: string, se
 	}
 }
 
-function copyToClipboard(engine)
+function copyToClipboard(engine: SearchEngine_SSS_Copy)
 {
 	if (engine.isPlainText) {
 		copyToClipboardAsPlainText();

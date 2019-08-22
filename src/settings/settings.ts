@@ -13,10 +13,10 @@
 // - page-script.ts
 	// - implement!
 
+namespace SSS_Settings
+{
 var Sortable;	// avoid TS compilation errors but still get working JS code
 
-namespace SSS
-{
 // Subset of enums from the background script (only the ones needed).
 // We duplicate enum definitions because otherwise the generated JS code is incomplete.
 enum SearchEngineType {
@@ -220,7 +220,7 @@ function updateBrowserEnginesFromSearchJson(browserSearchEngines)
 	let searchUrls = {};
 	for (let engine of settings.searchEngines) {
 		if (engine.type === SearchEngineType.Browser) {
-			searchUrls[(engine as SearchEngine_Browser).searchUrl] = true;
+			searchUrls[(engine as SSS.SearchEngine_Browser).searchUrl] = true;
 		}
 	}
 
@@ -384,7 +384,7 @@ function onPageLoaded()
 	page.importBrowserEnginesFileButton.onclick = () => page.importBrowserEnginesFileButton_real.click();
 	page.exportSettingsToFileButton.onclick = () => {
 		// remove useless stuff that doesn't need to be stored
-		var blob = runActionOnDietSettings(settings, (settings: Settings) => new Blob([JSON.stringify(settings)]));
+		var blob = runActionOnDietSettings(settings, (settings: SSS.Settings) => new Blob([JSON.stringify(settings)]));
 		// save with current date and time
 		let filename = "SSS settings backup (" + new Date(Date.now()).toJSON().replace(/:/g, ".") + ").json";
 
@@ -532,7 +532,7 @@ function onPageLoaded()
 		if (DEBUG) { log("saving!"); }
 
 		// remove useless stuff that doesn't need to be stored
-		var settingsStr = runActionOnDietSettings(settings, (settings: Settings) => JSON.stringify(settings));
+		var settingsStr = runActionOnDietSettings(settings, (settings: SSS.Settings) => JSON.stringify(settings));
 
 		// divide into different fields so as not to trigger Firefox's "Maximum bytes per object exceeded ([number of bytes] > 16384 Bytes.)"
 		let chunks = {};
@@ -1051,7 +1051,7 @@ function createCheckbox(labelText: string, elementId: string, checked: boolean, 
 	return checkboxParent;
 }
 
-function setEnabledInPopup(engine: SearchEngine, i: number, value: boolean)
+function setEnabledInPopup(engine: SSS.SearchEngine, i: number, value: boolean)
 {
 	let engineRow = page.engines.children[i];
 
@@ -1065,7 +1065,7 @@ function setEnabledInPopup(engine: SearchEngine, i: number, value: boolean)
 	saveSettings({ searchEngines: settings.searchEngines });
 }
 
-function setEnabledInContextMenu(engine: SearchEngine, i: number, value: boolean)
+function setEnabledInContextMenu(engine: SSS.SearchEngine, i: number, value: boolean)
 {
 	let engineRow = page.engines.children[i];
 

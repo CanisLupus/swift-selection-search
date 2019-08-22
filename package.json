@@ -10,7 +10,7 @@
   "author": "Daniel Lobo",
   "license": "MIT",
   "devDependencies": {
-    "typescript": "^3.0.1",
-    "web-ext-types": "^2.1.0"
+    "@types/firefox-webext-browser": "^67.0.2",
+    "typescript": "^3.0.1"
   }
 }

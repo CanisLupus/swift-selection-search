@@ -1,8 +1,8 @@
+namespace ContentScript
+{
 var DEBUG_STATE: boolean;	// avoid TS compilation errors but still get working JS code
 var cloneInto;
 
-namespace ContentScript
-{
 // Subset of enums from the background script (only the ones needed).
 // We duplicate enum definitions because otherwise the generated JS code is incomplete.
 enum SearchEngineType {
