@@ -1,27 +1,40 @@
-namespace ContentScript
+namespace Types
 {
-	var DEBUG_STATE: boolean;	// avoid TS compilation errors but still get working JS code
-	var cloneInto;
-
 	// Subset of enums from the background script (only the ones needed).
 	// We duplicate enum definitions because otherwise the generated JS code is incomplete.
-	enum SearchEngineType {
+
+	export enum SearchEngineType {
 		SSS = "sss",
 	}
-	enum PopupOpenBehaviour {
+	export enum PopupOpenBehaviour {
 		Auto = "auto",
 		HoldAlt = "hold-alt",
 		MiddleMouse = "middle-mouse",
 	}
-	enum PopupLocation {
+	export enum PopupLocation {
 		Selection = "selection",
 		Cursor = "cursor",
 	}
-	enum AutoCopyToClipboard {
+	export enum AutoCopyToClipboard {
 		Always = "always",
 	}
+	export enum IconAlignment {
+		Left = "left",
+		Middle = "middle",
+		Right = "right",
+	}
+	export enum ItemHoverBehaviour {
+		Nothing = "nothing",
+		Highlight = "highlight",
+		HighlightAndMove = "highlight-and-move",
+	}
+}
 
-	class SelectionData
+namespace ContentScript
+{
+	var DEBUG_STATE: boolean;	// avoid TS compilation errors but still get working JS code
+
+	export class SelectionData
 	{
 		isInEditableField: boolean;
 		text: string;
@@ -191,16 +204,16 @@ namespace ContentScript
 
 		// now register with events based on user settings
 
-		if (activationSettings.popupLocation === PopupLocation.Cursor) {
+		if (activationSettings.popupLocation === Types.PopupLocation.Cursor) {
 			document.addEventListener("mousemove", onMouseUpdate);
 			document.addEventListener("mouseenter", onMouseUpdate);
 		}
 
-		if (activationSettings.popupOpenBehaviour === PopupOpenBehaviour.Auto || activationSettings.popupOpenBehaviour === PopupOpenBehaviour.HoldAlt) {
+		if (activationSettings.popupOpenBehaviour === Types.PopupOpenBehaviour.Auto || activationSettings.popupOpenBehaviour === Types.PopupOpenBehaviour.HoldAlt) {
 			selectionchange.start();
 			document.addEventListener("customselectionchange", onSelectionChange);
 		}
-		else if (activationSettings.popupOpenBehaviour === PopupOpenBehaviour.MiddleMouse) {
+		else if (activationSettings.popupOpenBehaviour === Types.PopupOpenBehaviour.MiddleMouse) {
 			document.addEventListener("mousedown", onMouseDown);
 			document.addEventListener("mouseup", onMouseUp);
 		}
@@ -216,16 +229,16 @@ namespace ContentScript
 
 		// unregister with all events (use last activation settings to figure out what registrations were made)
 
-		if (activationSettings.popupLocation === PopupLocation.Cursor) {
+		if (activationSettings.popupLocation === Types.PopupLocation.Cursor) {
 			document.removeEventListener("mousemove", onMouseUpdate);
 			document.removeEventListener("mouseenter", onMouseUpdate);
 		}
 
-		if (activationSettings.popupOpenBehaviour === PopupOpenBehaviour.Auto || activationSettings.popupOpenBehaviour === PopupOpenBehaviour.HoldAlt) {
+		if (activationSettings.popupOpenBehaviour === Types.PopupOpenBehaviour.Auto || activationSettings.popupOpenBehaviour === Types.PopupOpenBehaviour.HoldAlt) {
 			document.removeEventListener("customselectionchange", onSelectionChange);
 			selectionchange.stop();
 		}
-		else if (activationSettings.popupOpenBehaviour === PopupOpenBehaviour.MiddleMouse) {
+		else if (activationSettings.popupOpenBehaviour === Types.PopupOpenBehaviour.MiddleMouse) {
 			document.removeEventListener("mousedown", onMouseDown);
 			document.removeEventListener("mouseup", onMouseUp);
 		}
@@ -255,7 +268,7 @@ namespace ContentScript
 
 	function onSelectionChange(ev: selectionchange.CustomSelectionChangeEvent)
 	{
-		if (activationSettings.popupOpenBehaviour === PopupOpenBehaviour.Auto && activationSettings.popupDelay > 0)
+		if (activationSettings.popupOpenBehaviour === Types.PopupOpenBehaviour.Auto && activationSettings.popupDelay > 0)
 		{
 			clearPopupShowTimeout();
 
@@ -349,11 +362,11 @@ namespace ContentScript
 	{
 		// Usually we would check for the altKey only if "ev instanceof selectionchange.CustomSelectionChangeEvent",
 		// but ev has an undefined class type in pages outside the options page, so it doesn't match. We use ev["altKey"].
-		if (settings.popupOpenBehaviour === PopupOpenBehaviour.HoldAlt && !ev["altKey"]) {
+		if (settings.popupOpenBehaviour === Types.PopupOpenBehaviour.HoldAlt && !ev["altKey"]) {
 			return;
 		}
 
-		if (settings.popupOpenBehaviour === PopupOpenBehaviour.Auto)
+		if (settings.popupOpenBehaviour === Types.PopupOpenBehaviour.Auto)
 		{
 			if ((settings.minSelectedCharacters > 0 && selection.text.length < settings.minSelectedCharacters)
 			 || (settings.maxSelectedCharacters > 0 && selection.text.length > settings.maxSelectedCharacters))
@@ -385,7 +398,7 @@ namespace ContentScript
 			}
 		}
 
-		if (settings.autoCopyToClipboard === AutoCopyToClipboard.Always) {
+		if (settings.autoCopyToClipboard === Types.AutoCopyToClipboard.Always) {
 			document.execCommand("copy");
 		}
 
@@ -398,7 +411,7 @@ namespace ContentScript
 		showPopup(settings);
 	}
 
-	export function createPopup(settings, sssIcons): PopupCreator.SSSPopup
+	export function createPopup(settings: SSS.Settings, sssIcons: { [id: string] : SSS.SSSIconDefinition; }): PopupCreator.SSSPopup
 	{
 		// temp class that locks in settings as arguments to SSSPopup
 		class SSSPopupWithSettings extends PopupCreator.SSSPopup {
@@ -441,13 +454,14 @@ namespace ContentScript
 		return false;
 	}
 
-	function showPopup(settings)
+	function showPopup(settings: SSS.Settings)
 	{
 		if (popup === null) {
 			return;
 		}
 
 		popup.setPopupPosition(settings, selection, mousePositionX, mousePositionY);
+		popup.show();
 
 		if (settings.popupAnimationDuration > 0) {
 			popup.playAnimation(settings);
@@ -497,7 +511,7 @@ namespace ContentScript
 
 			if (DEBUG) {
 				log("engine clicked with button " + ev.button + ": "
-					+ (engine.type === SearchEngineType.SSS
+					+ (engine.type === Types.SearchEngineType.SSS
 						? (engine as SSS.SearchEngine_SSS).id
 						: (engine as SSS.SearchEngine_Custom).searchUrl));
 			}
@@ -587,58 +601,33 @@ namespace ContentScript
 
 namespace PopupCreator
 {
-	// Subset of enums from the background script (only the ones needed).
-	// We duplicate enum definitions because otherwise the generated JS code is incomplete.
-	enum SearchEngineType {
-		SSS = "sss",
-	}
-	enum IconAlignment {
-		Left = "left",
-		Middle = "middle",
-		Right = "right",
-	}
-	enum ItemHoverBehaviour {
-		Nothing = "nothing",
-		Highlight = "highlight",
-		HighlightAndMove = "highlight-and-move",
-	}
-	enum PopupLocation {
-		Selection = "selection",
-		Cursor = "cursor",
-	}
-
 	export let onSearchEngineClick = null;
-
-	class SSSPopupContent extends HTMLDivElement
-	{
-		width: number;
-		height: number;
-		iconWidths: number[];
-	}
 
 	export class SSSPopup extends HTMLElement
 	{
-		content: SSSPopupContent = null;
-		settings = null;
-		sssIcons = null;
+		content: HTMLDivElement;
+		settings: SSS.Settings;
+		sssIcons: { [id: string] : SSS.SSSIconDefinition; };
 
-		constructor(settings, sssIcons)
+		width: number;
+		height: number;
+		iconWidths: number[];
+
+		constructor(settings: SSS.Settings, sssIcons: { [id: string] : SSS.SSSIconDefinition; })
 		{
 			super();
 			this.settings = settings;
 			this.sssIcons = sssIcons;
 
-			Object.setPrototypeOf(this, SSSPopup.prototype);	// needed so that instanceof works
+			Object.setPrototypeOf(this, SSSPopup.prototype);	// needed so that instanceof and casts work
 
 			let shadow = this.attachShadow({mode: 'open'});
 
 			// create popup parent (will contain all icons)
-			this.content = document.createElement("div") as SSSPopupContent;
+			this.content = document.createElement("div");
 			shadow.appendChild(this.content);
 
-			// base popup format, resetting every property to initial first (a few are defined explicitely because of websites overriding with "important")
 			let popupCssText = `
-				box-sizing: initial;
 				font-size: 0;
 				position: absolute;
 				z-index: 2147483647;
@@ -658,13 +647,11 @@ namespace PopupCreator
 			this.createPopupContent(this.settings, this.sssIcons);
 		}
 
-		createPopupContent(settings, sssIcons)
+		createPopupContent(settings: SSS.Settings, sssIcons: { [id: string] : SSS.SSSIconDefinition; })
 		{
 			// base format for each icon (image)
 			let iconCssText = `
-				display: initial;
 				position: absolute;
-				box-sizing: initial;
 				fontSize: 0;
 				width: ${settings.popupItemSize}px;
 				height: ${settings.popupItemSize}px;
@@ -676,10 +663,10 @@ namespace PopupCreator
 			for (let i = 0; i < settings.searchEngines.length; i++)
 			{
 				let engine = settings.searchEngines[i];
-				let icon;
+				let icon: HTMLImageElement;
 
 				// special SSS icons with special functions
-				if (engine.type === SearchEngineType.SSS)
+				if (engine.type === Types.SearchEngineType.SSS)
 				{
 					let sssIcon = sssIcons[engine.id];
 
@@ -695,7 +682,7 @@ namespace PopupCreator
 				// "normal" custom search engines
 				else
 				{
-					let iconImgSource;
+					let iconImgSource: string;
 
 					if (engine.iconUrl.startsWith("data:")) {
 						iconImgSource = engine.iconUrl;	// use "URL" directly, as it's pure image data
@@ -710,7 +697,7 @@ namespace PopupCreator
 			}
 		}
 
-		setupEngineIcon(engine: SSS.SearchEngine, iconImgSource: string, iconTitle: string, isInteractive: boolean, iconCssText: string, settings: SSS.Settings)
+		setupEngineIcon(engine: SSS.SearchEngine, iconImgSource: string, iconTitle: string, isInteractive: boolean, iconCssText: string, settings: SSS.Settings): HTMLImageElement
 		{
 			let icon: HTMLImageElement = document.createElement("img");
 			icon.src = iconImgSource;
@@ -722,7 +709,7 @@ namespace PopupCreator
 				icon.title = iconTitle;	// only interactive icons need a title (for the tooltip)
 
 				// set hover behaviour based on settings
-				if (settings.popupItemHoverBehaviour === ItemHoverBehaviour.Highlight || settings.popupItemHoverBehaviour === ItemHoverBehaviour.HighlightAndMove)
+				if (settings.popupItemHoverBehaviour === Types.ItemHoverBehaviour.Highlight || settings.popupItemHoverBehaviour === Types.ItemHoverBehaviour.HighlightAndMove)
 				{
 					icon.onmouseover = () => {
 						icon.style.setProperty("border-bottom", `2px ${settings.popupHighlightColor} solid`);
@@ -731,7 +718,7 @@ namespace PopupCreator
 						}
 
 						let verticalPaddingStr = (3 + settings.popupItemVerticalPadding - 2) + "px";
-						if (settings.popupItemHoverBehaviour === ItemHoverBehaviour.Highlight) {
+						if (settings.popupItemHoverBehaviour === Types.ItemHoverBehaviour.Highlight) {
 							// remove 2 pixels to counter the added border of 2px
 							icon.style.setProperty("padding-bottom", verticalPaddingStr);
 						} else {
@@ -770,7 +757,7 @@ namespace PopupCreator
 			return icon;
 		}
 
-		setupPopupSize(searchEngines, settings)
+		setupPopupSize(searchEngines: SSS.SearchEngine[], settings: SSS.Settings)
 		{
 			let nPopupIconsPerRow: number;
 			if (!settings.useSingleRow && settings.nPopupIconsPerRow < searchEngines.length) {
@@ -794,7 +781,7 @@ namespace PopupCreator
 				{
 					let engine = searchEngines[j];
 					let iconWidth = settings.popupItemPadding * 2;
-					if (engine.type === SearchEngineType.SSS && engine.id === "separator") {
+					if (engine.type === Types.SearchEngineType.SSS && engine.id === "separator") {
 						iconWidth += settings.popupItemSize * settings.popupSeparatorWidth / 100;
 					} else {
 						iconWidth += settings.popupItemSize;
@@ -832,15 +819,13 @@ namespace PopupCreator
 			this.content.style.setProperty("height", popupHeight + "px");
 
 			// store some values for ease of access later
-			this.content.width = popupWidth;
-			this.content.height = popupHeight;
-			this.content.iconWidths = iconWidths;
+			this.width = popupWidth;
+			this.height = popupHeight;
+			this.iconWidths = iconWidths;
 		}
 
-		setupPopupIconPositions(settings)
+		setupPopupIconPositions(settings: SSS.Settings)
 		{
-			let iconWidths = this.content.iconWidths;
-
 			// all engine icons have the same height
 			let rowHeight = settings.popupItemSize + (3 + settings.popupItemVerticalPadding) * 2;
 			let rowWidth = 0;
@@ -848,15 +833,17 @@ namespace PopupCreator
 
 			let popupChildren = this.content.children;
 			let iAtStartOfRow = 0;
-			let self = this;
+
+			let iconWidths = this.iconWidths;
+			let width = this.width;
 
 			function positionRowIcons(start, end, rowWidth, y)
 			{
 				let x = settings.popupPaddingX;
-				if (settings.iconAlignmentInGrid === IconAlignment.Middle) {
-					x += (self.content.width - rowWidth) / 2;
-				} else if (settings.iconAlignmentInGrid === IconAlignment.Right) {
-					x += self.content.width - rowWidth;
+				if (settings.iconAlignmentInGrid === Types.IconAlignment.Middle) {
+					x += (width - rowWidth) / 2;
+				} else if (settings.iconAlignmentInGrid === Types.IconAlignment.Right) {
+					x += width - rowWidth;
 				}
 
 				for (let i = start; i < end; i++) {
@@ -870,7 +857,7 @@ namespace PopupCreator
 
 			for (let i = 0; i < popupChildren.length; i++)
 			{
-				if (rowWidth + iconWidths[i] > this.content.width + 0.001) {	// 0.001 is just to avoid floating point errors causing problems
+				if (rowWidth + iconWidths[i] > this.width + 0.001) {	// 0.001 is just to avoid floating point errors causing problems
 					positionRowIcons(iAtStartOfRow, i, rowWidth, y);
 					iAtStartOfRow = i;
 					rowWidth = 0;
@@ -882,17 +869,15 @@ namespace PopupCreator
 			positionRowIcons(iAtStartOfRow, popupChildren.length, rowWidth, y);
 		}
 
-		setPopupPosition(settings, selection, mousePositionX, mousePositionY)
+		setPopupPosition(settings: SSS.Settings, selection: ContentScript.SelectionData, mousePositionX: number, mousePositionY: number)
 		{
-			this.content.style.setProperty("display", "inline-block");
-
 			// position popup
 
-			let positionLeft;
-			let positionTop;
+			let positionLeft: number;
+			let positionTop: number;
 
 			// decide popup position based on settings
-			if (settings.popupLocation === PopupLocation.Selection) {
+			if (settings.popupLocation === Types.PopupLocation.Selection) {
 				let rect;
 				if (selection.isInEditableField) {
 					rect = selection.element.getBoundingClientRect();
@@ -904,14 +889,14 @@ namespace PopupCreator
 				positionLeft = rect.right + window.pageXOffset;
 				positionTop = rect.bottom + window.pageYOffset;
 			}
-			else if (settings.popupLocation === PopupLocation.Cursor) {
+			else if (settings.popupLocation === Types.PopupLocation.Cursor) {
 				// right above the mouse position
 				positionLeft = mousePositionX;
-				positionTop = mousePositionY - this.content.height - 10;	// 10 is forced padding to avoid popup being too close to cursor
+				positionTop = mousePositionY - this.height - 10;	// 10 is forced padding to avoid popup being too close to cursor
 			}
 
 			// center horizontally
-			positionLeft -= this.content.width / 2;
+			positionLeft -= this.width / 2;
 
 			// apply user offsets from settings
 			positionLeft += settings.popupOffsetX;
@@ -924,8 +909,8 @@ namespace PopupCreator
 				positionLeft = 5;
 			} else {
 				let pageWidth = document.documentElement.offsetWidth + window.pageXOffset;
-				if (positionLeft + this.content.width + 10 > pageWidth) {
-					positionLeft = pageWidth - this.content.width - 10;
+				if (positionLeft + this.width + 10 > pageWidth) {
+					positionLeft = pageWidth - this.width - 10;
 				}
 			}
 
@@ -934,23 +919,28 @@ namespace PopupCreator
 				positionTop = 5;
 			} else {
 				let pageHeight = document.documentElement.scrollHeight;
-				if (positionTop + this.content.height + 10 > pageHeight) {
-					let newPositionTop = pageHeight - this.content.height - 10;
+				if (positionTop + this.height + 10 > pageHeight) {
+					let newPositionTop = pageHeight - this.height - 10;
 					if (newPositionTop >= 0) {	// just to be sure, since some websites can have pageHeight = 0
-						positionTop = pageHeight - this.content.height - 10;
+						positionTop = pageHeight - this.height - 10;
 					}
 				}
 			}
 
 			// finally set the size and position values
 			this.content.style.setProperty("left", positionLeft + "px");
-			this.content.style.setProperty("top",  positionTop + "px");
+			this.content.style.setProperty("top", positionTop + "px");
 		}
 
-		playAnimation(settings)
+		playAnimation(settings: SSS.Settings)
 		{
 			this.content.animate({ transform: ["scale(0.8)", "scale(1)"] } as PropertyIndexedKeyframes, settings.popupAnimationDuration);
 			this.content.animate({ opacity: ["0", "1"] } as PropertyIndexedKeyframes, settings.popupAnimationDuration * 0.5);
+		}
+
+		show()
+		{
+			this.content.style.setProperty("display", "inline-block");
 		}
 
 		hide()
