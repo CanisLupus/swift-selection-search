@@ -237,9 +237,6 @@
 	.os-windows, .os-mac, .os-linux {
 		display: none;
 	}
-	.pre-ff-60 {
-		display: none;
-	}
 
 	/* specifics */
 
@@ -616,24 +613,14 @@
 			<div class="setting command">
 				<div class="setting-name">Shortcut to open popup</div>
 				<div class="setting-value">
-					<span class="pre-ff-60">
-						<span class="os-windows os-linux">Ctrl+Shift+Space</span>
-						<span class="os-mac">Cmd+Shift+Space</span>
-					</span>
-					<span class="post-ff-60">
-						<input class="setting-input" type="text" name="popupOpenCommand">
-					</span>
+					<input class="setting-input" type="text" name="popupOpenCommand">
 				</div>
 				<div class="setting-description">
-					<span class="pre-ff-60">[NOTE: Only configurable in Firefox 60+]<br></span>
-					Opens the popup if you have text selected. Works for editable fields even if "Allow popup on editable fields" is Off. Useful if "Opening behaviour" is set to Keyboard-only.
-					<span class="post-ff-60">
-						<details>
-							<summary>[Press for details on how to write the shortcut]</summary>
-							Use Ctrl (it means Command on Mac), Alt, <span class="os-mac">MacCtrl (actual Control key on Mac), </span>Shift and the desired key. Check <a target="_blank" href="https://developer.mozilla.org/Add-ons/WebExtensions/manifest.json/commands#Shortcut_values">this link</a> for more details.
-							<br>NOTE: Many shortcuts are reserved for the browser. If yours doesn't work please try another combination!
-						</details>
-					</span>
+					<details>
+						<summary>[Press for details on how to write the shortcut]</summary>
+						Use Ctrl (it means Command on Mac), Alt, <span class="os-mac">MacCtrl (actual Control key on Mac), </span>Shift and the desired key. Check <a target="_blank" href="https://developer.mozilla.org/Add-ons/WebExtensions/manifest.json/commands#Shortcut_values">this link</a> for more details.
+						<br>NOTE: Many shortcuts are reserved for the browser. If yours doesn't work please try another combination!
+					</details>
 				</div>
 				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
@@ -641,24 +628,14 @@
 			<div class="setting command">
 				<div class="setting-name">Shortcut to toggle auto popup opening</div>
 				<div class="setting-value">
-					<span class="pre-ff-60">
-						<span class="os-windows os-linux">Ctrl+Shift+U</span>
-						<span class="os-mac">Cmd+Shift+U</span>
-					</span>
-					<span class="post-ff-60">
-						<input class="setting-input" type="text" name="popupDisableCommand">
-					</span>
+					<input class="setting-input" type="text" name="popupDisableCommand">
 				</div>
 				<div class="setting-description">
-					<span class="pre-ff-60">[NOTE: Only configurable in Firefox 60+]<br></span>
-					Toggles "Opening behaviour" option between Auto and Keyboard-only modes (if not Off). Use this when the popup is getting in your way.
-					<span class="post-ff-60">
-						<details>
-							<summary>[Press for details on how to write the shortcut]</summary>
-							Use Ctrl (it means Command on Mac), Alt, <span class="os-mac">MacCtrl (actual Control key on Mac), </span>Shift and the desired key. Check <a target="_blank" href="https://developer.mozilla.org/Add-ons/WebExtensions/manifest.json/commands#Shortcut_values">this link</a> for more details.
-							<br>NOTE: Many shortcuts are reserved for the browser. If yours doesn't work please try another combination!
-						</details>
-					</span>
+					<details>
+						<summary>[Press for details on how to write the shortcut]</summary>
+						Use Ctrl (it means Command on Mac), Alt, <span class="os-mac">MacCtrl (actual Control key on Mac), </span>Shift and the desired key. Check <a target="_blank" href="https://developer.mozilla.org/Add-ons/WebExtensions/manifest.json/commands#Shortcut_values">this link</a> for more details.
+						<br>NOTE: Many shortcuts are reserved for the browser. If yours doesn't work please try another combination!
+					</details>
 				</div>
 				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>

@@ -7,6 +7,7 @@ namespace SSS
 	const DEBUG = false;
 	if (DEBUG) {
 		var log = console.log;
+		log("Startup time is: " + new Date().toLocaleString());
 	}
 
 	export abstract class SearchEngine
@@ -644,29 +645,25 @@ namespace SSS
 				contextMenuOption.title = concreteEngine.name;
 			}
 
-			// icons are not supported on Firefox 55 and below
-			if (browserVersion >= 56)
-			{
-				let icon;
-				if (engine.type === SearchEngineType.SSS) {
-					let concreteEngine = engine as SearchEngine_SSS;
-					icon = sssIcons[concreteEngine.id].iconPath;
+			let icon;
+			if (engine.type === SearchEngineType.SSS) {
+				let concreteEngine = engine as SearchEngine_SSS;
+				icon = sssIcons[concreteEngine.id].iconPath;
+			} else {
+				let concreteEngine = engine as SearchEngine_Custom;
+				if (concreteEngine.iconUrl.startsWith("data:")) {
+					icon = concreteEngine.iconUrl;
 				} else {
-					let concreteEngine = engine as SearchEngine_Custom;
-					if (concreteEngine.iconUrl.startsWith("data:")) {
+					icon = sss.settings.searchEnginesCache[concreteEngine.iconUrl];
+					if (icon === undefined) {
 						icon = concreteEngine.iconUrl;
-					} else {
-						icon = sss.settings.searchEnginesCache[concreteEngine.iconUrl];
-						if (icon === undefined) {
-							icon = concreteEngine.iconUrl;
-						}
 					}
 				}
-
-				contextMenuOption["icons"] = {
-					"32": icon,
-				};
 			}
+
+			contextMenuOption["icons"] = {
+				"32": icon,
+			};
 
 			browser.contextMenus.create(contextMenuOption);
 		}
@@ -727,21 +724,19 @@ namespace SSS
 			browser.commands.onCommand.addListener(onCommand);
 		}
 
-		if (browserVersion >= 60) {
-			updateCommand("open-popup", sss.settings.popupOpenCommand);
-			updateCommand("toggle-auto-popup", sss.settings.popupDisableCommand);
+		updateCommand("open-popup", sss.settings.popupOpenCommand);
+		updateCommand("toggle-auto-popup", sss.settings.popupDisableCommand);
 
-			function updateCommand(name, shortcut)
-			{
-				shortcut = shortcut.trim();
+		function updateCommand(name, shortcut)
+		{
+			shortcut = shortcut.trim();
 
-				try {
-					browser.commands.update({ name: name, shortcut: shortcut });
-				} catch {
-					// Since WebExtensions don't provide a way (that I know of) to simply disable a shortcut,
-					// if the combination is invalid pick something that is reserved for the browser and so won't work.
-					browser.commands.update({ name: name, shortcut: "Ctrl+P" });
-				}
+			try {
+				browser.commands.update({ name: name, shortcut: shortcut });
+			} catch {
+				// Since WebExtensions don't provide a way (that I know of) to simply disable a shortcut,
+				// if the combination is invalid pick something that is reserved for the browser and so won't work.
+				browser.commands.update({ name: name, shortcut: "Ctrl+P" });
 			}
 		}
 	}
@@ -952,8 +947,7 @@ namespace SSS
 			const lastTabIndex: number = 9999;	// "guarantees" tab opens as last for some behaviours
 			let options = { url: urlToOpen };
 
-			// "openerTabId" does not exist before Firefox 57
-			if (browserVersion >= 57 && openingBehaviour !== OpenResultBehaviour.NewWindow && openingBehaviour !== OpenResultBehaviour.NewBgWindow) {
+			if (openingBehaviour !== OpenResultBehaviour.NewWindow && openingBehaviour !== OpenResultBehaviour.NewBgWindow) {
 				options["openerTabId"] = tab.id;
 			}
 

@@ -469,23 +469,6 @@ namespace SSS_Settings
 			}
 		});
 
-		// show/hide Firefox version-specific sections
-
-		if (browserVersion < 60)
-		{
-			for (let elem of document.getElementsByClassName("command")) {
-				elem.classList.add("disabled");
-			}
-
-			for (let elem of document.getElementsByClassName("pre-ff-60")) {
-				(elem as HTMLElement).style.display = "initial";
-			}
-
-			for (let elem of document.getElementsByClassName("post-ff-60")) {
-				(elem as HTMLElement).style.display = "none";
-			}
-		}
-
 		// entering/leaving settings page
 
 		window.onfocus = () => {
