@@ -20,16 +20,6 @@ namespace ContentScript
 	enum AutoCopyToClipboard {
 		Always = "always",
 	}
-	enum IconAlignment {
-		Left = "left",
-		Middle = "middle",
-		Right = "right",
-	}
-	enum ItemHoverBehaviour {
-		Nothing = "nothing",
-		Highlight = "highlight",
-		HighlightAndMove = "highlight-and-move",
-	}
 
 	class SelectionData
 	{
@@ -85,7 +75,7 @@ namespace ContentScript
 	}
 
 	// Globals
-	let popup: HTMLElement = null;
+	let popup: PopupCreator.SSSPopup = null;
 	let selection: SelectionData = new SelectionData();
 	let mousePositionX: number = 0;
 	let mousePositionY: number = 0;
@@ -94,6 +84,10 @@ namespace ContentScript
 	let settings: SSS.Settings = null;
 	let sssIcons: { [id: string] : SSS.SSSIconDefinition; } = null;
 	let popupShowTimeout: number = null;
+
+	setTimeout(() => {
+		PopupCreator.onSearchEngineClick = onSearchEngineClick;
+	}, 0);
 
 	// be prepared for messages from background script
 	browser.runtime.onMessage.addListener(onMessageReceived);
@@ -398,12 +392,38 @@ namespace ContentScript
 		if (DEBUG) { log("showing popup, previous value was: " + popup); }
 
 		if (popup === null) {
-			createPopup(settings);
-			setupPopupSize(popup, settings.searchEngines, settings);
-			setupPopupIconPositions(popup, settings.searchEngines, settings);
+			popup = createPopup(settings, sssIcons);
 		}
 
 		showPopup(settings);
+	}
+
+	export function createPopup(settings, sssIcons): PopupCreator.SSSPopup
+	{
+		// temp class that locks in settings as arguments to SSSPopup
+		class SSSPopupWithSettings extends PopupCreator.SSSPopup {
+			constructor() { super(settings, sssIcons); }
+		}
+
+		customElements.define('sss-popup', SSSPopupWithSettings);
+
+		let popup = document.createElement("sss-popup") as PopupCreator.SSSPopup;
+
+		document.documentElement.appendChild(popup);
+
+		// register popup events
+		document.documentElement.addEventListener("keypress", hidePopup);
+		document.documentElement.addEventListener("mousedown", hidePopup);	// hide popup from a press down anywhere...
+		popup.addEventListener("mousedown", ev => ev.stopPropagation());	// ...except on the popup itself
+
+		if (settings.hidePopupOnPageScroll) {
+			window.addEventListener("scroll", hidePopup);
+		}
+
+		popup.setupPopupSize(settings.searchEngines, settings);
+		popup.setupPopupIconPositions(settings);
+
+		return popup;
 	}
 
 	function isInEditableField(node): boolean
@@ -427,23 +447,10 @@ namespace ContentScript
 			return;
 		}
 
-		setProperty(popup, "display", "inline-block");
-		setPopupPosition(popup, settings.searchEngines, settings);
+		popup.setPopupPosition(settings, selection, mousePositionX, mousePositionY);
 
-		if (settings.popupAnimationDuration > 0)
-		{
-			// Animate popup
-			if (activationSettings.browserVersion < 60) {
-				// On pre-Firefox 60, only animate if cloneInto exists (it doesn't in the add-on options page or other resource pages).
-				// cloneInto fixes a Firefox bug that causes animations to not work in that version.
-				if (typeof cloneInto === "function") {
-					popup.animate(cloneInto({ transform: ["scale(0.8)", "scale(1)"] }, window), settings.popupAnimationDuration);
-					popup.animate(cloneInto({ opacity: [0, 1] }, window), settings.popupAnimationDuration * 0.5);
-				}
-			} else {
-				popup.animate({ transform: ["scale(0.8)", "scale(1)"] } as PropertyIndexedKeyframes, settings.popupAnimationDuration);
-				popup.animate({ opacity: ["0", "1"] } as PropertyIndexedKeyframes, settings.popupAnimationDuration * 0.5);
-			}
+		if (settings.popupAnimationDuration > 0) {
+			popup.playAnimation(settings);
 		}
 	}
 
@@ -458,343 +465,7 @@ namespace ContentScript
 			return;
 		}
 
-		setProperty(popup, "display", "none");
-	}
-
-	function createPopup(settings)
-	{
-		// base popup format, resetting every property to initial first (a few are defined explicitely because of websites overriding with "important")
-		let popupCssText = `
-	all: initial;
-	box-sizing: initial !important;
-	font-size: 0 !important;
-	position: absolute !important;
-	z-index: 2147483647 !important;
-	text-align: center !important;
-	overflow: hidden !important;
-	-moz-user-select: none !important;
-	user-select: none !important;
-	box-shadow: 0px 0px 3px rgba(0,0,0,.5) !important;
-	direction: ltr !important;
-	`;
-
-		// base format for each icon (image)
-		let iconCssText = `
-	all: initial;
-	display: initial !important;
-	position: absolute !important;
-	box-sizing: initial !important;
-	fontSize: 0 !important;
-	`;
-
-		// create popup parent (will contain all icons)
-		popup = document.createElement("swift-selection-search-popup");
-		popup.style.cssText = popupCssText;
-		setProperty(popup, "background-color", settings.popupBackgroundColor);
-		setProperty(popup, "border-radius", settings.popupBorderRadius + "px");
-		setProperty(popup, "padding", `${settings.popupPaddingY}px ${settings.popupPaddingX}px`);
-
-		// add each engine to the popup
-		for (let i = 0; i < settings.searchEngines.length; i++)
-		{
-			let engine = settings.searchEngines[i];
-			let icon;
-
-			// special SSS icons with special functions
-			if (engine.type === SearchEngineType.SSS)
-			{
-				let sssIcon = sssIcons[engine.id];
-
-				// if (sssIcon.iconPath !== undefined) {
-					let iconImgSource = browser.extension.getURL(sssIcon.iconPath);
-					let isInteractive = sssIcon.isInteractive !== false;	// undefined or true means it's interactive
-					icon = setupEngineIcon(engine, iconImgSource, sssIcon.name, isInteractive, iconCssText, popup, settings);
-				// }
-				// else if (sssIcon.iconCss !== undefined) {
-				// 	setupEngineCss(sssIcon, iconCssText, popup, settings);
-				// }
-
-				if (engine.id === "separator") {
-					setProperty(icon, "pointer-events", "none");
-				}
-			}
-			// "normal" custom search engines
-			else
-			{
-				let iconImgSource;
-
-				if (engine.iconUrl.startsWith("data:")) {
-					iconImgSource = engine.iconUrl;	// use "URL" directly, as it's pure image data
-				} else {
-					let cachedIcon = settings.searchEnginesCache[engine.iconUrl];
-					iconImgSource = cachedIcon ? cachedIcon : engine.iconUrl;	// should have cached icon, but if not (for some reason) fall back to URL
-				}
-
-				icon = setupEngineIcon(engine, iconImgSource, engine.name, true, iconCssText, popup, settings);
-			}
-		}
-
-		// add popup to page
-		document.documentElement.appendChild(popup);
-
-		// register popup events
-		document.documentElement.addEventListener("keypress", hidePopup);
-		document.documentElement.addEventListener("mousedown", hidePopup);	// hide popup from a press down anywhere...
-		popup.addEventListener("mousedown", ev => ev.stopPropagation());	// ...except on the popup itself
-
-		if (settings.hidePopupOnPageScroll) {
-			window.addEventListener("scroll", hidePopup);
-		}
-	}
-
-	function setupEngineIcon(engine: SSS.SearchEngine, iconImgSource: string, iconTitle: string, isInteractive: boolean, iconCssText: string, parent: HTMLElement, settings: SSS.Settings)
-	{
-		let icon: HTMLImageElement = document.createElement("img");
-		icon.src = iconImgSource;
-		icon.style.cssText = iconCssText;
-		setProperty(icon, "width", settings.popupItemSize + "px");
-		setProperty(icon, "height", settings.popupItemSize + "px");
-		setProperty(icon, "border-radius", settings.popupItemBorderRadius + "px");
-		setProperty(icon, "padding", `${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}px`);
-
-		// if icon responds to mouse interaction, it needs events!
-		if (isInteractive)
-		{
-			icon.title = iconTitle;	// only interactive icons need a title (for the tooltip)
-
-			// set hover behaviour based on settings
-			if (settings.popupItemHoverBehaviour === ItemHoverBehaviour.Highlight || settings.popupItemHoverBehaviour === ItemHoverBehaviour.HighlightAndMove)
-			{
-				icon.onmouseover = () => {
-					setProperty(icon, "border-bottom", `2px ${settings.popupHighlightColor} solid`);
-					if (settings.popupItemBorderRadius == 0) {
-						setProperty(icon, "border-radius", "2px");
-					}
-
-					let verticalPaddingStr = (3 + settings.popupItemVerticalPadding - 2) + "px";
-					if (settings.popupItemHoverBehaviour === ItemHoverBehaviour.Highlight) {
-						// remove 2 pixels to counter the added border of 2px
-						setProperty(icon, "padding-bottom", verticalPaddingStr);
-					} else {
-						// remove 2 pixels of top padding to cause icon to move up
-						setProperty(icon, "padding-top", verticalPaddingStr);
-					}
-				};
-
-				icon.onmouseout = () => {
-					removeProperty(icon, "border-bottom");
-					if (settings.popupItemBorderRadius == 0) {
-						removeProperty(icon, "border-radius");
-					}
-
-					let verticalPaddingStr = (3 + settings.popupItemVerticalPadding) + "px";
-					setProperty(icon, "padding-top", verticalPaddingStr);
-					setProperty(icon, "padding-bottom", verticalPaddingStr);
-				};
-			}
-
-			// essential event for clicking the engines
-			icon.addEventListener("mouseup", ev => onSearchEngineClick(ev, engine, settings)); // "mouse up" instead of "click" to support middle click
-
-			// these would be in the CSS format block for the icons, but only interactive icons can have them
-			setProperty(icon, "cursor", "pointer");
-			setProperty(icon, "pointer-events", "auto");
-		}
-
-		icon.addEventListener("mousedown", ev => {
-			// prevents focus from changing to icon and breaking copy from input fields
-			ev.preventDefault();
-		});
-
-		icon.ondragstart = () => false;	// disable dragging popup images
-
-		parent.appendChild(icon);
-		return icon;
-	}
-
-	// function setupEngineCss(sssIcon, iconCssText, parent, settings)
-	// {
-	// 	let div = document.createElement("div");
-
-	// 	div.style.cssText = sssIcon.iconCss;
-	// 	div.style.marginBottom = (3 + settings.popupItemVerticalPadding) + "px";
-	// 	div.style.marginTop = (3 + settings.popupItemVerticalPadding) + "px";
-
-	// 	parent.appendChild(div);
-	// 	return div;
-	// }
-
-	function setupPopupSize(popup, searchEngines, settings)
-	{
-		let nPopupIconsPerRow;
-		if (!settings.useSingleRow && settings.nPopupIconsPerRow < searchEngines.length) {
-			nPopupIconsPerRow = settings.nPopupIconsPerRow > 0 ? settings.nPopupIconsPerRow : 1;
-		} else {
-			nPopupIconsPerRow = searchEngines.length;
-		}
-
-		// Calculate popup width (not all icons have the same width).
-		// This deals with both single row and grid layouts.
-
-		var iconWidths = [];
-		let popupWidth = 0;
-
-		for (let i = 0; i < searchEngines.length; i += nPopupIconsPerRow)
-		{
-			let rowWidth = 0;
-			let limit = Math.min(i + nPopupIconsPerRow, searchEngines.length);
-
-			for (let j = i; j < limit; j++)
-			{
-				let engine = searchEngines[j];
-				let iconWidth = settings.popupItemPadding * 2;
-				if (engine.type === SearchEngineType.SSS && engine.id === "separator") {
-					iconWidth += settings.popupItemSize * settings.popupSeparatorWidth / 100;
-				} else {
-					iconWidth += settings.popupItemSize;
-				}
-
-				iconWidths.push(iconWidth);
-				rowWidth += iconWidth;
-			}
-
-			if (popupWidth < rowWidth) {
-				popupWidth = rowWidth;
-			}
-		}
-
-		// Calculate popup height (number of "rows" iterated through above might not be the real number)
-
-		// all engine icons have the same height
-		let rowHeight = settings.popupItemSize + (3 + settings.popupItemVerticalPadding) * 2;
-		let popupHeight = rowHeight;
-
-		let rowWidth = 0;
-
-		for (let i = 0; i < iconWidths.length; i++)
-		{
-			rowWidth += iconWidths[i];
-
-			if (rowWidth > popupWidth + 0.001) {	// 0.001 is just to avoid floating point errors causing problems
-				popupHeight += rowHeight;
-				rowWidth = iconWidths[i];
-			}
-		}
-
-		// finally set the size and position values
-		setProperty(popup, "width",  popupWidth + "px");
-		setProperty(popup, "height", popupHeight + "px");
-
-		popup.width = popupWidth;
-		popup.height = popupHeight;
-		popup.iconWidths = iconWidths;
-	}
-
-	function setupPopupIconPositions(popup, searchEngines, settings)
-	{
-		let iconWidths = popup.iconWidths;
-
-		// all engine icons have the same height
-		let rowHeight = settings.popupItemSize + (3 + settings.popupItemVerticalPadding) * 2;
-		let rowWidth = 0;
-		let y = settings.popupPaddingY;
-
-		let popupChildren = popup.children;
-		let iAtStartOfRow = 0;
-
-		function positionRowIcons(start, end, rowWidth, y)
-		{
-			let x = settings.popupPaddingX;
-			if (settings.iconAlignmentInGrid === IconAlignment.Middle) {
-				x += (popup.width - rowWidth) / 2;
-			} else if (settings.iconAlignmentInGrid === IconAlignment.Right) {
-				x += popup.width - rowWidth;
-			}
-
-			for (let i = start; i < end; i++) {
-				let popupChild = popupChildren[i];
-				let xOffset = -(settings.popupItemSize + settings.popupItemPadding * 2 - iconWidths[i]) / 2;
-				setProperty(popupChild, "left", (x + xOffset) + "px");
-				setProperty(popupChild, "top", y + "px");
-				x += iconWidths[i];
-			}
-		}
-
-		for (let i = 0; i < popupChildren.length; i++)
-		{
-			if (rowWidth + iconWidths[i] > popup.width + 0.001) {	// 0.001 is just to avoid floating point errors causing problems
-				positionRowIcons(iAtStartOfRow, i, rowWidth, y);
-				iAtStartOfRow = i;
-				rowWidth = 0;
-				y += rowHeight;
-			}
-			rowWidth += iconWidths[i];
-		}
-
-		positionRowIcons(iAtStartOfRow, popupChildren.length, rowWidth, y);
-	}
-
-	function setPopupPosition(popup, searchEngines, settings)
-	{
-		// position popup
-
-		let positionLeft;
-		let positionTop;
-
-		// decide popup position based on settings
-		if (settings.popupLocation === PopupLocation.Selection) {
-			let rect;
-			if (selection.isInEditableField) {
-				rect = selection.element.getBoundingClientRect();
-			} else {
-				let range = selection.selection.getRangeAt(0); // get the text range
-				rect = range.getBoundingClientRect();
-			}
-			// lower right corner of selected text's "bounds"
-			positionLeft = rect.right + window.pageXOffset;
-			positionTop = rect.bottom + window.pageYOffset;
-		}
-		else if (settings.popupLocation === PopupLocation.Cursor) {
-			// right above the mouse position
-			positionLeft = mousePositionX;
-			positionTop = mousePositionY - popup.height - 10;	// 10 is forced padding to avoid popup being too close to cursor
-		}
-
-		// center horizontally
-		positionLeft -= popup.width / 2;
-
-		// apply user offsets from settings
-		positionLeft += settings.popupOffsetX;
-		positionTop -= settings.popupOffsetY;	// invert sign because y is 0 at the top
-
-		// don't leave the page or be excessively close to leaving it
-
-		// left/right checks
-		if (positionLeft < 5) {
-			positionLeft = 5;
-		} else {
-			let pageWidth = document.documentElement.offsetWidth + window.pageXOffset;
-			if (positionLeft + popup.width + 10 > pageWidth) {
-				positionLeft = pageWidth - popup.width - 10;
-			}
-		}
-
-		// top/bottom checks
-		if (positionTop < 5) {
-			positionTop = 5;
-		} else {
-			let pageHeight = document.documentElement.scrollHeight;
-			if (positionTop + popup.height + 10 > pageHeight) {
-				let newPositionTop = pageHeight - popup.height - 10;
-				if (newPositionTop >= 0) {	// just to be sure, since some websites can have pageHeight = 0
-					positionTop = pageHeight - popup.height - 10;
-				}
-			}
-		}
-
-		// finally set the size and position values
-		setProperty(popup, "left", positionLeft + "px");
-		setProperty(popup, "top",  positionTop + "px");
+		popup.hide();
 	}
 
 	function onMouseUpdate(ev: MouseEvent)
@@ -907,9 +578,384 @@ namespace ContentScript
 	{
 		elem.style.setProperty(property, value, "important");
 	}
+}
 
-	function removeProperty(elem: HTMLElement, property: string)
+
+
+
+
+
+namespace PopupCreator
+{
+	// Subset of enums from the background script (only the ones needed).
+	// We duplicate enum definitions because otherwise the generated JS code is incomplete.
+	enum SearchEngineType {
+		SSS = "sss",
+	}
+	enum IconAlignment {
+		Left = "left",
+		Middle = "middle",
+		Right = "right",
+	}
+	enum ItemHoverBehaviour {
+		Nothing = "nothing",
+		Highlight = "highlight",
+		HighlightAndMove = "highlight-and-move",
+	}
+	enum PopupLocation {
+		Selection = "selection",
+		Cursor = "cursor",
+	}
+
+	export let onSearchEngineClick = null;
+
+	class SSSPopupContent extends HTMLDivElement
 	{
-		elem.style.removeProperty(property);
+		width: number;
+		height: number;
+		iconWidths: number[];
+	}
+
+	export class SSSPopup extends HTMLElement
+	{
+		content: SSSPopupContent = null;
+		settings = null;
+		sssIcons = null;
+
+		constructor(settings, sssIcons)
+		{
+			super();
+			this.settings = settings;
+			this.sssIcons = sssIcons;
+
+			Object.setPrototypeOf(this, SSSPopup.prototype);	// needed so that instanceof works
+
+			let shadow = this.attachShadow({mode: 'open'});
+
+			// create popup parent (will contain all icons)
+			this.content = document.createElement("div") as SSSPopupContent;
+			shadow.appendChild(this.content);
+
+			// base popup format, resetting every property to initial first (a few are defined explicitely because of websites overriding with "important")
+			let popupCssText = `
+				box-sizing: initial;
+				font-size: 0;
+				position: absolute;
+				z-index: 2147483647;
+				text-align: center;
+				overflow: hidden;
+				-moz-user-select: none;
+				user-select: none;
+				box-shadow: 0px 0px 3px rgba(0,0,0,.5);
+				direction: ltr;
+				background-color: ${this.settings.popupBackgroundColor};
+				border-radius: ${this.settings.popupBorderRadius}px;
+				padding: ${this.settings.popupPaddingY}px ${this.settings.popupPaddingX}px;
+				`;
+
+			this.content.style.cssText = popupCssText;
+
+			this.createPopupContent(this.settings, this.sssIcons);
+		}
+
+		createPopupContent(settings, sssIcons)
+		{
+			// base format for each icon (image)
+			let iconCssText = `
+				display: initial;
+				position: absolute;
+				box-sizing: initial;
+				fontSize: 0;
+				width: ${settings.popupItemSize}px;
+				height: ${settings.popupItemSize}px;
+				border-radius: ${settings.popupItemBorderRadius}px;
+				padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}px;
+				`;
+
+			// add each engine to the popup
+			for (let i = 0; i < settings.searchEngines.length; i++)
+			{
+				let engine = settings.searchEngines[i];
+				let icon;
+
+				// special SSS icons with special functions
+				if (engine.type === SearchEngineType.SSS)
+				{
+					let sssIcon = sssIcons[engine.id];
+
+					let iconImgSource = browser.extension.getURL(sssIcon.iconPath);
+					let isInteractive = sssIcon.isInteractive !== false;	// undefined or true means it's interactive
+					icon = this.setupEngineIcon(engine, iconImgSource, sssIcon.name, isInteractive, iconCssText, settings);
+					this.content.appendChild(icon);
+
+					if (engine.id === "separator") {
+						icon.style.setProperty("pointer-events", "none");
+					}
+				}
+				// "normal" custom search engines
+				else
+				{
+					let iconImgSource;
+
+					if (engine.iconUrl.startsWith("data:")) {
+						iconImgSource = engine.iconUrl;	// use "URL" directly, as it's pure image data
+					} else {
+						let cachedIcon = settings.searchEnginesCache[engine.iconUrl];
+						iconImgSource = cachedIcon ? cachedIcon : engine.iconUrl;	// should have cached icon, but if not (for some reason) fall back to URL
+					}
+
+					icon = this.setupEngineIcon(engine, iconImgSource, engine.name, true, iconCssText, settings);
+					this.content.appendChild(icon);
+				}
+			}
+		}
+
+		setupEngineIcon(engine: SSS.SearchEngine, iconImgSource: string, iconTitle: string, isInteractive: boolean, iconCssText: string, settings: SSS.Settings)
+		{
+			let icon: HTMLImageElement = document.createElement("img");
+			icon.src = iconImgSource;
+			icon.style.cssText = iconCssText;
+
+			// if icon responds to mouse interaction, it needs events!
+			if (isInteractive)
+			{
+				icon.title = iconTitle;	// only interactive icons need a title (for the tooltip)
+
+				// set hover behaviour based on settings
+				if (settings.popupItemHoverBehaviour === ItemHoverBehaviour.Highlight || settings.popupItemHoverBehaviour === ItemHoverBehaviour.HighlightAndMove)
+				{
+					icon.onmouseover = () => {
+						icon.style.setProperty("border-bottom", `2px ${settings.popupHighlightColor} solid`);
+						if (settings.popupItemBorderRadius == 0) {
+							icon.style.setProperty("border-radius", "2px");
+						}
+
+						let verticalPaddingStr = (3 + settings.popupItemVerticalPadding - 2) + "px";
+						if (settings.popupItemHoverBehaviour === ItemHoverBehaviour.Highlight) {
+							// remove 2 pixels to counter the added border of 2px
+							icon.style.setProperty("padding-bottom", verticalPaddingStr);
+						} else {
+							// remove 2 pixels of top padding to cause icon to move up
+							icon.style.setProperty("padding-top", verticalPaddingStr);
+						}
+					};
+
+					icon.onmouseout = () => {
+						icon.style.removeProperty("border-bottom");
+						if (settings.popupItemBorderRadius == 0) {
+							icon.style.removeProperty("border-radius");
+						}
+
+						let verticalPaddingStr = (3 + settings.popupItemVerticalPadding) + "px";
+						icon.style.setProperty("padding-top", verticalPaddingStr);
+						icon.style.setProperty("padding-bottom", verticalPaddingStr);
+					};
+				}
+
+				// essential event for clicking the engines
+				icon.addEventListener("mouseup", ev => onSearchEngineClick(ev, engine, settings)); // "mouse up" instead of "click" to support middle click
+
+				// these would be in the CSS format block for the icons, but only interactive icons can have them
+				icon.style.setProperty("cursor", "pointer");
+				icon.style.setProperty("pointer-events", "auto");
+			}
+
+			icon.addEventListener("mousedown", ev => {
+				// prevents focus from changing to icon and breaking copy from input fields
+				ev.preventDefault();
+			});
+
+			icon.ondragstart = () => false;	// disable dragging popup images
+
+			return icon;
+		}
+
+		setupPopupSize(searchEngines, settings)
+		{
+			let nPopupIconsPerRow: number;
+			if (!settings.useSingleRow && settings.nPopupIconsPerRow < searchEngines.length) {
+				nPopupIconsPerRow = settings.nPopupIconsPerRow > 0 ? settings.nPopupIconsPerRow : 1;
+			} else {
+				nPopupIconsPerRow = searchEngines.length;
+			}
+
+			// Calculate popup width (not all icons have the same width).
+			// This deals with both single row and grid layouts.
+
+			let iconWidths: number[] = [];
+			let popupWidth: number = 0;
+
+			for (let i = 0; i < searchEngines.length; i += nPopupIconsPerRow)
+			{
+				let rowWidth = 0;
+				let limit = Math.min(i + nPopupIconsPerRow, searchEngines.length);
+
+				for (let j = i; j < limit; j++)
+				{
+					let engine = searchEngines[j];
+					let iconWidth = settings.popupItemPadding * 2;
+					if (engine.type === SearchEngineType.SSS && engine.id === "separator") {
+						iconWidth += settings.popupItemSize * settings.popupSeparatorWidth / 100;
+					} else {
+						iconWidth += settings.popupItemSize;
+					}
+
+					iconWidths.push(iconWidth);
+					rowWidth += iconWidth;
+				}
+
+				if (popupWidth < rowWidth) {
+					popupWidth = rowWidth;
+				}
+			}
+
+			// Calculate popup height (number of "rows" iterated through above might not be the real number)
+
+			// all engine icons have the same height
+			let rowHeight: number = settings.popupItemSize + (3 + settings.popupItemVerticalPadding) * 2;
+			let popupHeight: number = rowHeight;
+
+			let rowWidth: number = 0;
+
+			for (let i = 0; i < iconWidths.length; i++)
+			{
+				rowWidth += iconWidths[i];
+
+				if (rowWidth > popupWidth + 0.001) {	// 0.001 is just to avoid floating point errors causing problems
+					popupHeight += rowHeight;
+					rowWidth = iconWidths[i];
+				}
+			}
+
+			// finally set the size and position values
+			this.content.style.setProperty("width",  popupWidth + "px");
+			this.content.style.setProperty("height", popupHeight + "px");
+
+			// store some values for ease of access later
+			this.content.width = popupWidth;
+			this.content.height = popupHeight;
+			this.content.iconWidths = iconWidths;
+		}
+
+		setupPopupIconPositions(settings)
+		{
+			let iconWidths = this.content.iconWidths;
+
+			// all engine icons have the same height
+			let rowHeight = settings.popupItemSize + (3 + settings.popupItemVerticalPadding) * 2;
+			let rowWidth = 0;
+			let y = settings.popupPaddingY;
+
+			let popupChildren = this.content.children;
+			let iAtStartOfRow = 0;
+			let self = this;
+
+			function positionRowIcons(start, end, rowWidth, y)
+			{
+				let x = settings.popupPaddingX;
+				if (settings.iconAlignmentInGrid === IconAlignment.Middle) {
+					x += (self.content.width - rowWidth) / 2;
+				} else if (settings.iconAlignmentInGrid === IconAlignment.Right) {
+					x += self.content.width - rowWidth;
+				}
+
+				for (let i = start; i < end; i++) {
+					let popupChild = popupChildren[i] as HTMLElement;
+					let xOffset = -(settings.popupItemSize + settings.popupItemPadding * 2 - iconWidths[i]) / 2;
+					popupChild.style.setProperty("left", (x + xOffset) + "px");
+					popupChild.style.setProperty("top", y + "px");
+					x += iconWidths[i];
+				}
+			}
+
+			for (let i = 0; i < popupChildren.length; i++)
+			{
+				if (rowWidth + iconWidths[i] > this.content.width + 0.001) {	// 0.001 is just to avoid floating point errors causing problems
+					positionRowIcons(iAtStartOfRow, i, rowWidth, y);
+					iAtStartOfRow = i;
+					rowWidth = 0;
+					y += rowHeight;
+				}
+				rowWidth += iconWidths[i];
+			}
+
+			positionRowIcons(iAtStartOfRow, popupChildren.length, rowWidth, y);
+		}
+
+		setPopupPosition(settings, selection, mousePositionX, mousePositionY)
+		{
+			this.content.style.setProperty("display", "inline-block");
+
+			// position popup
+
+			let positionLeft;
+			let positionTop;
+
+			// decide popup position based on settings
+			if (settings.popupLocation === PopupLocation.Selection) {
+				let rect;
+				if (selection.isInEditableField) {
+					rect = selection.element.getBoundingClientRect();
+				} else {
+					let range = selection.selection.getRangeAt(0); // get the text range
+					rect = range.getBoundingClientRect();
+				}
+				// lower right corner of selected text's "bounds"
+				positionLeft = rect.right + window.pageXOffset;
+				positionTop = rect.bottom + window.pageYOffset;
+			}
+			else if (settings.popupLocation === PopupLocation.Cursor) {
+				// right above the mouse position
+				positionLeft = mousePositionX;
+				positionTop = mousePositionY - this.content.height - 10;	// 10 is forced padding to avoid popup being too close to cursor
+			}
+
+			// center horizontally
+			positionLeft -= this.content.width / 2;
+
+			// apply user offsets from settings
+			positionLeft += settings.popupOffsetX;
+			positionTop -= settings.popupOffsetY;	// invert sign because y is 0 at the top
+
+			// don't leave the page or be excessively close to leaving it
+
+			// left/right checks
+			if (positionLeft < 5) {
+				positionLeft = 5;
+			} else {
+				let pageWidth = document.documentElement.offsetWidth + window.pageXOffset;
+				if (positionLeft + this.content.width + 10 > pageWidth) {
+					positionLeft = pageWidth - this.content.width - 10;
+				}
+			}
+
+			// top/bottom checks
+			if (positionTop < 5) {
+				positionTop = 5;
+			} else {
+				let pageHeight = document.documentElement.scrollHeight;
+				if (positionTop + this.content.height + 10 > pageHeight) {
+					let newPositionTop = pageHeight - this.content.height - 10;
+					if (newPositionTop >= 0) {	// just to be sure, since some websites can have pageHeight = 0
+						positionTop = pageHeight - this.content.height - 10;
+					}
+				}
+			}
+
+			// finally set the size and position values
+			this.content.style.setProperty("left", positionLeft + "px");
+			this.content.style.setProperty("top",  positionTop + "px");
+		}
+
+		playAnimation(settings)
+		{
+			this.content.animate({ transform: ["scale(0.8)", "scale(1)"] } as PropertyIndexedKeyframes, settings.popupAnimationDuration);
+			this.content.animate({ opacity: ["0", "1"] } as PropertyIndexedKeyframes, settings.popupAnimationDuration * 0.5);
+		}
+
+		hide()
+		{
+			this.content.style.setProperty("display", "none");
+		}
 	}
 }
