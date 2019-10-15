@@ -434,7 +434,6 @@ namespace ContentScript
 		}
 
 		popup.setupPopupSize(settings.searchEngines, settings);
-		popup.setupPopupIconPositions(settings);
 
 		return popup;
 	}
@@ -460,8 +459,8 @@ namespace ContentScript
 			return;
 		}
 
+		popup.show();	// call "show" first so that popup size calculations are correct in setPopupPosition
 		popup.setPopupPosition(settings, selection, mousePositionX, mousePositionY);
-		popup.show();
 
 		if (settings.popupAnimationDuration > 0) {
 			popup.playAnimation(settings);
@@ -609,10 +608,6 @@ namespace PopupCreator
 		settings: SSS.Settings;
 		sssIcons: { [id: string] : SSS.SSSIconDefinition; };
 
-		width: number;
-		height: number;
-		iconWidths: number[];
-
 		constructor(settings: SSS.Settings, sssIcons: { [id: string] : SSS.SSSIconDefinition; })
 		{
 			super();
@@ -631,7 +626,6 @@ namespace PopupCreator
 				font-size: 0;
 				position: absolute;
 				z-index: 2147483647;
-				text-align: center;
 				overflow: hidden;
 				-moz-user-select: none;
 				user-select: none;
@@ -651,8 +645,6 @@ namespace PopupCreator
 		{
 			// base format for each icon (image)
 			let iconCssText = `
-				position: absolute;
-				fontSize: 0;
 				width: ${settings.popupItemSize}px;
 				height: ${settings.popupItemSize}px;
 				border-radius: ${settings.popupItemBorderRadius}px;
@@ -675,7 +667,14 @@ namespace PopupCreator
 					icon = this.setupEngineIcon(engine, iconImgSource, sssIcon.name, isInteractive, iconCssText, settings);
 					this.content.appendChild(icon);
 
-					if (engine.id === "separator") {
+					if (engine.id === "separator")
+					{
+						let width = settings.popupItemSize * settings.popupSeparatorWidth / 100;
+						let margin = (width - settings.popupItemSize) / 2;
+						let sizeString = margin + "px";
+						icon.style.setProperty("margin-left", sizeString);
+						icon.style.setProperty("margin-right", sizeString);
+
 						icon.style.setProperty("pointer-events", "none");
 					}
 				}
@@ -759,118 +758,29 @@ namespace PopupCreator
 
 		setupPopupSize(searchEngines: SSS.SearchEngine[], settings: SSS.Settings)
 		{
-			let nPopupIconsPerRow: number;
-			if (!settings.useSingleRow && settings.nPopupIconsPerRow < searchEngines.length) {
-				nPopupIconsPerRow = settings.nPopupIconsPerRow > 0 ? settings.nPopupIconsPerRow : 1;
-			} else {
-				nPopupIconsPerRow = searchEngines.length;
-			}
-
-			// Calculate popup width (not all icons have the same width).
-			// This deals with both single row and grid layouts.
-
-			let iconWidths: number[] = [];
-			let popupWidth: number = 0;
-
-			for (let i = 0; i < searchEngines.length; i += nPopupIconsPerRow)
+			if (!settings.useSingleRow)
 			{
-				let rowWidth = 0;
-				let limit = Math.min(i + nPopupIconsPerRow, searchEngines.length);
+				let nPopupIconsPerRow: number = Math.max(1, Math.min(settings.nPopupIconsPerRow, searchEngines.length));
+				let width: number = nPopupIconsPerRow * (settings.popupItemSize + 2 * settings.popupItemPadding);
+				this.content.style.setProperty("width", width + "px");
 
-				for (let j = i; j < limit; j++)
+				let alignment: string;
+				switch (settings.iconAlignmentInGrid)
 				{
-					let engine = searchEngines[j];
-					let iconWidth = settings.popupItemPadding * 2;
-					if (engine.type === Types.SearchEngineType.SSS && engine.id === "separator") {
-						iconWidth += settings.popupItemSize * settings.popupSeparatorWidth / 100;
-					} else {
-						iconWidth += settings.popupItemSize;
-					}
-
-					iconWidths.push(iconWidth);
-					rowWidth += iconWidth;
+					case Types.IconAlignment.Left: alignment = "left"; break;
+					case Types.IconAlignment.Middle: alignment = "center"; break;
+					case Types.IconAlignment.Right: alignment = "right"; break;
 				}
-
-				if (popupWidth < rowWidth) {
-					popupWidth = rowWidth;
-				}
+				this.content.style.setProperty("text-align", alignment);
 			}
-
-			// Calculate popup height (number of "rows" iterated through above might not be the real number)
-
-			// all engine icons have the same height
-			let rowHeight: number = settings.popupItemSize + (3 + settings.popupItemVerticalPadding) * 2;
-			let popupHeight: number = rowHeight;
-
-			let rowWidth: number = 0;
-
-			for (let i = 0; i < iconWidths.length; i++)
-			{
-				rowWidth += iconWidths[i];
-
-				if (rowWidth > popupWidth + 0.001) {	// 0.001 is just to avoid floating point errors causing problems
-					popupHeight += rowHeight;
-					rowWidth = iconWidths[i];
-				}
-			}
-
-			// finally set the size and position values
-			this.content.style.setProperty("width",  popupWidth + "px");
-			this.content.style.setProperty("height", popupHeight + "px");
-
-			// store some values for ease of access later
-			this.width = popupWidth;
-			this.height = popupHeight;
-			this.iconWidths = iconWidths;
-		}
-
-		setupPopupIconPositions(settings: SSS.Settings)
-		{
-			// all engine icons have the same height
-			let rowHeight = settings.popupItemSize + (3 + settings.popupItemVerticalPadding) * 2;
-			let rowWidth = 0;
-			let y = settings.popupPaddingY;
-
-			let popupChildren = this.content.children;
-			let iAtStartOfRow = 0;
-
-			let iconWidths = this.iconWidths;
-			let width = this.width;
-
-			function positionRowIcons(start, end, rowWidth, y)
-			{
-				let x = settings.popupPaddingX;
-				if (settings.iconAlignmentInGrid === Types.IconAlignment.Middle) {
-					x += (width - rowWidth) / 2;
-				} else if (settings.iconAlignmentInGrid === Types.IconAlignment.Right) {
-					x += width - rowWidth;
-				}
-
-				for (let i = start; i < end; i++) {
-					let popupChild = popupChildren[i] as HTMLElement;
-					let xOffset = -(settings.popupItemSize + settings.popupItemPadding * 2 - iconWidths[i]) / 2;
-					popupChild.style.setProperty("left", (x + xOffset) + "px");
-					popupChild.style.setProperty("top", y + "px");
-					x += iconWidths[i];
-				}
-			}
-
-			for (let i = 0; i < popupChildren.length; i++)
-			{
-				if (rowWidth + iconWidths[i] > this.width + 0.001) {	// 0.001 is just to avoid floating point errors causing problems
-					positionRowIcons(iAtStartOfRow, i, rowWidth, y);
-					iAtStartOfRow = i;
-					rowWidth = 0;
-					y += rowHeight;
-				}
-				rowWidth += iconWidths[i];
-			}
-
-			positionRowIcons(iAtStartOfRow, popupChildren.length, rowWidth, y);
 		}
 
 		setPopupPosition(settings: SSS.Settings, selection: ContentScript.SelectionData, mousePositionX: number, mousePositionY: number)
 		{
+			let bounds = this.content.getBoundingClientRect();
+			let width = bounds.width;
+			let height = bounds.height;
+
 			// position popup
 
 			let positionLeft: number;
@@ -892,11 +802,11 @@ namespace PopupCreator
 			else if (settings.popupLocation === Types.PopupLocation.Cursor) {
 				// right above the mouse position
 				positionLeft = mousePositionX;
-				positionTop = mousePositionY - this.height - 10;	// 10 is forced padding to avoid popup being too close to cursor
+				positionTop = mousePositionY - height - 10;	// 10 is forced padding to avoid popup being too close to cursor
 			}
 
 			// center horizontally
-			positionLeft -= this.width / 2;
+			positionLeft -= width / 2;
 
 			// apply user offsets from settings
 			positionLeft += settings.popupOffsetX;
@@ -909,8 +819,8 @@ namespace PopupCreator
 				positionLeft = 5;
 			} else {
 				let pageWidth = document.documentElement.offsetWidth + window.pageXOffset;
-				if (positionLeft + this.width + 10 > pageWidth) {
-					positionLeft = pageWidth - this.width - 10;
+				if (positionLeft + width + 10 > pageWidth) {
+					positionLeft = pageWidth - width - 10;
 				}
 			}
 
@@ -919,10 +829,10 @@ namespace PopupCreator
 				positionTop = 5;
 			} else {
 				let pageHeight = document.documentElement.scrollHeight;
-				if (positionTop + this.height + 10 > pageHeight) {
-					let newPositionTop = pageHeight - this.height - 10;
+				if (positionTop + height + 10 > pageHeight) {
+					let newPositionTop = pageHeight - height - 10;
 					if (newPositionTop >= 0) {	// just to be sure, since some websites can have pageHeight = 0
-						positionTop = pageHeight - this.height - 10;
+						positionTop = pageHeight - height - 10;
 					}
 				}
 			}
