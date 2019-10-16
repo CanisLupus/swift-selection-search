@@ -433,8 +433,6 @@ namespace ContentScript
 			window.addEventListener("scroll", hidePopup);
 		}
 
-		popup.setupPopupSize(settings.searchEngines, settings);
-
 		return popup;
 	}
 
@@ -586,11 +584,6 @@ namespace ContentScript
 		}
 		return false;
 	}
-
-	function setProperty(elem: HTMLElement, property: string, value: string)
-	{
-		elem.style.setProperty(property, value, "important");
-	}
 }
 
 
@@ -616,41 +609,109 @@ namespace PopupCreator
 
 			Object.setPrototypeOf(this, SSSPopup.prototype);	// needed so that instanceof and casts work
 
-			let shadow = this.attachShadow({mode: 'open'});
+			this.attachShadow({mode: 'open'});
+
+			let css = this.generateStylesheet(settings);
+			var style = document.createElement('style');
+			style.appendChild(document.createTextNode(css));
+			this.shadowRoot.appendChild(style);
 
 			// create popup parent (will contain all icons)
 			this.content = document.createElement("div");
-			shadow.appendChild(this.content);
-
-			let popupCssText = `
-				font-size: 0;
-				position: absolute;
-				z-index: 2147483647;
-				overflow: hidden;
-				-moz-user-select: none;
-				user-select: none;
-				box-shadow: 0px 0px 3px rgba(0,0,0,.5);
-				direction: ltr;
-				background-color: ${this.settings.popupBackgroundColor};
-				border-radius: ${this.settings.popupBorderRadius}px;
-				padding: ${this.settings.popupPaddingY}px ${this.settings.popupPaddingX}px;
-				`;
-
-			this.content.style.cssText = popupCssText;
+			this.content.classList.add("sss-content");
+			this.shadowRoot.appendChild(this.content);
 
 			this.createPopupContent(this.settings, this.sssIcons);
 		}
 
+		generateStylesheet(settings: SSS.Settings)
+		{
+			return `
+				.sss-content {
+					font-size: 0px;
+					position: absolute;
+					z-index: 2147483647;
+					user-select: none;
+					box-shadow: rgba(0, 0, 0, 0.5) 0px 0px 3px;
+					direction: ltr;
+					background-color: ${this.settings.popupBackgroundColor};
+					border-radius: ${this.settings.popupBorderRadius}px;
+					padding: ${this.settings.popupPaddingY}px ${this.settings.popupPaddingX}px;
+					${this.generateStylesheet_TextAlign(settings)}
+					${this.generateStylesheet_Width(settings)}
+				}
+
+				.sss-content img {
+					width: ${settings.popupItemSize}px;
+					height: ${settings.popupItemSize}px;
+					padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}px;
+					border-radius: ${settings.popupItemBorderRadius}px;
+					cursor: pointer;
+					pointer-events: auto;
+				}
+
+				.sss-content img:hover {
+					${this.generateStylesheet_IconHover(settings)}
+				}
+
+				.separator {
+					${this.generateStylesheet_Separator(settings)}
+				}
+			`;
+		}
+
+		generateStylesheet_TextAlign(settings: SSS.Settings): string
+		{
+			let textAlign: string = "center";
+
+			if (!settings.useSingleRow)
+			{
+				switch (settings.iconAlignmentInGrid) {
+					case Types.IconAlignment.Left: textAlign = "left"; break;
+					case Types.IconAlignment.Right: textAlign = "right"; break;
+				}
+			}
+
+			return `text-align: ${textAlign};`;
+		}
+
+		generateStylesheet_Width(settings: SSS.Settings): string
+		{
+			if (settings.useSingleRow) return "";
+
+			let nPopupIconsPerRow: number = Math.max(1, Math.min(settings.nPopupIconsPerRow, settings.searchEngines.length));
+			let width: number = nPopupIconsPerRow * (settings.popupItemSize + 2 * settings.popupItemPadding);
+			return `width: ${width}px;`;
+		}
+
+		generateStylesheet_IconHover(settings: SSS.Settings): string
+		{
+			if (settings.popupItemHoverBehaviour === Types.ItemHoverBehaviour.Nothing) return "";
+
+			return `
+				border-bottom: 2px ${settings.popupHighlightColor} solid;
+				border-radius: ${settings.popupItemBorderRadius == 0 ? 2 : settings.popupItemBorderRadius}px;
+				${settings.popupItemHoverBehaviour === Types.ItemHoverBehaviour.HighlightAndMove
+					? `margin-top: ${-3 - settings.popupItemVerticalPadding + 2}px;`
+					: `padding-bottom: ${3 + settings.popupItemVerticalPadding - 2}px;`}
+			`;
+		}
+
+		generateStylesheet_Separator(settings: SSS.Settings): string
+		{
+			let separatorWidth = settings.popupItemSize * settings.popupSeparatorWidth / 100;
+			let separatorMargin = (separatorWidth - settings.popupItemSize) / 2;
+
+			return `
+				cursor: initial;
+				pointer-events: none;
+				margin-left: ${separatorMargin}px;
+				margin-right: ${separatorMargin}px;
+			`;
+		}
+
 		createPopupContent(settings: SSS.Settings, sssIcons: { [id: string] : SSS.SSSIconDefinition; })
 		{
-			// base format for each icon (image)
-			let iconCssText = `
-				width: ${settings.popupItemSize}px;
-				height: ${settings.popupItemSize}px;
-				border-radius: ${settings.popupItemBorderRadius}px;
-				padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}px;
-				`;
-
 			// add each engine to the popup
 			for (let i = 0; i < settings.searchEngines.length; i++)
 			{
@@ -664,18 +725,11 @@ namespace PopupCreator
 
 					let iconImgSource = browser.extension.getURL(sssIcon.iconPath);
 					let isInteractive = sssIcon.isInteractive !== false;	// undefined or true means it's interactive
-					icon = this.setupEngineIcon(engine, iconImgSource, sssIcon.name, isInteractive, iconCssText, settings);
+					icon = this.setupEngineIcon(engine, iconImgSource, sssIcon.name, isInteractive, settings);
 					this.content.appendChild(icon);
 
-					if (engine.id === "separator")
-					{
-						let width = settings.popupItemSize * settings.popupSeparatorWidth / 100;
-						let margin = (width - settings.popupItemSize) / 2;
-						let sizeString = margin + "px";
-						icon.style.setProperty("margin-left", sizeString);
-						icon.style.setProperty("margin-right", sizeString);
-
-						icon.style.setProperty("pointer-events", "none");
+					if (engine.id === "separator") {
+						icon.classList.add("separator");
 					}
 				}
 				// "normal" custom search engines
@@ -690,89 +744,29 @@ namespace PopupCreator
 						iconImgSource = cachedIcon ? cachedIcon : engine.iconUrl;	// should have cached icon, but if not (for some reason) fall back to URL
 					}
 
-					icon = this.setupEngineIcon(engine, iconImgSource, engine.name, true, iconCssText, settings);
+					icon = this.setupEngineIcon(engine, iconImgSource, engine.name, true, settings);
 					this.content.appendChild(icon);
 				}
 			}
 		}
 
-		setupEngineIcon(engine: SSS.SearchEngine, iconImgSource: string, iconTitle: string, isInteractive: boolean, iconCssText: string, settings: SSS.Settings): HTMLImageElement
+		setupEngineIcon(engine: SSS.SearchEngine, iconImgSource: string, iconTitle: string, isInteractive: boolean, settings: SSS.Settings): HTMLImageElement
 		{
 			let icon: HTMLImageElement = document.createElement("img");
 			icon.src = iconImgSource;
-			icon.style.cssText = iconCssText;
 
-			// if icon responds to mouse interaction, it needs events!
-			if (isInteractive)
-			{
-				icon.title = iconTitle;	// only interactive icons need a title (for the tooltip)
-
-				// set hover behaviour based on settings
-				if (settings.popupItemHoverBehaviour === Types.ItemHoverBehaviour.Highlight || settings.popupItemHoverBehaviour === Types.ItemHoverBehaviour.HighlightAndMove)
-				{
-					icon.onmouseover = () => {
-						icon.style.setProperty("border-bottom", `2px ${settings.popupHighlightColor} solid`);
-						if (settings.popupItemBorderRadius == 0) {
-							icon.style.setProperty("border-radius", "2px");
-						}
-
-						let verticalPaddingStr = (3 + settings.popupItemVerticalPadding - 2) + "px";
-						if (settings.popupItemHoverBehaviour === Types.ItemHoverBehaviour.Highlight) {
-							// remove 2 pixels to counter the added border of 2px
-							icon.style.setProperty("padding-bottom", verticalPaddingStr);
-						} else {
-							// remove 2 pixels of top padding to cause icon to move up
-							icon.style.setProperty("padding-top", verticalPaddingStr);
-						}
-					};
-
-					icon.onmouseout = () => {
-						icon.style.removeProperty("border-bottom");
-						if (settings.popupItemBorderRadius == 0) {
-							icon.style.removeProperty("border-radius");
-						}
-
-						let verticalPaddingStr = (3 + settings.popupItemVerticalPadding) + "px";
-						icon.style.setProperty("padding-top", verticalPaddingStr);
-						icon.style.setProperty("padding-bottom", verticalPaddingStr);
-					};
-				}
-
-				// essential event for clicking the engines
+			// if icon responds to mouse interaction
+			if (isInteractive) {
+				icon.title = iconTitle;	// tooltip
 				icon.addEventListener("mouseup", ev => onSearchEngineClick(ev, engine, settings)); // "mouse up" instead of "click" to support middle click
-
-				// these would be in the CSS format block for the icons, but only interactive icons can have them
-				icon.style.setProperty("cursor", "pointer");
-				icon.style.setProperty("pointer-events", "auto");
 			}
 
-			icon.addEventListener("mousedown", ev => {
-				// prevents focus from changing to icon and breaking copy from input fields
-				ev.preventDefault();
-			});
-
-			icon.ondragstart = () => false;	// disable dragging popup images
+			// prevents focus from changing to icon and breaking copy from input fields
+			icon.addEventListener("mousedown", ev => ev.preventDefault());
+			// disable dragging popup images
+			icon.ondragstart = () => false;
 
 			return icon;
-		}
-
-		setupPopupSize(searchEngines: SSS.SearchEngine[], settings: SSS.Settings)
-		{
-			if (!settings.useSingleRow)
-			{
-				let nPopupIconsPerRow: number = Math.max(1, Math.min(settings.nPopupIconsPerRow, searchEngines.length));
-				let width: number = nPopupIconsPerRow * (settings.popupItemSize + 2 * settings.popupItemPadding);
-				this.content.style.setProperty("width", width + "px");
-
-				let alignment: string;
-				switch (settings.iconAlignmentInGrid)
-				{
-					case Types.IconAlignment.Left: alignment = "left"; break;
-					case Types.IconAlignment.Middle: alignment = "center"; break;
-					case Types.IconAlignment.Right: alignment = "right"; break;
-				}
-				this.content.style.setProperty("text-align", alignment);
-			}
 		}
 
 		setPopupPosition(settings: SSS.Settings, selection: ContentScript.SelectionData, mousePositionX: number, mousePositionY: number)
