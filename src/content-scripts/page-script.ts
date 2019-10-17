@@ -1,3 +1,5 @@
+var DEBUG_STATE: boolean;	// avoid TS compilation errors but still get working JS code
+
 namespace Types
 {
 	// Subset of enums from the background script (only the ones needed).
@@ -32,8 +34,6 @@ namespace Types
 
 namespace ContentScript
 {
-	var DEBUG_STATE: boolean;	// avoid TS compilation errors but still get working JS code
-
 	export class SelectionData
 	{
 		isInEditableField: boolean;
@@ -585,11 +585,6 @@ namespace ContentScript
 		return false;
 	}
 }
-
-
-
-
-
 
 namespace PopupCreator
 {

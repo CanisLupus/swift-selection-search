@@ -13,10 +13,10 @@
 // - page-script.ts
 	// - implement!
 
+var Sortable;	// avoid TS compilation errors but still get working JS code
+
 namespace SSS_Settings
 {
-	var Sortable;	// avoid TS compilation errors but still get working JS code
-
 	// Subset of enums from the background script (only the ones needed).
 	// We duplicate enum definitions because otherwise the generated JS code is incomplete.
 	enum SearchEngineType {
