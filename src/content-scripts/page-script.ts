@@ -98,9 +98,7 @@ namespace ContentScript
 	let sssIcons: { [id: string] : SSS.SSSIconDefinition; } = null;
 	let popupShowTimeout: number = null;
 
-	setTimeout(() => {
-		PopupCreator.onSearchEngineClick = onSearchEngineClick;
-	}, 0);
+	setTimeout(() => PopupCreator.onSearchEngineClick = onSearchEngineClick, 0);
 
 	// be prepared for messages from background script
 	browser.runtime.onMessage.addListener(onMessageReceived);
@@ -169,9 +167,7 @@ namespace ContentScript
 
 	function onSettingsChanged(changes, area)
 	{
-		if (area !== "local" || isObjectEmpty(changes)) {
-			return;
-		}
+		if (area !== "local" || isObjectEmpty(changes)) return;
 
 		if (DEBUG) { log("onSettingsChanged"); }
 
@@ -223,9 +219,7 @@ namespace ContentScript
 
 	function deactivate()
 	{
-		if (activationSettings === null) {
-			return;
-		}
+		if (activationSettings === null) return;
 
 		// unregister with all events (use last activation settings to figure out what registrations were made)
 
@@ -273,9 +267,7 @@ namespace ContentScript
 			clearPopupShowTimeout();
 
 			if (saveCurrentSelection()) {
-				popupShowTimeout = setTimeout(() => {
-					showPopupForSelection(ev, false);
-				}, activationSettings.popupDelay);
+				popupShowTimeout = setTimeout(() => showPopupForSelection(ev, false), activationSettings.popupDelay);
 			}
 		}
 		else
@@ -333,9 +325,7 @@ namespace ContentScript
 
 			// get selection, but exit if there's no text selected after all
 			let selectionObject = window.getSelection();
-			if (selectionObject === null) {
-				return false;
-			}
+			if (selectionObject === null) return false;
 
 			let selectedText = selectionObject.toString();
 
@@ -362,9 +352,7 @@ namespace ContentScript
 	{
 		// Usually we would check for the altKey only if "ev instanceof selectionchange.CustomSelectionChangeEvent",
 		// but ev has an undefined class type in pages outside the options page, so it doesn't match. We use ev["altKey"].
-		if (settings.popupOpenBehaviour === Types.PopupOpenBehaviour.HoldAlt && !ev["altKey"]) {
-			return;
-		}
+		if (settings.popupOpenBehaviour === Types.PopupOpenBehaviour.HoldAlt && !ev["altKey"]) return;
 
 		if (settings.popupOpenBehaviour === Types.PopupOpenBehaviour.Auto)
 		{
@@ -380,21 +368,14 @@ namespace ContentScript
 			// If showing popup for editable fields is not allowed, check if selection is in an editable field.
 			if (!settings.allowPopupOnEditableFields)
 			{
-				if (selection.isInEditableField) {
-					return;
-				}
-
+				if (selection.isInEditableField) return;
 				// even if this is not an input field, don't show popup in contentEditable elements, such as Gmail's compose window
-				if (isInEditableField(selection.selection.anchorNode)) {
-					return;
-				}
+				if (isInEditableField(selection.selection.anchorNode)) return;
 			}
 			// If editable fields are allowed, they are still not allowed for keyboard selections
 			else
 			{
-				if (!ev["isMouse"] && isInEditableField(selection.selection.anchorNode)) {
-					return;
-				}
+				if (!ev["isMouse"] && isInEditableField(selection.selection.anchorNode)) return;
 			}
 		}
 
@@ -453,9 +434,7 @@ namespace ContentScript
 
 	function showPopup(settings: SSS.Settings)
 	{
-		if (popup === null) {
-			return;
-		}
+		if (popup === null) return;
 
 		popup.show();	// call "show" first so that popup size calculations are correct in setPopupPosition
 		popup.setPopupPosition(settings, selection, mousePositionX, mousePositionY);
@@ -467,14 +446,10 @@ namespace ContentScript
 
 	function hidePopup(ev?)
 	{
-		if (popup === null) {
-			return;
-		}
+		if (popup === null) return;
 
 		// if we pressed with right mouse button and that isn't supposed to hide the popup, don't hide
-		if (settings && settings.hidePopupOnRightClick === false && ev && ev.button === 2) {
-			return;
-		}
+		if (settings && settings.hidePopupOnRightClick === false && ev && ev.button === 2) return;
 
 		popup.hide();
 	}
@@ -488,9 +463,7 @@ namespace ContentScript
 	function onSearchEngineClick(ev: MouseEvent, engine: SSS.SearchEngine, settings: SSS.Settings)
 	{
 		// if using middle mouse and can't, early out so we don't hide popup
-		if (ev.button === 1 && !canMiddleClickEngine) {
-			return;
-		}
+		if (ev.button === 1 && !canMiddleClickEngine) return;
 
 		if (settings.hidePopupOnSearch) {
 			hidePopup();
@@ -527,9 +500,7 @@ namespace ContentScript
 
 	function onMouseDown(ev: MouseEvent)
 	{
-		if (ev.button !== 1) {
-			return;
-		}
+		if (ev.button !== 1) return;
 
 		let selection: Selection = window.getSelection();
 

@@ -605,9 +605,7 @@ namespace SSS
 		browser.contextMenus.onClicked.removeListener(onContextMenuItemClicked);
 		browser.contextMenus.removeAll();
 
-		if (sss.settings.enableEnginesInContextMenu !== true) {
-			return;
-		}
+		if (sss.settings.enableEnginesInContextMenu !== true) return;
 
 		// get only the enabled engines
 		let engines: SearchEngine[] = sss.settings.searchEngines.filter(engine => engine.isEnabledInContextMenu);
@@ -682,9 +680,7 @@ namespace SSS
 			}
 		});
 
-		if (engine === undefined) {
-			return;
-		}
+		if (engine === undefined) return;
 
 		// check if it's a special SSS engine
 		if (engine.type === SearchEngineType.SSS)
@@ -979,7 +975,7 @@ namespace SSS
 					browser.windows.create(options);
 					break;
 				case OpenResultBehaviour.NewBgWindow:
-					// options["focused"] = false;	// crashes because it's unsupported by Firefox
+					// options["focused"] = false;	// fails because it's unsupported by Firefox
 					browser.windows.create(options);
 					break;
 			}
