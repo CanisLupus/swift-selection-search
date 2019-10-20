@@ -1,10 +1,12 @@
+var iconv;	// avoid TS compilation errors but still get working JS code
+
 namespace SSS
 {
 	/* ==================================== */
 	/* ====== Swift Selection Search ====== */
 	/* ==================================== */
 
-	const DEBUG = false;
+	const DEBUG = true;
 	if (DEBUG) {
 		var log = console.log;
 	}
@@ -33,6 +35,7 @@ namespace SSS
 		name: string;
 		searchUrl: string;
 		iconUrl: string;
+		encoding: string;
 	}
 
 	export class SearchEngine_Browser extends SearchEngine_Custom
@@ -920,7 +923,15 @@ namespace SSS
 	{
 		// replace newlines with spaces
 		searchText = searchText.trim().replace("\r\n", " ").replace("\n", " ");
-		let query = getFilteredSearchUrl(engine.searchUrl, searchText, true);
+
+		let hasCustomEncoding = engine.encoding && engine.encoding !== "utf8";
+		if (hasCustomEncoding) {
+			// encode to bytes, then convert bytes to hex and add % before each pair of characters (so it can be used in the URL)
+			let buffer = iconv.encode(searchText, engine.encoding);
+			searchText = "%" + buffer.toString('hex').toUpperCase().replace(/([A-Z0-9]{2})\B/g, '$1%');
+		}
+
+		let query = getFilteredSearchUrl(engine.searchUrl, searchText, !hasCustomEncoding);
 
 		// use regex with "g" flag to match all occurences, "i" ignores case
 		if (/\{hash\}/i.test(query))     { query = query.replace(/\{hash\}/gi,     encodeURIComponent(url.hash));     }

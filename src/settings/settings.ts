@@ -58,6 +58,50 @@ namespace SSS_Settings
 		iconAlignmentInGrid: undefined,
 	};
 
+	class EncodingGroup
+	{
+		constructor(public name: string, public encodings: string[][]) { }
+	}
+
+	// https://github.com/ashtuchkin/iconv-lite/wiki/Supported-Encodings
+	const encodings: EncodingGroup[] =
+	[
+		new EncodingGroup("Native", [
+			[ "Default (UTF-8)", "utf8" ],
+			[ "UCS2", "ucs2" ],
+			[ "ASCII", "ascii" ],
+			[ "Binary", "binary" ],
+			[ "Base64", "base64" ],
+			[ "Hex", "hex" ],
+		]),
+		new EncodingGroup("ISO codepages", [
+			[ "ISO-8859-1 (Latin-1)", "ISO-8859-1" ],
+			[ "ISO-8859-16 (Latin-10)", "ISO-8859-16" ],
+		]),
+		new EncodingGroup("KOI8 codepages", [
+			[ "KOI8-R", "koi8-r" ],
+			[ "KOI8-U", "koi8-u" ],
+			[ "KOI8-RU", "koi8-ru" ],
+			[ "KOI8-T", "koi8-t" ],
+		]),
+		new EncodingGroup("Japanese", [
+			[ "Shift_JIS", "shiftjis" ],
+			[ "EUC-JP (cp932)", "eucjp" ],
+		]),
+		new EncodingGroup("Chinese", [
+			[ "GBK", "gbk" ],
+			[ "GB18030", "gb18030" ],
+			[ "EUC-CN (cp936)", "euccn" ],
+		]),
+		new EncodingGroup("Korean", [
+			[ "EUC-KR (cp949)", "euckr" ],
+		]),
+		new EncodingGroup("Taiwan / Hong Kong", [
+			[ "Big5", "big5" ],
+			[ "Code page 950 (cp950)", "cp950" ],
+		]),
+	];
+
 	let settings: SSS.Settings;
 	let hasPageLoaded: boolean = false;
 	let isFocused: boolean = true;
@@ -966,7 +1010,7 @@ namespace SSS_Settings
 	}
 
 	// creates and adds a row with options for a certain search engine to the engines table
-	function buildSearchEngineOptionsTableRow(engine, i)
+	function buildSearchEngineOptionsTableRow(engine: SSS.SearchEngine, i: number)
 	{
 		let engineOptions = document.createElement("div");
 		engineOptions.className = "engine-options";
@@ -1010,12 +1054,33 @@ namespace SSS_Settings
 			engineOptions.appendChild(isPlainTextCheckboxParent);
 		}
 
+		if (engine.type !== SearchEngineType.SSS)
+		{
+			let dropdown = createDropdown(
+				"Force encoding",
+				`encoding-dropdown-${i}`,
+				encodings,
+				engine.encoding,
+				value => {
+					if (value !== null) {
+						engine.encoding = value;
+					} else {
+						delete engine.encoding;
+					}
+					saveSettings({ searchEngines: settings.searchEngines });
+				}
+			);
+			dropdown.style.maxWidth = "200px";
+
+			engineOptions.appendChild(dropdown);
+		}
+
 		return engineOptions;
 	}
 
 	function createCheckbox(labelText: string, elementId: string, checked: boolean, onChange: { (isOn: boolean): void; })
 	{
-		let checkboxParent = document.createElement("div");
+		let parent = document.createElement("div");
 
 		let checkbox = document.createElement("input");
 		checkbox.type = "checkbox";
@@ -1023,15 +1088,55 @@ namespace SSS_Settings
 		checkbox.checked = checked;
 		checkbox.autocomplete = "off";
 		checkbox.onchange = () => onChange(checkbox.checked);
-		checkboxParent.appendChild(checkbox);
+		parent.appendChild(checkbox);
 
-		let isEnabledLabel = document.createElement("label");
-		isEnabledLabel.htmlFor = checkbox.id;
-		isEnabledLabel.textContent = " " + labelText;	// space adds padding between checkbox and label
+		let label = document.createElement("label");
+		label.htmlFor = checkbox.id;
+		label.textContent = " " + labelText;	// space adds padding between checkbox and label
 
-		checkboxParent.appendChild(isEnabledLabel);
+		parent.appendChild(label);
 
-		return checkboxParent;
+		return parent;
+	}
+
+	function createDropdown(labelText: string, elementId: string, encodingGroups: EncodingGroup[], currentValue: string, onChange: { (value: string): void; })
+	{
+		let parent = document.createElement("div");
+		parent.style.display = "inline-block";
+
+		let dropdown = document.createElement("select");
+
+		for (let i = 0; i < encodingGroups.length; i++)
+		{
+			const encodingGroup = encodingGroups[i];
+			var optionGroup = document.createElement("optgroup");
+			optionGroup.label = encodingGroup.name;
+			dropdown.appendChild(optionGroup);
+
+			for (let j = 0; j < encodingGroup.encodings.length; j++)
+			{
+				const value = encodingGroup.encodings[j];
+				var option = document.createElement("option");
+				option.text = value[0];
+				option.value = value[1];
+				optionGroup.appendChild(option)
+			}
+		}
+
+		dropdown.id = elementId;
+		if (currentValue) {
+			dropdown.value = currentValue;
+		}
+		dropdown.onchange = () => onChange(dropdown.value);
+
+		let label = document.createElement("label");
+		// label.htmlFor = dropdown.id;
+		label.textContent = " " + labelText;	// space adds padding between checkbox and label
+
+		parent.appendChild(label);
+		parent.appendChild(dropdown);
+
+		return parent;
 	}
 
 	function setEnabledInPopup(engine: SSS.SearchEngine, i: number, value: boolean)

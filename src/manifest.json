@@ -12,7 +12,7 @@
 	},
 
 	"background": {
-		"scripts": ["swift-selection-search.js"]
+		"page": "swift-selection-search.html"
 	},
 
 	"applications": {
