@@ -575,31 +575,39 @@ namespace PopupCreator
 
 			Object.setPrototypeOf(this, SSSPopup.prototype);	// needed so that instanceof and casts work
 
-			this.attachShadow({mode: 'open'});
+			let shadowRoot = this.attachShadow({mode: 'closed'});
 
 			let css = this.generateStylesheet(settings);
 			var style = document.createElement('style');
 			style.appendChild(document.createTextNode(css));
-			this.shadowRoot.appendChild(style);
+			shadowRoot.appendChild(style);
 
 			// create popup parent (will contain all icons)
 			this.content = document.createElement("div");
 			this.content.classList.add("sss-content");
-			this.shadowRoot.appendChild(this.content);
+			shadowRoot.appendChild(this.content);
 
 			this.createPopupContent(this.settings, this.sssIcons);
 		}
 
 		generateStylesheet(settings: SSS.Settings)
 		{
+			// Due to "all: initial !important", all inherited properties that are
+			// defined afterwards will also need to use !important.
+			// Inherited properties: https://stackoverflow.com/a/5612360/2162837
+
 			return `
+				:host {
+					all: initial !important;
+				}
+
 				.sss-content {
-					font-size: 0px;
+					font-size: 0px !important;
+					direction: ltr !important;
 					position: absolute;
 					z-index: 2147483647;
 					user-select: none;
 					box-shadow: rgba(0, 0, 0, 0.5) 0px 0px 3px;
-					direction: ltr;
 					background-color: ${this.settings.popupBackgroundColor};
 					border-radius: ${this.settings.popupBorderRadius}px;
 					padding: ${this.settings.popupPaddingY}px ${this.settings.popupPaddingX}px;
@@ -613,7 +621,6 @@ namespace PopupCreator
 					padding: ${3 + settings.popupItemVerticalPadding}px ${settings.popupItemPadding}px;
 					border-radius: ${settings.popupItemBorderRadius}px;
 					cursor: pointer;
-					pointer-events: auto;
 				}
 
 				.sss-content img:hover {
@@ -638,7 +645,7 @@ namespace PopupCreator
 				}
 			}
 
-			return `text-align: ${textAlign};`;
+			return `text-align: ${textAlign} !important;`;
 		}
 
 		generateStylesheet_Width(settings: SSS.Settings): string
@@ -669,8 +676,7 @@ namespace PopupCreator
 			let separatorMargin = (separatorWidth - settings.popupItemSize) / 2;
 
 			return `
-				cursor: initial;
-				pointer-events: none;
+				pointer-events: none !important;
 				margin-left: ${separatorMargin}px;
 				margin-right: ${separatorMargin}px;
 			`;
