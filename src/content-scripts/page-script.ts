@@ -650,10 +650,14 @@ namespace PopupCreator
 
 		generateStylesheet_Width(settings: SSS.Settings): string
 		{
-			if (settings.useSingleRow) return "";
-
-			let nPopupIconsPerRow: number = Math.max(1, Math.min(settings.nPopupIconsPerRow, settings.searchEngines.length));
-			let width: number = nPopupIconsPerRow * (settings.popupItemSize + 2 * settings.popupItemPadding);
+			let width: number;
+			if (settings.useSingleRow) {
+				let nPopupIcons: number = Math.max(1, settings.searchEngines.length);
+				width = nPopupIcons * (settings.popupItemSize + 2 * settings.popupItemPadding);
+			} else {
+				let nPopupIconsPerRow: number = Math.max(1, Math.min(settings.nPopupIconsPerRow, settings.searchEngines.length));
+				width = nPopupIconsPerRow * (settings.popupItemSize + 2 * settings.popupItemPadding);
+			}
 			return `width: ${width}px;`;
 		}
 
