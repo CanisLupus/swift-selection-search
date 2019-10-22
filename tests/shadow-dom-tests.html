@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>Page Title</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<style>
+		.main {
+			background-color: lightgreen;
+			font-size: 20px;
+		}
+		.main p {
+			border: 1px solid red;
+		}
+		img {
+			border: 5px solid green;
+		}
+		#cenas {
+			border-bottom: 5px solid yellow;
+		}
+	</style>
+</head>
+<body>
+	<div class="main"></div>
+	<div class="main"></div>
+	<div class="main"></div>
+
+	<script>
+		function createStructure(parent)
+		{
+			let p = document.createElement("p");
+			p.textContent = "Some stuff"
+			parent.appendChild(p);
+
+			let img = document.createElement("img");
+			img.src = "../src/res/sss-engine-icons/copy.png";
+			img.id = "cenas";
+			parent.appendChild(img);
+		}
+
+		let main;
+
+		main = document.getElementsByClassName("main")[0];
+		createStructure(main);
+
+		main = document.getElementsByClassName("main")[2];
+		createStructure(main);
+
+		main = document.getElementsByClassName("main")[1];
+		let shadow = main.attachShadow({mode: 'closed'});
+
+		var style = document.createElement('style');
+		style.appendChild(document.createTextNode(
+`
+:host {
+	all: initial !important;
+}
+p {
+	color: blue;
+}
+`));
+		shadow.appendChild(style);
+
+		createStructure(shadow);
+	</script>
+</body>
+</html>

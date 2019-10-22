@@ -960,9 +960,6 @@ namespace SSS_Settings
 				let iconImgSource = browser.extension.getURL(sssIcon.iconPath);
 				icon = setupEngineIcon(iconImgSource, iconElem, settings);
 			}
-			// else if (sssIcon.iconCss !== undefined) {
-			// 	icon = setupEngineCss(sssIcon, iconElem, settings);
-			// }
 		}
 		else {
 			icon = setupEngineIcon(engine.iconUrl, iconElem, settings);
@@ -1015,30 +1012,6 @@ namespace SSS_Settings
 		let engineOptions = document.createElement("div");
 		engineOptions.className = "engine-options";
 
-		// "is enabled" element
-
-		let isEnabledCheckboxParent = createCheckbox(
-			"Show in popup",
-			`engine-is-enabled-${i}`,
-			engine.isEnabled,
-			isOn => setEnabledInPopup(engine, i, isOn)
-		);
-
-		engineOptions.appendChild(isEnabledCheckboxParent);
-
-		// "is enabled in context menu" element
-
-		let isEnabledInContextMenuCheckboxParent = createCheckbox(
-			"Show in context menu",
-			`engine-is-enabled-in-context-menu-${i}`,
-			engine.isEnabledInContextMenu,
-			isOn => setEnabledInContextMenu(engine, i, isOn)
-		);
-
-		engineOptions.appendChild(isEnabledInContextMenuCheckboxParent);
-
-		//
-
 		if (engine.id === "copyToClipboard")
 		{
 			let isPlainTextCheckboxParent = createCheckbox(
@@ -1073,6 +1046,14 @@ namespace SSS_Settings
 			dropdown.style.maxWidth = "200px";
 
 			engineOptions.appendChild(dropdown);
+		}
+
+		if (!engineOptions.hasChildNodes())
+		{
+			let noExtraOptionsLabel = document.createElement("label");
+			noExtraOptionsLabel.textContent = "No extra options.";
+			noExtraOptionsLabel.style.color = "#999";
+			engineOptions.appendChild(noExtraOptionsLabel);
 		}
 
 		return engineOptions;
@@ -1146,9 +1127,6 @@ namespace SSS_Settings
 		let checkbox = engineRow.querySelector(".engine-is-enabled input");
 		checkbox.checked = value;
 
-		checkbox = engineRow.querySelector(`#engine-is-enabled-${i}`);
-		checkbox.checked = value;
-
 		engine.isEnabled = value;
 		saveSettings({ searchEngines: settings.searchEngines });
 	}
@@ -1158,9 +1136,6 @@ namespace SSS_Settings
 		let engineRow = page.engines.children[i];
 
 		let checkbox = engineRow.querySelector(".engine-is-enabled-in-context-menu input");
-		checkbox.checked = value;
-
-		checkbox = engineRow.querySelector(`#engine-is-enabled-in-context-menu-${i}`);
 		checkbox.checked = value;
 
 		engine.isEnabledInContextMenu = value;
@@ -1190,19 +1165,6 @@ namespace SSS_Settings
 		parent.appendChild(icon);
 		return icon;
 	}
-
-	// function setupEngineCss(sssIcon, parent, settings)
-	// {
-	// 	let div = document.createElement("div");
-
-	// 	// div.style.cssText = sssIcon.iconCss;
-	// 	div.style.cssText = iconCssText;
-	// 	div.style.marginBottom = "0px";
-	// 	div.style.marginTop = "0px";
-
-	// 	parent.appendChild(div);
-	// 	return div;
-	// }
 
 	// sets the name field for a search engine in the engines table
 	function createEngineName(engine)
@@ -1453,40 +1415,6 @@ namespace SSS_Settings
 		}
 	}
 
-	// taken from https://stackoverflow.com/a/11900218/2162837
-	// by thomas-peter
-	// License: https://creativecommons.org/licenses/by-sa/3.0/legalcode
-	// Changes: formatting, double quotes
-	// function roughSizeOfObject(object)
-	// {
-	// 	var objectList = [];
-	// 	var stack = [object];
-	// 	var bytes = 0;
-
-	// 	while (stack.length)
-	// 	{
-	// 		var value = stack.pop();
-
-	// 		if (typeof value === "boolean") {
-	// 			bytes += 4;
-	// 		}
-	// 		else if (typeof value === "string") {
-	// 			bytes += value.length * 2;
-	// 		}
-	// 		else if (typeof value === "number") {
-	// 			bytes += 8;
-	// 		}
-	// 		else if (typeof value === "object" && objectList.indexOf(value) === -1) {
-	// 			objectList.push(value);
-
-	// 			for (var i in value) {
-	// 				stack.push(value[i]);
-	// 			}
-	// 		}
-	// 	}
-	// 	return bytes;
-	// }
-
 	// gets a much more readable string for a size in bytes (ex.: 25690112 bytes is "24.5MB")
 	function getSizeWithUnit(size)
 	{
@@ -1519,7 +1447,6 @@ namespace SSS_Settings
 	function getFaviconForUrl(url)
 	{
 		return "https://api.faviconkit.com/" + getDomainFromUrl(url) + "/64";
-		// return "https://www.google.com/s2/favicons?domain=" + getDomainFromUrl(url);	// faster, but only supports 16px icons and no subdomains
 	}
 
 	function getDomainFromUrl(url)
