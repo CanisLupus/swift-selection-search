@@ -70,35 +70,35 @@ namespace SSS_Settings
 			[ "Default (UTF-8)", "utf8" ],
 			[ "UCS2", "ucs2" ],
 			[ "ASCII", "ascii" ],
-			[ "Binary", "binary" ],
-			[ "Base64", "base64" ],
-			[ "Hex", "hex" ],
+			// [ "Binary", "binary" ],
+			// [ "Base64", "base64" ],
+			// [ "Hex", "hex" ],
 		]),
 		new EncodingGroup("ISO codepages", [
-			[ "ISO-8859-1 (Latin-1)", "ISO-8859-1" ],
-			[ "ISO-8859-16 (Latin-10)", "ISO-8859-16" ],
+			[ "ISO-8859-1 (Latin-1)", "iso88591" ],
+			[ "ISO-8859-16 (Latin-10)", "iso885916" ],
 		]),
 		new EncodingGroup("KOI8 codepages", [
-			[ "KOI8-R", "koi8-r" ],
-			[ "KOI8-U", "koi8-u" ],
-			[ "KOI8-RU", "koi8-ru" ],
-			[ "KOI8-T", "koi8-t" ],
-		]),
-		new EncodingGroup("Japanese", [
-			[ "Shift_JIS", "shiftjis" ],
-			[ "EUC-JP (cp932)", "eucjp" ],
+			[ "KOI8-R", "koi8r" ],
+			[ "KOI8-U", "koi8u" ],
+			[ "KOI8-RU", "koi8ru" ],
+			[ "KOI8-T", "koi8t" ],
 		]),
 		new EncodingGroup("Chinese", [
 			[ "GBK", "gbk" ],
-			[ "GB18030", "gb18030" ],
-			[ "EUC-CN (cp936)", "euccn" ],
+			[ "GB 18030", "gb18030" ],
+			[ "EUC-CN", "euccn" ],
+		]),
+		new EncodingGroup("Japanese", [
+			[ "Shift JIS", "shiftjis" ],
+			[ "EUC-JP", "eucjp" ],
 		]),
 		new EncodingGroup("Korean", [
-			[ "EUC-KR (cp949)", "euckr" ],
+			[ "EUC-KR", "euckr" ],
 		]),
 		new EncodingGroup("Taiwan / Hong Kong", [
 			[ "Big5", "big5" ],
-			[ "Code page 950 (cp950)", "cp950" ],
+			[ "Code page 950", "cp950" ],
 		]),
 	];
 
@@ -1029,8 +1029,8 @@ namespace SSS_Settings
 
 		if (engine.type !== SearchEngineType.SSS)
 		{
-			let dropdown = createDropdown(
-				"Force encoding",
+			let dropdownParent = createDropdown(
+				"Text encoding",
 				`encoding-dropdown-${i}`,
 				encodings,
 				engine.encoding,
@@ -1043,9 +1043,8 @@ namespace SSS_Settings
 					saveSettings({ searchEngines: settings.searchEngines });
 				}
 			);
-			dropdown.style.maxWidth = "200px";
 
-			engineOptions.appendChild(dropdown);
+			engineOptions.appendChild(dropdownParent);
 		}
 
 		if (!engineOptions.hasChildNodes())
@@ -1083,9 +1082,10 @@ namespace SSS_Settings
 	function createDropdown(labelText: string, elementId: string, encodingGroups: EncodingGroup[], currentValue: string, onChange: { (value: string): void; })
 	{
 		let parent = document.createElement("div");
-		parent.style.display = "inline-block";
 
 		let dropdown = document.createElement("select");
+		dropdown.style.maxWidth = "250px";
+		dropdown.style.marginLeft = "10px";
 
 		for (let i = 0; i < encodingGroups.length; i++)
 		{
@@ -1111,7 +1111,6 @@ namespace SSS_Settings
 		dropdown.onchange = () => onChange(dropdown.value);
 
 		let label = document.createElement("label");
-		// label.htmlFor = dropdown.id;
 		label.textContent = " " + labelText;	// space adds padding between checkbox and label
 
 		parent.appendChild(label);
