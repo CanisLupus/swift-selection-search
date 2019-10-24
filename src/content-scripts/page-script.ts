@@ -262,6 +262,8 @@ namespace ContentScript
 
 	function onSelectionChange(ev: selectionchange.CustomSelectionChangeEvent)
 	{
+		if (popup && popup.isReceiverOfEvent(ev.event)) return;
+
 		if (activationSettings.popupOpenBehaviour === Types.PopupOpenBehaviour.Auto && activationSettings.popupDelay > 0)
 		{
 			clearPopupShowTimeout();
@@ -389,7 +391,16 @@ namespace ContentScript
 			popup = createPopup(settings, sssIcons);
 		}
 
-		showPopup(settings);
+		if (settings.showSelectionTextField === true) {
+			popup.setInputFieldText(selection.text);
+		}
+
+		popup.show();	// call "show" first so that popup size calculations are correct in setPopupPosition
+		popup.setPopupPosition(settings, selection, mousePositionX, mousePositionY);
+
+		if (settings.popupAnimationDuration > 0) {
+			popup.playAnimation(settings);
+		}
 	}
 
 	export function createPopup(settings: SSS.Settings, sssIcons: { [id: string] : SSS.SSSIconDefinition; }): PopupCreator.SSSPopup
@@ -432,24 +443,15 @@ namespace ContentScript
 		return false;
 	}
 
-	function showPopup(settings: SSS.Settings)
-	{
-		if (popup === null) return;
-
-		popup.show();	// call "show" first so that popup size calculations are correct in setPopupPosition
-		popup.setPopupPosition(settings, selection, mousePositionX, mousePositionY);
-
-		if (settings.popupAnimationDuration > 0) {
-			popup.playAnimation(settings);
-		}
-	}
-
 	function hidePopup(ev?)
 	{
 		if (popup === null) return;
 
 		// if we pressed with right mouse button and that isn't supposed to hide the popup, don't hide
 		if (settings && settings.hidePopupOnRightClick === false && ev && ev.button === 2) return;
+
+		// if event is a keypress on the text field, don't hide
+		if (ev && ev.type === "keypress" && popup.isReceiverOfEvent(ev)) return;
 
 		popup.hide();
 	}
@@ -472,7 +474,7 @@ namespace ContentScript
 		if (ev.button === 0 || ev.button === 1)
 		{
 			let message = new EngineClickMessage();
-			message.selection = selection.text;
+			message.selection = settings.showSelectionTextField === true ? popup.getInputFieldText() : selection.text;
 			message.engine = engine;
 
 			if (window.location) {
@@ -564,14 +566,12 @@ namespace PopupCreator
 	export class SSSPopup extends HTMLElement
 	{
 		content: HTMLDivElement;
-		settings: SSS.Settings;
-		sssIcons: { [id: string] : SSS.SSSIconDefinition; };
+		inputField: HTMLInputElement;
+		enginesContainer: HTMLDivElement;
 
 		constructor(settings: SSS.Settings, sssIcons: { [id: string] : SSS.SSSIconDefinition; })
 		{
 			super();
-			this.settings = settings;
-			this.sssIcons = sssIcons;
 
 			Object.setPrototypeOf(this, SSSPopup.prototype);	// needed so that instanceof and casts work
 
@@ -587,7 +587,18 @@ namespace PopupCreator
 			this.content.classList.add("sss-content");
 			shadowRoot.appendChild(this.content);
 
-			this.createPopupContent(this.settings, this.sssIcons);
+			if (settings.showSelectionTextField)
+			{
+				this.inputField = document.createElement('input');
+				this.inputField.type = "text";
+				this.inputField.classList.add("sss-input-field");
+				this.content.appendChild(this.inputField);
+			}
+
+			this.enginesContainer = document.createElement("div");
+			this.content.appendChild(this.enginesContainer);
+
+			this.createPopupContent(settings, sssIcons);
 		}
 
 		generateStylesheet(settings: SSS.Settings)
@@ -608,9 +619,9 @@ namespace PopupCreator
 					z-index: 2147483647;
 					user-select: none;
 					box-shadow: rgba(0, 0, 0, 0.5) 0px 0px 3px;
-					background-color: ${this.settings.popupBackgroundColor};
-					border-radius: ${this.settings.popupBorderRadius}px;
-					padding: ${this.settings.popupPaddingY}px ${this.settings.popupPaddingX}px;
+					background-color: ${settings.popupBackgroundColor};
+					border-radius: ${settings.popupBorderRadius}px;
+					padding: ${settings.popupPaddingY}px ${settings.popupPaddingX}px;
 					${this.generateStylesheet_TextAlign(settings)}
 					${this.generateStylesheet_Width(settings)}
 				}
@@ -629,6 +640,19 @@ namespace PopupCreator
 
 				.separator {
 					${this.generateStylesheet_Separator(settings)}
+				}
+
+				.sss-input-field {
+					box-sizing: border-box;
+					width: 98%;
+					border: 1px solid #ccc;
+					border-radius: ${settings.popupBorderRadius}px;
+					padding: 4px 7px;
+					margin: 4px 0px 2px 0px;
+				}
+
+				.sss-input-field:hover {
+					border: 1px solid ${settings.popupHighlightColor};
 				}
 			`;
 		}
@@ -702,7 +726,6 @@ namespace PopupCreator
 					let iconImgSource = browser.extension.getURL(sssIcon.iconPath);
 					let isInteractive = sssIcon.isInteractive !== false;	// undefined or true means it's interactive
 					icon = this.setupEngineIcon(engine, iconImgSource, sssIcon.name, isInteractive, settings);
-					this.content.appendChild(icon);
 
 					if (engine.id === "separator") {
 						icon.classList.add("separator");
@@ -721,8 +744,9 @@ namespace PopupCreator
 					}
 
 					icon = this.setupEngineIcon(engine, iconImgSource, engine.name, true, settings);
-					this.content.appendChild(icon);
 				}
+
+				this.enginesContainer.appendChild(icon);
 			}
 		}
 
@@ -816,6 +840,21 @@ namespace PopupCreator
 		{
 			this.content.animate({ transform: ["scale(0.8)", "scale(1)"] } as PropertyIndexedKeyframes, settings.popupAnimationDuration);
 			this.content.animate({ opacity: ["0", "1"] } as PropertyIndexedKeyframes, settings.popupAnimationDuration * 0.5);
+		}
+
+		isReceiverOfEvent(ev: Event)
+		{
+			return ev.target === this;
+		}
+
+		setInputFieldText(text: string)
+		{
+			this.inputField.value = text;
+		}
+
+		getInputFieldText(): string
+		{
+			return this.inputField.value;
 		}
 
 		show()

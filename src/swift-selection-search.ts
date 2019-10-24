@@ -62,6 +62,8 @@ namespace SSS
 		mouseMiddleButtonBehaviour: OpenResultBehaviour;
 		popupAnimationDuration: number;
 		autoCopyToClipboard: AutoCopyToClipboard;
+
+		showSelectionTextField: boolean;
 		useSingleRow: boolean;
 		nPopupIconsPerRow: number;
 		iconAlignmentInGrid: IconAlignment;
@@ -78,6 +80,7 @@ namespace SSS
 		popupOffsetX: number;
 		popupOffsetY: number;
 		popupBorderRadius: number;
+
 		enableEnginesInContextMenu: boolean;
 		contextMenuItemBehaviour: OpenResultBehaviour;
 		contextMenuString: string;
@@ -208,6 +211,8 @@ namespace SSS
 		mouseMiddleButtonBehaviour: OpenResultBehaviour.NewBgTab,
 		popupAnimationDuration: 100,
 		autoCopyToClipboard: AutoCopyToClipboard.Off,
+
+		showSelectionTextField: true,
 		useSingleRow: true,
 		nPopupIconsPerRow: 4,
 		iconAlignmentInGrid: IconAlignment.Middle,
@@ -224,6 +229,7 @@ namespace SSS
 		popupOffsetX: 0,
 		popupOffsetY: 0,
 		popupBorderRadius: 2,
+
 		enableEnginesInContextMenu: true,
 		contextMenuItemBehaviour: OpenResultBehaviour.NewBgTab,
 		contextMenuString: "Search for “%s”",
@@ -470,6 +476,7 @@ namespace SSS
 		if (createSettingIfNonExistent(settings, "popupDelay"))                      shouldSave = true; // 3.29.0
 		if (createSettingIfNonExistent(settings, "maxSelectedCharacters"))           shouldSave = true; // 3.30.0
 		if (createSettingIfNonExistent(settings, "contextMenuString"))               shouldSave = true; // 3.32.0
+		if (createSettingIfNonExistent(settings, "showSelectionTextField"))          shouldSave = true; // 3.40.0
 
 		// 3.7.0
 		// convert old unchangeable browser-imported engines to normal ones

@@ -24,9 +24,11 @@ namespace selectionchange
 		document.removeEventListener("mouseup", onMouseUp, true);
 	}
 
-	export class CustomSelectionChangeEvent extends CustomEvent<any> {
+	export class CustomSelectionChangeEvent extends CustomEvent<any>
+	{
 		altKey: boolean;
 		isMouse: boolean;
+		event: Event;
 	}
 
 	function getSelectedRanges()
@@ -80,6 +82,7 @@ namespace selectionchange
 			let event = new CustomSelectionChangeEvent("customselectionchange");
 			event.altKey = ev.altKey;
 			event.isMouse = isMouse;
+			event.event = ev;
 			setTimeout(() => document.dispatchEvent(event), 0);
 		}
 	}
