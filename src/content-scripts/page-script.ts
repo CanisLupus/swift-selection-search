@@ -388,7 +388,7 @@ namespace ContentScript
 		if (DEBUG) { log("showing popup, previous value was: " + popup); }
 
 		if (popup === null) {
-			popup = createPopup(settings, sssIcons);
+			popup = createPopup(settings);
 		}
 
 		if (settings.showSelectionTextField === true) {
@@ -403,14 +403,18 @@ namespace ContentScript
 		}
 	}
 
-	export function createPopup(settings: SSS.Settings, sssIcons: { [id: string] : SSS.SSSIconDefinition; }): PopupCreator.SSSPopup
+	function createPopup(settings: SSS.Settings): PopupCreator.SSSPopup
 	{
-		// temp class that locks in settings as arguments to SSSPopup
-		class SSSPopupWithSettings extends PopupCreator.SSSPopup {
-			constructor() { super(settings, sssIcons); }
-		}
+		// only define new element if not already defined (can get here multiple times if settings are reloaded)
+		if (!customElements.get('sss-popup'))
+		{
+			// temp class that locks in settings as arguments to SSSPopup
+			class SSSPopupWithSettings extends PopupCreator.SSSPopup {
+				constructor() { super(getSettings(), getIcons()); }
+			}
 
-		customElements.define('sss-popup', SSSPopupWithSettings);
+			customElements.define('sss-popup', SSSPopupWithSettings);
+		}
 
 		let popup = document.createElement("sss-popup") as PopupCreator.SSSPopup;
 
@@ -426,6 +430,16 @@ namespace ContentScript
 		}
 
 		return popup;
+	}
+
+	function getSettings(): SSS.Settings
+	{
+		return settings;
+	}
+
+	function getIcons(): { [id: string] : SSS.SSSIconDefinition; }
+	{
+		return sssIcons;
 	}
 
 	function isInEditableField(node): boolean
@@ -675,13 +689,22 @@ namespace PopupCreator
 		generateStylesheet_Width(settings: SSS.Settings): string
 		{
 			let width: number;
-			if (settings.useSingleRow) {
-				let nPopupIcons: number = Math.max(1, settings.searchEngines.length);
+
+			if (settings.useSingleRow)
+			{
+				// Calculate the final width of the popup based on the known widths and paddings of everything.
+				// We need this so that if the popup is created too close to the borders of the page it still gets the right size.
+				let nSeparators = settings.searchEngines.filter(e => e.type === Types.SearchEngineType.SSS && e.id === "separator").length;
+				let nPopupIcons: number = settings.searchEngines.length - nSeparators;
 				width = nPopupIcons * (settings.popupItemSize + 2 * settings.popupItemPadding);
-			} else {
+				width += nSeparators * (settings.popupItemSize * settings.popupSeparatorWidth / 100 + 2 * settings.popupItemPadding);
+			}
+			else
+			{
 				let nPopupIconsPerRow: number = Math.max(1, Math.min(settings.nPopupIconsPerRow, settings.searchEngines.length));
 				width = nPopupIconsPerRow * (settings.popupItemSize + 2 * settings.popupItemPadding);
 			}
+
 			return `width: ${width}px;`;
 		}
 
