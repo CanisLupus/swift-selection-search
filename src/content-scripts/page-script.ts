@@ -69,11 +69,6 @@ namespace ContentScript
 		constructor(public log: any) { super(MessageType.Log); }
 	}
 
-	class GetActivationSettingsMessage extends Message
-	{
-		constructor() { super(MessageType.GetActivationSettings); }
-	}
-
 	class GetPopupSettingsMessage extends Message
 	{
 		constructor() { super(MessageType.GetPopupSettings); }
@@ -102,21 +97,8 @@ namespace ContentScript
 
 	// be prepared for messages from background script
 	browser.runtime.onMessage.addListener(onMessageReceived);
-	// be prepared for settings changing at any time from now
-	browser.storage.onChanged.addListener(onSettingsChanged);
 
 	if (DEBUG) { log("content script has started!"); }
-
-	requestActivation();
-
-	// asks the background script for activation settings to setup this content script
-	function requestActivation()
-	{
-		browser.runtime.sendMessage(new GetActivationSettingsMessage()).then(
-			activationSettings => activate(activationSettings),	// background script passes a few settings needed for setup
-			getErrorHandler("Error sending getActivationSettings message from content script.")
-		);
-	}
 
 	// act when the background script requests something from this script
 	function onMessageReceived(msg, sender, callbackFunc)
@@ -125,6 +107,14 @@ namespace ContentScript
 		{
 			case "isAlive":
 				callbackFunc(true);	// simply return true to say "I'm alive!"
+				break;
+
+			case "activate":
+				// if this is not the first activation, reset everything first
+				if (activationSettings !== null) {
+					deactivate();
+				}
+				activate(msg.activationSettings);	// background script passes a few settings needed for setup
 				break;
 
 			case "showPopup":
@@ -165,17 +155,6 @@ namespace ContentScript
 		}
 	}
 
-	function onSettingsChanged(changes, area)
-	{
-		if (area !== "local" || isObjectEmpty(changes)) return;
-
-		if (DEBUG) { log("onSettingsChanged"); }
-
-		// settings changed, so reset everything and request activation with new settings
-		deactivate();
-		requestActivation();
-	}
-
 	// default error handler for promises
 	function getErrorHandler(text: string): (reason: any) => void
 	{
@@ -184,14 +163,6 @@ namespace ContentScript
 		} else {
 			return undefined;
 		}
-	}
-
-	function isObjectEmpty(obj: object): boolean
-	{
-		for (const _ in obj) {
-			return false;	// has at least one element
-		}
-		return true;
 	}
 
 	function activate(_activationSettings: SSS.ActivationSettings)
@@ -219,8 +190,6 @@ namespace ContentScript
 
 	function deactivate()
 	{
-		if (activationSettings === null) return;
-
 		// unregister with all events (use last activation settings to figure out what registrations were made)
 
 		if (activationSettings.popupLocation === Types.PopupLocation.Cursor) {
