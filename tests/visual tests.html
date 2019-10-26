@@ -39,11 +39,12 @@
 
 			.sss-input-field {
 				box-sizing: border-box;
-				width: 98%;
+				width: calc(100% - 8px);
 				border: 1px solid #ccc;
 				border-radius: 4px;
 				padding: 4px 4px;
-				margin: 4px 0px 2px 0px;
+				margin-top: 4px;
+				margin-bottom: 2px;
 			}
 
 			.sss-input-field:hover {
@@ -107,7 +108,7 @@
 
 		<div class="sss-content" style="top: 350px; left: 50px;">
 			<input class="sss-input-field" type="text"/>
-			<div>
+			<div class="sss-engines">
 				<img                   title="Copy to clipboard" src="..\src\res\sss-engine-icons\copy.png">
 				<img                   title="Open as link"      src="..\src\res\sss-engine-icons\open-link.png">
 				<img class="separator"                           src="..\src\res\sss-engine-icons\separator.png">

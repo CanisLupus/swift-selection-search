@@ -610,6 +610,7 @@ namespace PopupCreator
 			}
 
 			this.enginesContainer = document.createElement("div");
+			this.enginesContainer.classList.add("sss-engines");
 			this.content.appendChild(this.enginesContainer);
 
 			this.createPopupContent(settings, sssIcons);
@@ -636,7 +637,7 @@ namespace PopupCreator
 					background-color: ${settings.popupBackgroundColor};
 					border-radius: ${settings.popupBorderRadius}px;
 					padding: ${settings.popupPaddingY}px ${settings.popupPaddingX}px;
-					${this.generateStylesheet_TextAlign(settings)}
+					text-align: center;
 					${this.generateStylesheet_Width(settings)}
 				}
 
@@ -656,9 +657,13 @@ namespace PopupCreator
 					${this.generateStylesheet_Separator(settings)}
 				}
 
+				.sss-engines {
+					${this.generateStylesheet_TextAlign(settings)}
+				}
+
 				.sss-input-field {
 					box-sizing: border-box;
-					width: 98%;
+					width: calc(100% - 8px);
 					border: 1px solid #ccc;
 					border-radius: ${settings.popupBorderRadius}px;
 					padding: 4px 7px;
