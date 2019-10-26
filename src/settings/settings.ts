@@ -56,6 +56,8 @@ namespace SSS_Settings
 		middleMouseSelectionClickMargin: undefined,
 		nPopupIconsPerRow: undefined,
 		iconAlignmentInGrid: undefined,
+		useCustomPopupCSS: undefined,
+		customPopupCSS: undefined,
 	};
 
 	class EncodingGroup
@@ -380,7 +382,7 @@ namespace SSS_Settings
 		// save all form elements for easy access
 
 		page.engines = document.getElementById("engines");
-		page.inputs = document.querySelectorAll("input, select");
+		page.inputs = document.querySelectorAll("input, select, textarea");
 
 		for (let item of page.inputs) {
 			page[item.name] = item;
@@ -866,6 +868,9 @@ namespace SSS_Settings
 			case "useSingleRow":
 				updateSetting_nPopupIconsPerRow(value);
 				updateSetting_iconAlignmentInGrid(value);
+				break;
+			case "useCustomPopupCSS":
+				updateSetting_customPopupCSS(value);
 				break;
 		}
 	}
@@ -1402,6 +1407,11 @@ namespace SSS_Settings
 	function updateSetting_iconAlignmentInGrid(useSingleRow)
 	{
 		updateSetting_specific(page.iconAlignmentInGrid, useSingleRow === false);
+	}
+
+	function updateSetting_customPopupCSS(useCustomPopupCSS)
+	{
+		updateSetting_specific(page.customPopupCSS, useCustomPopupCSS === true);
 	}
 
 	function updateSetting_specific(element: HTMLElement, enabled: boolean)

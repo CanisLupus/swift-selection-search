@@ -673,6 +673,8 @@ namespace PopupCreator
 				.sss-input-field:hover {
 					border: 1px solid ${settings.popupHighlightColor};
 				}
+
+				${settings.customPopupCSS}
 			`;
 		}
 

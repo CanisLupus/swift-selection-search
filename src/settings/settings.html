@@ -32,6 +32,7 @@
 		padding-left: 20px;
 		font-size: 2rem;
 	}
+	textarea,
 	input[type=text],
 	input[type=number],
 	input[type=button],
@@ -829,6 +830,27 @@
 					<input class="setting-input" type="number" name="popupBorderRadius" min="0">
 				</div>
 				<div class="setting-description">Popup border radius in pixels. Makes popup more or less round.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Use custom CSS formatting (experimental)</div>
+				<div class="setting-value">
+					<input class="setting-input" type="checkbox" name="useCustomPopupCSS" autocomplete="off">
+				</div>
+				<div class="setting-description">If you know CSS you can apply any formatting you want to the popup, such as custom icon hover animations or a background image. Please keep in mind that your custom CSS will be *added* to the internal CSS that SSS uses, and so might conflict with it.
+				<br>
+				<br>
+				NOTE: If the popup's internal CSS changes in any future update, this option may disable itself to avoid problems.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
+			</div>
+
+			<div class="setting command hidden indent">
+				<div class="setting-name">Custom CSS</div>
+				<div class="setting-value">
+					<textarea class="setting-input" name="customPopupCSS" style="font-size: 12px;"></textarea>
+				</div>
+				<div class="setting-description" style="z-index: -1;"></div>
 				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 		</div>

@@ -80,6 +80,8 @@ namespace SSS
 		popupOffsetX: number;
 		popupOffsetY: number;
 		popupBorderRadius: number;
+		useCustomPopupCSS: boolean;
+		customPopupCSS: string;
 
 		enableEnginesInContextMenu: boolean;
 		contextMenuItemBehaviour: OpenResultBehaviour;
@@ -228,7 +230,9 @@ namespace SSS
 		popupPaddingY: 1,
 		popupOffsetX: 0,
 		popupOffsetY: 0,
-		popupBorderRadius: 2,
+		popupBorderRadius: 4,
+		useCustomPopupCSS: false,
+		customPopupCSS: "",
 
 		enableEnginesInContextMenu: true,
 		contextMenuItemBehaviour: OpenResultBehaviour.NewBgTab,
@@ -477,6 +481,8 @@ namespace SSS
 		if (createSettingIfNonExistent(settings, "maxSelectedCharacters"))           shouldSave = true; // 3.30.0
 		if (createSettingIfNonExistent(settings, "contextMenuString"))               shouldSave = true; // 3.32.0
 		if (createSettingIfNonExistent(settings, "showSelectionTextField"))          shouldSave = true; // 3.40.0
+		if (createSettingIfNonExistent(settings, "useCustomPopupCSS"))               shouldSave = true; // 3.40.0
+		if (createSettingIfNonExistent(settings, "customPopupCSS"))                  shouldSave = true; // 3.40.0
 
 		// 3.7.0
 		// convert old unchangeable browser-imported engines to normal ones
