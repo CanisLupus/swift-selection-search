@@ -164,6 +164,7 @@ namespace SSS
 		Nothing = "nothing",
 		Highlight = "highlight",
 		HighlightAndMove = "highlight-and-move",
+		Scale = "scale",
 	}
 
 	// not used anymore but needed for retrocompatibility

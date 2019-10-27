@@ -29,6 +29,7 @@ namespace Types
 		Nothing = "nothing",
 		Highlight = "highlight",
 		HighlightAndMove = "highlight-and-move",
+		Scale = "scale",
 	}
 }
 
@@ -687,15 +688,27 @@ namespace PopupCreator
 
 		generateStylesheet_IconHover(settings: SSS.Settings): string
 		{
-			if (settings.popupItemHoverBehaviour === Types.ItemHoverBehaviour.Nothing) return "";
+			if (settings.popupItemHoverBehaviour === Types.ItemHoverBehaviour.Highlight
+			 || settings.popupItemHoverBehaviour === Types.ItemHoverBehaviour.HighlightAndMove)
+			{
+				return `
+					border-bottom: 2px ${settings.popupHighlightColor} solid;
+					border-radius: ${settings.popupItemBorderRadius == 0 ? 2 : settings.popupItemBorderRadius}px;
+					${settings.popupItemHoverBehaviour === Types.ItemHoverBehaviour.HighlightAndMove
+						? `margin-top: ${-3 - settings.popupItemVerticalPadding + 2}px;`
+						: `padding-bottom: ${3 + settings.popupItemVerticalPadding - 2}px;`}
+				`;
+			}
+			else if (settings.popupItemHoverBehaviour === Types.ItemHoverBehaviour.Scale)
+			{
+				// "backface-visibility: hidden" prevents blurriness
+				return `
+					transform: scale(1.15);
+					backface-visibility: hidden;
+				`;
+			}
 
-			return `
-				border-bottom: 2px ${settings.popupHighlightColor} solid;
-				border-radius: ${settings.popupItemBorderRadius == 0 ? 2 : settings.popupItemBorderRadius}px;
-				${settings.popupItemHoverBehaviour === Types.ItemHoverBehaviour.HighlightAndMove
-					? `margin-top: ${-3 - settings.popupItemVerticalPadding + 2}px;`
-					: `padding-bottom: ${3 + settings.popupItemVerticalPadding - 2}px;`}
-			`;
+			return "";
 		}
 
 		generateStylesheet_Separator(settings: SSS.Settings): string
