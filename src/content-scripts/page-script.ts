@@ -210,7 +210,7 @@ namespace ContentScript
 		{
 			// unregister popup events and remove the popup from the page
 
-			document.documentElement.removeEventListener("keypress", hidePopup);
+			document.documentElement.removeEventListener("keydown", hidePopup);
 			document.documentElement.removeEventListener("mousedown", hidePopup);
 			if (settings.hidePopupOnPageScroll) {
 				window.removeEventListener("scroll", hidePopup);
@@ -390,7 +390,7 @@ namespace ContentScript
 		document.documentElement.appendChild(popup);
 
 		// register popup events
-		document.documentElement.addEventListener("keypress", hidePopup);
+		document.documentElement.addEventListener("keydown", hidePopup);
 		document.documentElement.addEventListener("mousedown", hidePopup);	// hide popup from a press down anywhere...
 		popup.addEventListener("mousedown", ev => ev.stopPropagation());	// ...except on the popup itself
 
@@ -433,8 +433,11 @@ namespace ContentScript
 		// if we pressed with right mouse button and that isn't supposed to hide the popup, don't hide
 		if (settings && settings.hidePopupOnRightClick === false && ev && ev.button === 2) return;
 
-		// if event is a keypress on the text field, don't hide
-		if (ev && ev.type === "keypress" && popup.isReceiverOfEvent(ev)) return;
+		// if open behaviour is set to "Hold Alt", don't hide popup because of a pressed alt key (code 18)
+		if (activationSettings && activationSettings.popupOpenBehaviour === Types.PopupOpenBehaviour.HoldAlt && ev && ev.type === "keydown" && ev.keyCode == 18) return;
+
+		// if event is a keydown on the text field, don't hide
+		if (ev && ev.type === "keydown" && popup.isReceiverOfEvent(ev)) return;
 
 		popup.hide();
 	}
