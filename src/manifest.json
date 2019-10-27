@@ -28,7 +28,8 @@
 		"open_in_tab": true
 	},
 
-	"permissions": ["<all_urls>", "activeTab", "clipboardWrite", "contextMenus", "storage", "tabs", "downloads", "webNavigation"],
+	"permissions": ["<all_urls>", "activeTab", "clipboardWrite", "contextMenus", "storage", "tabs", "webNavigation"],
+	"optional_permissions": ["downloads"],
 
 	"commands": {
 		"open-popup": {
