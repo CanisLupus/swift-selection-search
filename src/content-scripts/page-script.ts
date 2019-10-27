@@ -29,6 +29,7 @@ namespace Types
 		Nothing = "nothing",
 		Highlight = "highlight",
 		HighlightAndMove = "highlight-and-move",
+		Scale = "scale",
 	}
 }
 
@@ -69,11 +70,6 @@ namespace ContentScript
 		constructor(public log: any) { super(MessageType.Log); }
 	}
 
-	class GetActivationSettingsMessage extends Message
-	{
-		constructor() { super(MessageType.GetActivationSettings); }
-	}
-
 	class GetPopupSettingsMessage extends Message
 	{
 		constructor() { super(MessageType.GetPopupSettings); }
@@ -102,21 +98,8 @@ namespace ContentScript
 
 	// be prepared for messages from background script
 	browser.runtime.onMessage.addListener(onMessageReceived);
-	// be prepared for settings changing at any time from now
-	browser.storage.onChanged.addListener(onSettingsChanged);
 
 	if (DEBUG) { log("content script has started!"); }
-
-	requestActivation();
-
-	// asks the background script for activation settings to setup this content script
-	function requestActivation()
-	{
-		browser.runtime.sendMessage(new GetActivationSettingsMessage()).then(
-			activationSettings => activate(activationSettings),	// background script passes a few settings needed for setup
-			getErrorHandler("Error sending getActivationSettings message from content script.")
-		);
-	}
 
 	// act when the background script requests something from this script
 	function onMessageReceived(msg, sender, callbackFunc)
@@ -125,6 +108,14 @@ namespace ContentScript
 		{
 			case "isAlive":
 				callbackFunc(true);	// simply return true to say "I'm alive!"
+				break;
+
+			case "activate":
+				// if this is not the first activation, reset everything first
+				if (activationSettings !== null) {
+					deactivate();
+				}
+				activate(msg.activationSettings);	// background script passes a few settings needed for setup
 				break;
 
 			case "showPopup":
@@ -165,17 +156,6 @@ namespace ContentScript
 		}
 	}
 
-	function onSettingsChanged(changes, area)
-	{
-		if (area !== "local" || isObjectEmpty(changes)) return;
-
-		if (DEBUG) { log("onSettingsChanged"); }
-
-		// settings changed, so reset everything and request activation with new settings
-		deactivate();
-		requestActivation();
-	}
-
 	// default error handler for promises
 	function getErrorHandler(text: string): (reason: any) => void
 	{
@@ -184,14 +164,6 @@ namespace ContentScript
 		} else {
 			return undefined;
 		}
-	}
-
-	function isObjectEmpty(obj: object): boolean
-	{
-		for (const _ in obj) {
-			return false;	// has at least one element
-		}
-		return true;
 	}
 
 	function activate(_activationSettings: SSS.ActivationSettings)
@@ -219,8 +191,6 @@ namespace ContentScript
 
 	function deactivate()
 	{
-		if (activationSettings === null) return;
-
 		// unregister with all events (use last activation settings to figure out what registrations were made)
 
 		if (activationSettings.popupLocation === Types.PopupLocation.Cursor) {
@@ -241,7 +211,7 @@ namespace ContentScript
 		{
 			// unregister popup events and remove the popup from the page
 
-			document.documentElement.removeEventListener("keypress", hidePopup);
+			document.documentElement.removeEventListener("keydown", hidePopup);
 			document.documentElement.removeEventListener("mousedown", hidePopup);
 			if (settings.hidePopupOnPageScroll) {
 				window.removeEventListener("scroll", hidePopup);
@@ -421,7 +391,7 @@ namespace ContentScript
 		document.documentElement.appendChild(popup);
 
 		// register popup events
-		document.documentElement.addEventListener("keypress", hidePopup);
+		document.documentElement.addEventListener("keydown", hidePopup);
 		document.documentElement.addEventListener("mousedown", hidePopup);	// hide popup from a press down anywhere...
 		popup.addEventListener("mousedown", ev => ev.stopPropagation());	// ...except on the popup itself
 
@@ -464,8 +434,11 @@ namespace ContentScript
 		// if we pressed with right mouse button and that isn't supposed to hide the popup, don't hide
 		if (settings && settings.hidePopupOnRightClick === false && ev && ev.button === 2) return;
 
-		// if event is a keypress on the text field, don't hide
-		if (ev && ev.type === "keypress" && popup.isReceiverOfEvent(ev)) return;
+		// if open behaviour is set to "Hold Alt", don't hide popup because of a pressed alt key (code 18)
+		if (activationSettings && activationSettings.popupOpenBehaviour === Types.PopupOpenBehaviour.HoldAlt && ev && ev.type === "keydown" && ev.keyCode == 18) return;
+
+		// if event is a keydown on the text field, don't hide
+		if (ev && ev.type === "keydown" && popup.isReceiverOfEvent(ev)) return;
 
 		popup.hide();
 	}
@@ -717,15 +690,27 @@ namespace PopupCreator
 
 		generateStylesheet_IconHover(settings: SSS.Settings): string
 		{
-			if (settings.popupItemHoverBehaviour === Types.ItemHoverBehaviour.Nothing) return "";
+			if (settings.popupItemHoverBehaviour === Types.ItemHoverBehaviour.Highlight
+			 || settings.popupItemHoverBehaviour === Types.ItemHoverBehaviour.HighlightAndMove)
+			{
+				return `
+					border-bottom: 2px ${settings.popupHighlightColor} solid;
+					border-radius: ${settings.popupItemBorderRadius == 0 ? 2 : settings.popupItemBorderRadius}px;
+					${settings.popupItemHoverBehaviour === Types.ItemHoverBehaviour.HighlightAndMove
+						? `margin-top: ${-3 - settings.popupItemVerticalPadding + 2}px;`
+						: `padding-bottom: ${3 + settings.popupItemVerticalPadding - 2}px;`}
+				`;
+			}
+			else if (settings.popupItemHoverBehaviour === Types.ItemHoverBehaviour.Scale)
+			{
+				// "backface-visibility: hidden" prevents blurriness
+				return `
+					transform: scale(1.15);
+					backface-visibility: hidden;
+				`;
+			}
 
-			return `
-				border-bottom: 2px ${settings.popupHighlightColor} solid;
-				border-radius: ${settings.popupItemBorderRadius == 0 ? 2 : settings.popupItemBorderRadius}px;
-				${settings.popupItemHoverBehaviour === Types.ItemHoverBehaviour.HighlightAndMove
-					? `margin-top: ${-3 - settings.popupItemVerticalPadding + 2}px;`
-					: `padding-bottom: ${3 + settings.popupItemVerticalPadding - 2}px;`}
-			`;
+			return "";
 		}
 
 		generateStylesheet_Separator(settings: SSS.Settings): string

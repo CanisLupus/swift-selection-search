@@ -428,17 +428,27 @@ namespace SSS_Settings
 
 		// there are two elements for some buttons: a button for display and the actual "real" button that does the work
 		page.importBrowserEnginesFileButton.onclick = () => page.importBrowserEnginesFileButton_real.click();
-		page.exportSettingsToFileButton.onclick = () => {
-			// remove useless stuff that doesn't need to be stored
-			var blob = runActionOnDietSettings(settings, (settings: SSS.Settings) => new Blob([JSON.stringify(settings)]));
-			// save with current date and time
-			let filename = "SSS settings backup (" + new Date(Date.now()).toJSON().replace(/:/g, ".") + ").json";
+		page.exportSettingsToFileButton.onclick = () =>
+		{
+			// to save as a file we need the "downloads permission"
+			browser.permissions.request({ permissions: ["downloads"] }).then(wasPermissionGranted =>
+			{
+				if (!wasPermissionGranted) {
+					alert("Sorry, you cannot export your file without the \"Downloads\" permission!");
+					return;
+				}
 
-			browser.downloads.download({	// NOTE: to save as a file we need the "downloads permission"
-				"saveAs": true,
-				"url": URL.createObjectURL(blob),
-				"filename": filename,
-			});
+				// remove useless stuff that doesn't need to be stored
+				var blob = runActionOnDietSettings(settings, (settings: SSS.Settings) => new Blob([JSON.stringify(settings)]));
+				// save with current date and time
+				let filename = "SSS settings backup (" + new Date(Date.now()).toJSON().replace(/:/g, ".") + ").json";
+
+				browser.downloads.download({
+					"saveAs": true,
+					"url": URL.createObjectURL(blob),
+					"filename": filename,
+				});
+			})
 		};
 		page.importSettingsFromFileButton.onclick = () => page.importSettingsFromFileButton_real.click();
 

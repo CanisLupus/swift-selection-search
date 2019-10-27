@@ -166,6 +166,7 @@ namespace SSS
 		Nothing = "nothing",
 		Highlight = "highlight",
 		HighlightAndMove = "highlight-and-move",
+		Scale = "scale",
 	}
 
 	// not used anymore but needed for retrocompatibility
@@ -529,7 +530,26 @@ namespace SSS
 		if (DEBUG) { log("onSettingsChanged in " + area); }
 		if (DEBUG) { log(changes); }
 
-		browser.storage.local.get().then(onSettingsAcquired, getErrorHandler("Error getting settings after onSettingsChanged."));
+		browser.storage.local.get()
+			.then(onSettingsAcquired, getErrorHandler("Error getting settings after onSettingsChanged."))
+			.then(updateSettingsOnAllTabs, getErrorHandler("Error updating settings on all tabs."));
+	}
+
+	function updateSettingsOnAllTabs()
+	{
+		browser.tabs.query({}).then(tabs => {
+			for (const tab of tabs) {
+				activateTab(tab.id);
+			}
+		}, getErrorHandler("Error querying tabs."));
+	}
+
+	function activateTab(tabId: number)
+	{
+		browser.tabs.sendMessage(tabId, {
+			type: "activate",
+			activationSettings: sss.activationSettingsForContentScript
+		}).then(() => {}, () => {});	// suppress errors
 	}
 
 	// default error handler for promises
@@ -562,10 +582,6 @@ namespace SSS
 		switch (msg.type)
 		{
 			// messages from content script
-
-			case "getActivationSettings":
-				callbackFunc(sss.activationSettingsForContentScript);
-				break;
 
 			case "getPopupSettings":
 				callbackFunc(sss.settingsForContentScript);
@@ -843,7 +859,8 @@ namespace SSS
 			executeScriptOptions.file = "/content-scripts/selectionchange.js";
 			browser.tabs.executeScript(tabId, executeScriptOptions).then(() => {
 				executeScriptOptions.file = "/content-scripts/page-script.js";
-				browser.tabs.executeScript(tabId, executeScriptOptions).then(null, errorHandler)
+				browser.tabs.executeScript(tabId, executeScriptOptions)
+					.then(() => activateTab(tabId), errorHandler)
 			}, errorHandler);
 		};
 

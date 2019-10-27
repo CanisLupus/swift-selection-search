@@ -332,6 +332,10 @@
 						<summary>[Press to expand/collapse]</summary>
 						<ul>
 							<li>
+								You may notice that when you select a search engine in the list of engines it expands and can show additional options. One of these is the "Text encoding" option. Being able to change the encoding is sometimes essential for websites that use non-latin alphabets like Japanese, Chinese, etc. If you run into problems with such websites try changing the encoding from UTF-8 to a more adequate one (it depends on what encoding the website uses for its search!).
+							</li>
+
+							<li>
 								Most <a href="https://developer.mozilla.org/docs/Web/API/URL#Properties">JavaScript URL properties</a> are available for search URLs as <popm>{hash}</popm>, <popm>{host}</popm>, <popm>{hostname}</popm>, <popm>{href}</popm>, <popm>{origin}</popm>, <popm>{password}</popm>, <popm>{pathname}</popm>, <popm>{port}</popm>, <popm>{protocol}</popm>, <popm>{search}</popm> and <popm>{username}</popm>. For example, if <popm>{hostname}</popm> is present in the search URL when searching, it will be replaced by the website domain you are on (ex.: <popm>google.com</popm>).
 							</li>
 
@@ -753,6 +757,7 @@
 						<option value="nothing">Nothing (no hover effect)</option>
 						<option value="highlight">Highlight-only</option>
 						<option value="highlight-and-move">Highlight & Move</option>
+						<option value="scale">Scale</option>
 					</select>
 				</div>
 				<div class="setting-description">What happens to hovered search engine icons.</div>
