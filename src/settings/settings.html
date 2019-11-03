@@ -335,7 +335,7 @@
 							</li>
 
 							<li>
-								Most <a href="https://developer.mozilla.org/docs/Web/API/URL#Properties">JavaScript URL properties</a> are available for search URLs as <popm>{hash}</popm>, <popm>{host}</popm>, <popm>{hostname}</popm>, <popm>{href}</popm>, <popm>{origin}</popm>, <popm>{password}</popm>, <popm>{pathname}</popm>, <popm>{port}</popm>, <popm>{protocol}</popm>, <popm>{search}</popm> and <popm>{username}</popm>. For example, if <popm>{hostname}</popm> is present in the search URL when searching, it will be replaced by the website domain you are on (ex.: <popm>google.com</popm>).
+								Most <a target="_blank" href="https://developer.mozilla.org/docs/Web/API/URL#Properties">JavaScript URL properties</a> are available for search URLs as <popm>{hash}</popm>, <popm>{host}</popm>, <popm>{hostname}</popm>, <popm>{href}</popm>, <popm>{origin}</popm>, <popm>{password}</popm>, <popm>{pathname}</popm>, <popm>{port}</popm>, <popm>{protocol}</popm>, <popm>{search}</popm> and <popm>{username}</popm>. For example, if <popm>{hostname}</popm> is present in the search URL when searching, it will be replaced by the website domain you are on (ex.: <popm>google.com</popm>).
 							</li>
 
 							<li>
@@ -351,7 +351,7 @@
 									</li>
 
 									<li>
-									Replacements can also be <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Regular_Expressions">regular expressions</a>. If you don't know these, it's okay. It's way beyond the scope of these instructions to explain them.
+									Replacements can also be <a target="_blank" href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Regular_Expressions">regular expressions</a>. If you don't know these, it's okay. It's way beyond the scope of these instructions to explain them.
 									<ul>
 										<li>
 											These come in the form of either <popm>{searchTerms{re/your_regex_here/flags_here}}</popm>, where the selected text will be replaced with only the characters that match the expression, or <popm>{searchTerms{re/your_regex_here/flags_here|replacement}}</popm>, where the match will be replaced with the replacement. If you use the <popm>g</popm> flag that matches all occurrences, each of them will be replaced with the replacement.
@@ -664,6 +664,15 @@
 					</select>
 				</div>
 				<div class="setting-description">Automatically copy selected text to clipboard when popup opens.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Bypass page CSP</div>
+				<div class="setting-value">
+					<input class="setting-input" type="checkbox" name="canModifyRequestHeaders" autocomplete="off">
+				</div>
+				<div class="setting-description">Allows the SSS popup to appear on pages with restrictive Content Security Policies (CSP) (SSS can't do this <a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1267027">by default</a>). NOTE: Since this involves modifying page request headers, it requires extra permissions and *may* cause conflicts with any extensions that try to do the same (see <a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1462989">this</a> for details).</div>
 				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 		</div>

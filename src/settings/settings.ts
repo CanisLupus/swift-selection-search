@@ -56,6 +56,7 @@ namespace SSS_Settings
 		middleMouseSelectionClickMargin: undefined,
 		nPopupIconsPerRow: undefined,
 		iconAlignmentInGrid: undefined,
+		canModifyRequestHeaders: undefined,
 	};
 
 	class EncodingGroup
@@ -418,6 +419,23 @@ namespace SSS_Settings
 				};
 				reader.readAsText(ev.target.files[0]);
 			}
+			else if (item.name === "canModifyRequestHeaders")
+			{
+				// permissions can only be given on a user-originating event, so do that here
+
+				if (page.canModifyRequestHeaders.checked)
+				{
+					browser.permissions.request({ permissions: ["webRequest", "webRequestBlocking"] }).then(wasPermissionGranted =>
+					{
+						if (!wasPermissionGranted) {
+							alert("Sorry, you cannot activate this option without giving permission!");
+							page.canModifyRequestHeaders.checked = false;
+							return;
+						}
+					});
+				}
+				saveElementValueToSettings(item, true);
+			}
 			// otherwise, if not a "special thing", this is a field
 			else {
 				saveElementValueToSettings(item, true);
@@ -446,7 +464,7 @@ namespace SSS_Settings
 					"url": URL.createObjectURL(blob),
 					"filename": filename,
 				});
-			})
+			});
 		};
 		page.importSettingsFromFileButton.onclick = () => page.importSettingsFromFileButton_real.click();
 
