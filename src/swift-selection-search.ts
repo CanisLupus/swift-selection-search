@@ -62,6 +62,7 @@ namespace SSS
 		mouseMiddleButtonBehaviour: OpenResultBehaviour;
 		popupAnimationDuration: number;
 		autoCopyToClipboard: AutoCopyToClipboard;
+		canModifyRequestHeaders: boolean;
 
 		showSelectionTextField: boolean;
 		useSingleRow: boolean;
@@ -214,6 +215,7 @@ namespace SSS
 		mouseMiddleButtonBehaviour: OpenResultBehaviour.NewBgTab,
 		popupAnimationDuration: 100,
 		autoCopyToClipboard: AutoCopyToClipboard.Off,
+		canModifyRequestHeaders: false,
 
 		showSelectionTextField: true,
 		useSingleRow: true,
@@ -484,6 +486,7 @@ namespace SSS
 		if (createSettingIfNonExistent(settings, "showSelectionTextField"))          shouldSave = true; // 3.40.0
 		if (createSettingIfNonExistent(settings, "useCustomPopupCSS"))               shouldSave = true; // 3.40.0
 		if (createSettingIfNonExistent(settings, "customPopupCSS"))                  shouldSave = true; // 3.40.0
+		if (createSettingIfNonExistent(settings, "canModifyRequestHeaders"))         shouldSave = true; // 3.40.0
 
 		// 3.7.0
 		// convert old unchangeable browser-imported engines to normal ones
@@ -811,6 +814,12 @@ namespace SSS
 			browser.webNavigation.onDOMContentLoaded.addListener(onDOMContentLoaded);
 			browser.tabs.query({}).then(installOnOpenTabs, getErrorHandler("Error querying tabs."));
 		}
+
+		browser.webRequest.onHeadersReceived.removeListener(modifyCSPRequest);
+
+		if (sss.settings.canModifyRequestHeaders === true) {
+			registerCSPModification();
+		}
 	}
 
 	function onDOMContentLoaded(details)
@@ -873,6 +882,46 @@ namespace SSS
 			injectPageScript();	// (2) own call
 		}
 	}
+
+	/* ------------------------------------ */
+	/* ------- HEADER MODIFICATION -------- */
+	/* ------------------------------------ */
+
+	// Some pages have a restrictive CSP that blocks things, but extensions can modify the CSP to allow their own modifications (as long as they have user permissions).
+	// In particular, SSS needs to use inline style blocks
+	function registerCSPModification()
+	{
+		if (DEBUG) { log("registering with onHeadersReceived"); }
+
+		browser.webRequest.onHeadersReceived.addListener(
+			modifyCSPRequest,
+			{ urls : [ 'http://*/*', 'https://*/*' ], types: [ 'main_frame' ] },
+			[ 'blocking', 'responseHeaders' ]
+		);
+	}
+
+	function modifyCSPRequest(details)
+	{
+		for (const responseHeader of details.responseHeaders)
+		{
+			const headerName = responseHeader.name.toLowerCase();
+			if (headerName !== 'content-security-policy' && headerName !== 'x-webkit-csp') continue;
+
+			const cspSource = "style-src";
+
+			if (responseHeader.value.includes(cspSource)) {
+				if (DEBUG) { log("CSP is: " + responseHeader.value); }
+				responseHeader.value = responseHeader.value.replace(cspSource, cspSource + " 'unsafe-inline'");
+				if (DEBUG) { log("modified CSP to include style-src 'unsafe-inline'"); }
+			}
+		};
+
+		return { responseHeaders: details.responseHeaders };
+	}
+
+	/* ------------------------------------ */
+	/* ---------- ENGINE CLICKS ----------- */
+	/* ------------------------------------ */
 
 	function onSearchEngineClick(selectedEngine: SearchEngine, clickType: string, searchText: string, href: string)
 	{
@@ -1031,6 +1080,10 @@ namespace SSS
 			getErrorHandler("Error getting current tab.")
 		);
 	}
+
+	/* ------------------------------------ */
+	/* ---- SEARCH TERMS MODIFICATIONS ---- */
+	/* ------------------------------------ */
 
 	abstract class SearchTermsModification
 	{
