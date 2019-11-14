@@ -606,6 +606,7 @@ namespace PopupCreator
 					position: absolute;
 					z-index: 2147483647;
 					user-select: none;
+					-moz-user-select: none;
 					box-shadow: rgba(0, 0, 0, 0.5) 0px 0px 3px;
 					background-color: ${settings.popupBackgroundColor};
 					border-radius: ${settings.popupBorderRadius}px;

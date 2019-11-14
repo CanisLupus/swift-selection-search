@@ -3,7 +3,7 @@
 		"target": "es6",
 		// "outDir": "js-build",
 		"inlineSourceMap": true,
-		"typeRoots": ["node_modules/@types", "node_modules/web-ext-types"],
+		"typeRoots": ["node_modules/@types"],
 		"newLine": "LF",
 		"removeComments": true,
 	}
