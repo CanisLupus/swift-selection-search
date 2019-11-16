@@ -883,8 +883,8 @@ namespace SSS
 	/* ------- HEADER MODIFICATION -------- */
 	/* ------------------------------------ */
 
-	// Some pages have a restrictive CSP that blocks things, but extensions can modify the CSP to allow their own modifications (as long as they have user permissions).
-	// In particular, SSS needs to use inline style blocks
+	// Some pages have a restrictive CSP that blocks things, but extensions can modify the CSP to allow their own modifications
+	// (as long as they have the needed permissions). In particular, SSS needs to use inline style blocks.
 	function registerCSPModification()
 	{
 		browser.webRequest.onHeadersReceived.removeListener(modifyCSPRequest);
@@ -905,16 +905,17 @@ namespace SSS
 			const headerName = responseHeader.name.toLowerCase();
 			if (headerName !== 'content-security-policy' && headerName !== 'x-webkit-csp') continue;
 
-			const cspSource = "style-src";
+			const CSP_SOURCE = "style-src";
 
-			if (responseHeader.value.includes(cspSource)) {
+			if (responseHeader.value.includes(CSP_SOURCE))
+			{
 				if (DEBUG) { log("CSP is: " + responseHeader.value); }
-				responseHeader.value = responseHeader.value.replace(cspSource, cspSource + " 'unsafe-inline'");
+				responseHeader.value = responseHeader.value.replace(CSP_SOURCE, CSP_SOURCE + " 'unsafe-inline'");
 				if (DEBUG) { log("modified CSP to include style-src 'unsafe-inline'"); }
 			}
-		};
+		}
 
-		return { responseHeaders: details.responseHeaders };
+		return details;
 	}
 
 	/* ------------------------------------ */
