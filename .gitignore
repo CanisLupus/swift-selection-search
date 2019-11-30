@@ -3,5 +3,4 @@ Thumbs.db
 /node_modules
 *.js
 
-!/src/settings/Sortable.js
-!/src/libs/iconv-lite.js
+!/src/libs/*
