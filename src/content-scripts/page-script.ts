@@ -431,11 +431,16 @@ namespace ContentScript
 	{
 		if (popup === null) return;
 
+		// these keys shouldn't hide the popup
+		if (ev && ev.type === "keydown") {
+			if (ev.keyCode == 16) return;	// shift
+			if (ev.keyCode == 17) return;	// ctrl
+			if (ev.keyCode == 18) return;	// alt
+			if (ev.keyCode == 224) return;	// mac cmd (224 only on Firefox)
+		}
+
 		// if we pressed with right mouse button and that isn't supposed to hide the popup, don't hide
 		if (settings && settings.hidePopupOnRightClick === false && ev && ev.button === 2) return;
-
-		// if open behaviour is set to "Hold Alt", don't hide popup because of a pressed alt key (code 18)
-		if (activationSettings && activationSettings.popupOpenBehaviour === Types.PopupOpenBehaviour.HoldAlt && ev && ev.type === "keydown" && ev.keyCode == 18) return;
 
 		// if event is a keydown on the text field, don't hide
 		if (ev && ev.type === "keydown" && popup.isReceiverOfEvent(ev)) return;

@@ -947,12 +947,12 @@ namespace SSS
 			}
 		}
 		// here we know it's a normal search engine, so run the search
-		else if (selectedEngine.type === SearchEngineType.Custom)
+		else// if (selectedEngine.type === SearchEngineType.Custom) // can't do this because "browser" type wouldn't be caught
 		{
 			let engine_Custom = selectedEngine as SearchEngine_Custom;
 
 			let engine = sss.settings.searchEngines.find(
-				eng => eng.type === SearchEngineType.Custom && (eng as SearchEngine_Custom).searchUrl === engine_Custom.searchUrl
+				eng => eng.type !== SearchEngineType.SSS && (eng as SearchEngine_Custom).searchUrl === engine_Custom.searchUrl
 			) as SearchEngine_Custom;
 
 			if (clickType === "leftClick") {
