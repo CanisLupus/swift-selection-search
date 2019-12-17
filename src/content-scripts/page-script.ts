@@ -306,7 +306,7 @@ namespace ContentScript
 			{
 				selectedText = "";
 				for (let i = 0; i < selectionObject.rangeCount; i++) {
-					selectedText += selectionObject.getRangeAt(i).toString();
+					selectedText += selectionObject.getRangeAt(i).toString() + " ";
 				}
 			}
 
