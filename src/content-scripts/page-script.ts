@@ -211,10 +211,10 @@ namespace ContentScript
 		{
 			// unregister popup events and remove the popup from the page
 
-			document.documentElement.removeEventListener("keydown", hidePopup);
-			document.documentElement.removeEventListener("mousedown", hidePopup);
+			document.documentElement.removeEventListener("keydown", onKeyDown);
+			document.documentElement.removeEventListener("mousedown", maybeHidePopup);
 			if (settings.hidePopupOnPageScroll) {
-				window.removeEventListener("scroll", hidePopup);
+				window.removeEventListener("scroll", maybeHidePopup);
 			}
 
 			document.documentElement.removeChild(popup);
@@ -361,8 +361,13 @@ namespace ContentScript
 			popup = createPopup(settings);
 		}
 
-		if (settings.showSelectionTextField === true) {
+		if (settings.showSelectionTextField === true)
+		{
 			popup.setInputFieldText(selection.text);
+
+			if (isForced) {	// if forced by keyboard, focus the text field
+				setTimeout(() => popup.setFocusOnInputFieldText(), 0);
+			}
 		}
 
 		popup.show();	// call "show" first so that popup size calculations are correct in setPopupPosition
@@ -391,12 +396,12 @@ namespace ContentScript
 		document.documentElement.appendChild(popup);
 
 		// register popup events
-		document.documentElement.addEventListener("keydown", hidePopup);
-		document.documentElement.addEventListener("mousedown", hidePopup);	// hide popup from a press down anywhere...
+		document.documentElement.addEventListener("keydown", onKeyDown);
+		document.documentElement.addEventListener("mousedown", maybeHidePopup);	// hide popup from a press down anywhere...
 		popup.addEventListener("mousedown", ev => ev.stopPropagation());	// ...except on the popup itself
 
 		if (settings.hidePopupOnPageScroll) {
-			window.addEventListener("scroll", hidePopup);
+			window.addEventListener("scroll", maybeHidePopup);
 		}
 
 		return popup;
@@ -427,23 +432,50 @@ namespace ContentScript
 		return false;
 	}
 
-	function hidePopup(ev?)
+	function onKeyDown(ev)
 	{
 		if (popup === null) return;
 
-		// these keys shouldn't hide the popup
-		if (ev && ev.type === "keydown") {
-			if (ev.keyCode == 16) return;	// shift
-			if (ev.keyCode == 17) return;	// ctrl
-			if (ev.keyCode == 18) return;	// alt
-			if (ev.keyCode == 224) return;	// mac cmd (224 only on Firefox)
+		// if pressing the enter key, grab the first user-defined engine and search using that
+		if (ev.keyCode == 13 && popup.isReceiverOfEvent(ev))
+		{
+			let firstEngine = settings.searchEngines.find(e => e.type !== Types.SearchEngineType.SSS);
+			let message = createSearchMessage(firstEngine, settings);
+			message.clickType = "ctrlClick";
+			browser.runtime.sendMessage(message);
 		}
+		else
+		{
+			maybeHidePopup(ev);
+		}
+	}
 
-		// if we pressed with right mouse button and that isn't supposed to hide the popup, don't hide
-		if (settings && settings.hidePopupOnRightClick === false && ev && ev.button === 2) return;
+	function maybeHidePopup(ev?)
+	{
+		if (popup === null) return;
 
-		// if event is a keydown on the text field, don't hide
-		if (ev && ev.type === "keydown" && popup.isReceiverOfEvent(ev)) return;
+		if (ev)
+		{
+			if (ev.type === "keydown")
+			{
+				// these keys shouldn't hide the popup
+				if (ev.keyCode == 16) return;	// shift
+				if (ev.keyCode == 17) return;	// ctrl
+				if (ev.keyCode == 18) return;	// alt
+				if (ev.keyCode == 224) return;	// mac cmd (224 only on Firefox)
+
+				if (ev.keyCode == 27) {	// escape forces hide
+					popup.hide();
+					return;
+				}
+
+				// if event is a keydown on the text field, don't hide
+				if (popup.isReceiverOfEvent(ev)) return;
+			}
+
+			// if we pressed with right mouse button and that isn't supposed to hide the popup, don't hide
+			if (ev.button === 2 && settings && settings.hidePopupOnRightClick === false) return;
+		}
 
 		popup.hide();
 	}
@@ -460,18 +492,12 @@ namespace ContentScript
 		if (ev.button === 1 && !canMiddleClickEngine) return;
 
 		if (settings.hidePopupOnSearch) {
-			hidePopup();
+			maybeHidePopup();
 		}
 
 		if (ev.button === 0 || ev.button === 1)
 		{
-			let message = new EngineClickMessage();
-			message.selection = settings.showSelectionTextField === true ? popup.getInputFieldText() : selection.text;
-			message.engine = engine;
-
-			if (window.location) {
-				message.href = window.location.href;
-			}
+			let message: EngineClickMessage = createSearchMessage(engine, settings);
 
 			if (DEBUG) {
 				log("engine clicked with button " + ev.button + ": "
@@ -490,6 +516,19 @@ namespace ContentScript
 
 			browser.runtime.sendMessage(message);
 		}
+	}
+
+	function createSearchMessage(engine: SSS.SearchEngine, settings: SSS.Settings): EngineClickMessage
+	{
+		let message = new EngineClickMessage();
+		message.selection = settings.showSelectionTextField === true ? popup.getInputFieldText() : selection.text;
+		message.engine = engine;
+
+		if (window.location) {
+			message.href = window.location.href;
+		}
+
+		return message;
 	}
 
 	function onMouseDown(ev: MouseEvent)
@@ -866,6 +905,11 @@ namespace PopupCreator
 		isReceiverOfEvent(ev: Event)
 		{
 			return ev.target === this;
+		}
+
+		setFocusOnInputFieldText()
+		{
+			this.inputField.focus();
 		}
 
 		setInputFieldText(text: string)
