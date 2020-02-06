@@ -80,16 +80,21 @@ namespace SSS_Settings
 			[ "ISO-8859-1 (Latin-1)", "iso88591" ],
 			[ "ISO-8859-16 (Latin-10)", "iso885916" ],
 		]),
-		new EncodingGroup("KOI8 codepages", [
+		new EncodingGroup("Cyrillic (Russia, Ukraine)", [
 			[ "KOI8-R", "koi8r" ],
 			[ "KOI8-U", "koi8u" ],
 			[ "KOI8-RU", "koi8ru" ],
 			[ "KOI8-T", "koi8t" ],
+			[ "Windows-1251", "windows1251" ],
 		]),
-		new EncodingGroup("Chinese", [
+		new EncodingGroup("Chinese (China)", [
 			[ "GBK", "gbk" ],
 			[ "GB 18030", "gb18030" ],
 			[ "EUC-CN", "euccn" ],
+		]),
+		new EncodingGroup("Chinese (Taiwan, Hong Kong)", [
+			[ "Big5", "big5" ],
+			[ "Code page 950", "cp950" ],
 		]),
 		new EncodingGroup("Japanese", [
 			[ "Shift JIS", "shiftjis" ],
@@ -97,10 +102,6 @@ namespace SSS_Settings
 		]),
 		new EncodingGroup("Korean", [
 			[ "EUC-KR", "euckr" ],
-		]),
-		new EncodingGroup("Taiwan / Hong Kong", [
-			[ "Big5", "big5" ],
-			[ "Code page 950", "cp950" ],
 		]),
 	];
 
