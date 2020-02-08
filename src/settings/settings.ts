@@ -8,7 +8,7 @@
 	// - create a new setting
 	// - [extra] if dependent on another setting, add "hidden" (and perhaps "indent") as a class
 // - settings.ts
-	// - [extra] if dependent on another setting, add to "const page" object
+	// - [extra] if dependent on another setting, add both to "const page" object
 	// - [extra] if dependent on another setting, create a new "updateSetting_??" function and add it to "function updateSetting"
 // - page-script.ts
 	// - implement!
@@ -45,6 +45,7 @@ namespace SSS_Settings
 		popupDelay: undefined,
 		middleMouseSelectionClickMargin: undefined,
 
+		selectionTextFieldLocation: undefined,
 		nPopupIconsPerRow: undefined,
 		iconAlignmentInGrid: undefined,
 		popupBackgroundColorPicker: undefined,
@@ -882,6 +883,9 @@ namespace SSS_Settings
 				updateSetting_maxSelectedCharacters(value);
 				updateSetting_middleMouseSelectionClickMargin(value);
 				break;
+			case "showSelectionTextField":
+				updateSetting_selectionTextFieldLocation(value);
+				break;
 			case "useSingleRow":
 				updateSetting_nPopupIconsPerRow(value);
 				updateSetting_iconAlignmentInGrid(value);
@@ -1414,6 +1418,11 @@ namespace SSS_Settings
 	function updateSetting_middleMouseSelectionClickMargin(popupOpenBehaviour)
 	{
 		updateSetting_specific(page.middleMouseSelectionClickMargin, popupOpenBehaviour === PopupOpenBehaviour.MiddleMouse);
+	}
+
+	function updateSetting_selectionTextFieldLocation(showSelectionTextField)
+	{
+		updateSetting_specific(page.selectionTextFieldLocation, showSelectionTextField === true);
 	}
 
 	function updateSetting_nPopupIconsPerRow(useSingleRow)

@@ -64,6 +64,7 @@ namespace SSS
 		autoCopyToClipboard: AutoCopyToClipboard;
 
 		showSelectionTextField: boolean;
+		selectionTextFieldLocation: SelectionTextFieldLocation;
 		useSingleRow: boolean;
 		nPopupIconsPerRow: number;
 		iconAlignmentInGrid: IconAlignment;
@@ -156,6 +157,11 @@ namespace SSS
 		Always = "always",
 	}
 
+	enum SelectionTextFieldLocation {
+		Top = "top",
+		Bottom = "bottom",
+	}
+
 	enum IconAlignment {
 		Left = "left",
 		Middle = "middle",
@@ -216,6 +222,7 @@ namespace SSS
 		autoCopyToClipboard: AutoCopyToClipboard.Off,
 
 		showSelectionTextField: true,
+		selectionTextFieldLocation: SelectionTextFieldLocation.Top,
 		useSingleRow: true,
 		nPopupIconsPerRow: 4,
 		iconAlignmentInGrid: IconAlignment.Middle,
@@ -484,6 +491,7 @@ namespace SSS
 		if (createSettingIfNonExistent(settings, "showSelectionTextField"))          shouldSave = true; // 3.40.0
 		if (createSettingIfNonExistent(settings, "useCustomPopupCSS"))               shouldSave = true; // 3.40.0
 		if (createSettingIfNonExistent(settings, "customPopupCSS"))                  shouldSave = true; // 3.40.0
+		if (createSettingIfNonExistent(settings, "selectionTextFieldLocation"))      shouldSave = true; // 3.41.0
 
 		// 3.7.0
 		// convert old unchangeable browser-imported engines to normal ones

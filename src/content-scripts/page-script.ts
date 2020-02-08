@@ -2,7 +2,7 @@ var DEBUG_STATE: boolean;	// avoid TS compilation errors but still get working J
 
 namespace Types
 {
-	// Subset of enums from the background script (only the ones needed).
+	// [TypeScript]: Subset of enums from the background script (only the ones needed).
 	// We duplicate enum definitions because otherwise the generated JS code is incomplete.
 
 	export enum SearchEngineType {
@@ -19,6 +19,10 @@ namespace Types
 	}
 	export enum AutoCopyToClipboard {
 		Always = "always",
+	}
+	export enum SelectionTextFieldLocation {
+		Top = "top",
+		Bottom = "bottom",
 	}
 	export enum IconAlignment {
 		Left = "left",
@@ -632,9 +636,17 @@ namespace PopupCreator
 				this.content.appendChild(this.inputField);
 			}
 
+			if (this.inputField && settings.selectionTextFieldLocation === Types.SelectionTextFieldLocation.Top) {
+				this.content.appendChild(this.inputField);
+			}
+
 			this.enginesContainer = document.createElement("div");
 			this.enginesContainer.classList.add("sss-engines");
 			this.content.appendChild(this.enginesContainer);
+
+			if (this.inputField && settings.selectionTextFieldLocation === Types.SelectionTextFieldLocation.Bottom) {
+				this.content.appendChild(this.inputField);
+			}
 
 			this.createPopupContent(settings, sssIcons);
 		}
