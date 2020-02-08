@@ -34,20 +34,25 @@
 	body .header span {
 		font-size: 2rem;
 	}
-	textarea,
 	input[type=text],
 	input[type=number],
 	input[type=button],
 	input[type=color],
-	input[type=reset],
-	select,
-	button {
+	textarea,
+	select {
 		width: 100%;
 		padding: 4px 4px;
 		border: 1px solid #ccc;
 		border-radius: 4px;
 	}
+	input[type=checkbox],
+	input[type=button],
+	input[type=color],
+	select {
+		cursor: pointer;
+	}
 	input:hover,
+	textarea:hover,
 	select:hover {
 		border: 1px solid #3399FF;
 	}
@@ -167,11 +172,6 @@
 	#engines-table * {
 		font-size: 0.8rem;
 	}
-	#engines-table button {
-		padding: 2px 4px;
-		width: 24px;
-		text-align: center;
-	}
 	.engine-table-row {
 		width: 100%;
 		display: flex;
@@ -188,7 +188,7 @@
 		display: none;
 	}
 	.engine-table-row:not(.static-row):hover {
-		background: rgba(51, 153, 255, 0.1);
+		background: #c6e3ff88;
 	}
 	.engine-itself > div,
 	.engine-options > div {
