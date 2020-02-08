@@ -698,7 +698,7 @@ namespace PopupCreator
 					border: 1px solid ${settings.popupHighlightColor};
 				}
 
-				${settings.customPopupCSS}
+				${settings.useCustomPopupCSS === true ? settings.customPopupCSS : ""}
 			`;
 		}
 
