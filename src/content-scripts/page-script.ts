@@ -38,6 +38,7 @@ namespace ContentScript
 	export class SelectionData
 	{
 		isInEditableField: boolean;
+		unprocessedText: string;
 		text: string;
 		element: HTMLElement;
 		selection: Selection;
@@ -151,7 +152,7 @@ namespace ContentScript
 	function copyToClipboardAsPlainText_Listener(e: ClipboardEvent)
 	{
 		if (saveCurrentSelection()) {
-			e.clipboardData.setData('text/plain', selection.text);
+			e.clipboardData.setData('text/plain', selection.unprocessedText);
 			e.preventDefault();
 		}
 	}
@@ -288,7 +289,7 @@ namespace ContentScript
 			selection.isInEditableField = true;
 
 			// for editable fields, getting the selected text is different
-			selection.text = (elem as HTMLTextAreaElement).value.substring(elem.selectionStart, elem.selectionEnd);
+			selection.unprocessedText = (elem as HTMLTextAreaElement).value.substring(elem.selectionStart, elem.selectionEnd);
 			selection.element = elem;
 		}
 		else
@@ -310,11 +311,16 @@ namespace ContentScript
 				}
 			}
 
-			selection.text = selectedText;
+			selection.unprocessedText = selectedText;
 			selection.selection = selectionObject;
 		}
 
-		selection.text = selection.text.trim();
+		selection.unprocessedText = selection.unprocessedText.trim();
+
+		let text = selection.unprocessedText;
+		text = text.replace(/[\r\n]+/g, " ");	// replace newlines with spaces
+		text = text.replace(/\s\s+/g, " ");		// replace consecutive whitespaces
+		selection.text = text;
 
 		return selection.text.length > 0;
 	}
@@ -322,7 +328,7 @@ namespace ContentScript
 	// shows the popup if the conditions are proper, according to settings
 	function tryShowPopup(ev: Event, isForced: boolean)
 	{
-		// Usually we would check for the altKey only if "ev instanceof selectionchange.CustomSelectionChangeEvent",
+		// [TypeScript]: Usually we would check for the altKey only if "ev instanceof selectionchange.CustomSelectionChangeEvent",
 		// but ev has an undefined class type in pages outside the options page, so it doesn't match. We use ev["altKey"].
 		if (settings.popupOpenBehaviour === Types.PopupOpenBehaviour.HoldAlt && !ev["altKey"]) return;
 
