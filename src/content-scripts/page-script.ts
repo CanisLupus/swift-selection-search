@@ -744,12 +744,19 @@ namespace PopupCreator
 			if (settings.popupItemHoverBehaviour === Types.ItemHoverBehaviour.Highlight
 			 || settings.popupItemHoverBehaviour === Types.ItemHoverBehaviour.HighlightAndMove)
 			{
+				let borderCompensation;
+				if (settings.popupItemHoverBehaviour === Types.ItemHoverBehaviour.HighlightAndMove) {
+					let marginTopValue = Math.min(-3 - settings.popupItemVerticalPadding + 2, -2);	// equal or less than -2 to counter the border's 2px
+					borderCompensation = `margin-top: ${marginTopValue}px;`;
+				} else {
+					let paddingBottomValue = Math.max(3 + settings.popupItemVerticalPadding - 2, 0);	// must be positive to counter the border's 2px
+					borderCompensation = `padding-bottom: ${paddingBottomValue}px;`;
+				}
+
 				return `
 					border-bottom: 2px ${settings.popupHighlightColor} solid;
 					border-radius: ${settings.popupItemBorderRadius == 0 ? 2 : settings.popupItemBorderRadius}px;
-					${settings.popupItemHoverBehaviour === Types.ItemHoverBehaviour.HighlightAndMove
-						? `margin-top: ${-3 - settings.popupItemVerticalPadding + 2}px;`
-						: `padding-bottom: ${3 + settings.popupItemVerticalPadding - 2}px;`}
+					${borderCompensation}
 				`;
 			}
 			else if (settings.popupItemHoverBehaviour === Types.ItemHoverBehaviour.Scale)
