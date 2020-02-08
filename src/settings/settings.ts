@@ -32,32 +32,38 @@ namespace SSS_Settings
 	const page = {
 		engines: undefined,
 		inputs: undefined,
-		importBrowserEnginesFileButton: undefined,
-		importBrowserEnginesFileButton_real: undefined,
-		exportSettingsToFileButton: undefined,
-		importSettingsFromFileButton: undefined,
-		importSettingsFromFileButton_real: undefined,
-		popupBackgroundColorPicker: undefined,
-		popupBackgroundColor: undefined,
-		popupHighlightColorPicker: undefined,
-		popupHighlightColor: undefined,
+
 		addEngineButton: undefined,
 		addSeparatorButton: undefined,
-		saveSettingsToSyncButton: undefined,
+		importBrowserEnginesFileButton: undefined,
+		importBrowserEnginesFileButton_real: undefined,
 		resetSearchEnginesButton: undefined,
 		resetSearchEnginesButton_real: undefined,
-		resetSettingsButton: undefined,
-		resetSettingsButton_real: undefined,
-		loadSettingsFromSyncButton: undefined,
-		loadSettingsFromSyncButton_real: undefined,
+
 		minSelectedCharacters: undefined,
 		maxSelectedCharacters: undefined,
 		popupDelay: undefined,
 		middleMouseSelectionClickMargin: undefined,
+
 		nPopupIconsPerRow: undefined,
 		iconAlignmentInGrid: undefined,
+		popupBackgroundColorPicker: undefined,
+		popupBackgroundColor: undefined,
+		popupHighlightColorPicker: undefined,
+		popupHighlightColor: undefined,
+
 		useCustomPopupCSS: undefined,
 		customPopupCSS: undefined,
+
+		exportSettingsToFileButton: undefined,
+		importSettingsFromFileButton: undefined,
+		importSettingsFromFileButton_real: undefined,
+		saveSettingsToSyncButton: undefined,
+		loadSettingsFromSyncButton: undefined,
+		loadSettingsFromSyncButton_real: undefined,
+
+		resetSettingsButton: undefined,
+		resetSettingsButton_real: undefined,
 	};
 
 	class EncodingGroup
