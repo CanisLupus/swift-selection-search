@@ -1019,18 +1019,19 @@ namespace SSS
 
 		let query = getFilteredSearchUrl(engine.searchUrl, searchText, !hasCustomEncoding);
 
+		// https://developer.mozilla.org/en-US/docs/Web/API/URL#Properties
 		// use regex with "g" flag to match all occurences, "i" ignores case
-		if (/\{hash\}/i.test(query))     { query = query.replace(/\{hash\}/gi,     encodeURIComponent(url.hash));     }
-		if (/\{host\}/i.test(query))     { query = query.replace(/\{host\}/gi,     encodeURIComponent(url.host));     }
-		if (/\{hostname\}/i.test(query)) { query = query.replace(/\{hostname\}/gi, encodeURIComponent(url.hostname)); }
-		if (/\{href\}/i.test(query))     { query = query.replace(/\{href\}/gi,     encodeURIComponent(url.href));     }
-		if (/\{origin\}/i.test(query))   { query = query.replace(/\{origin\}/gi,   encodeURIComponent(url.origin));   }
-		if (/\{password\}/i.test(query)) { query = query.replace(/\{password\}/gi, encodeURIComponent(url.password)); }
-		if (/\{pathname\}/i.test(query)) { query = query.replace(/\{pathname\}/gi, encodeURIComponent(url.pathname)); }
-		if (/\{port\}/i.test(query))     { query = query.replace(/\{port\}/gi,     encodeURIComponent(url.port));     }
-		if (/\{protocol\}/i.test(query)) { query = query.replace(/\{protocol\}/gi, encodeURIComponent(url.protocol)); }
-		if (/\{search\}/i.test(query))   { query = query.replace(/\{search\}/gi,   encodeURIComponent(url.search));   }
-		if (/\{username\}/i.test(query)) { query = query.replace(/\{username\}/gi, encodeURIComponent(url.username)); }
+		if (/\{hash\}/i.test(query))     { query = query.replace(/\{hash\}/gi,     url.hash);     }
+		if (/\{host\}/i.test(query))     { query = query.replace(/\{host\}/gi,     url.host);     }
+		if (/\{hostname\}/i.test(query)) { query = query.replace(/\{hostname\}/gi, url.hostname); }
+		if (/\{href\}/i.test(query))     { query = query.replace(/\{href\}/gi,     url.href);     }
+		if (/\{origin\}/i.test(query))   { query = query.replace(/\{origin\}/gi,   url.origin);   }
+		if (/\{password\}/i.test(query)) { query = query.replace(/\{password\}/gi, url.password); }
+		if (/\{pathname\}/i.test(query)) { query = query.replace(/\{pathname\}/gi, url.pathname); }
+		if (/\{port\}/i.test(query))     { query = query.replace(/\{port\}/gi,     url.port);     }
+		if (/\{protocol\}/i.test(query)) { query = query.replace(/\{protocol\}/gi, url.protocol); }
+		if (/\{search\}/i.test(query))   { query = query.replace(/\{search\}/gi,   url.search);   }
+		if (/\{username\}/i.test(query)) { query = query.replace(/\{username\}/gi, url.username); }
 
 		return query;
 	}
