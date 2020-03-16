@@ -891,28 +891,25 @@ namespace PopupCreator
 			positionLeft += settings.popupOffsetX;
 			positionTop -= settings.popupOffsetY;	// invert sign because y is 0 at the top
 
-			// don't leave the page or be excessively close to leaving it
+			// don't let popup be outside of the viewport
+
+			const margin: number = 5;
 
 			// left/right checks
-			if (positionLeft < 5) {
-				positionLeft = 5;
+			if (positionLeft < margin + window.scrollX) {
+				positionLeft = margin + window.scrollX;
 			} else {
-				let pageWidth = document.documentElement.offsetWidth + window.pageXOffset;
-				if (positionLeft + width + 10 > pageWidth) {
-					positionLeft = pageWidth - width - 10;
+				if (positionLeft + width + margin > document.body.clientWidth + window.scrollX) {
+					positionLeft = document.body.clientWidth + window.scrollX - width - margin;
 				}
 			}
 
 			// top/bottom checks
-			if (positionTop < 5) {
-				positionTop = 5;
+			if (positionTop < margin + window.scrollY) {
+				positionTop = margin + window.scrollY;
 			} else {
-				let pageHeight = document.documentElement.scrollHeight;
-				if (positionTop + height + 10 > pageHeight) {
-					let newPositionTop = pageHeight - height - 10;
-					if (newPositionTop >= 0) {	// just to be sure, since some websites can have pageHeight = 0
-						positionTop = pageHeight - height - 10;
-					}
+				if (positionTop + height + margin > document.body.clientHeight + window.scrollY) {
+					positionTop = document.body.clientHeight + window.scrollY - height - margin;
 				}
 			}
 
