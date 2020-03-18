@@ -111,6 +111,17 @@ function runTests()
 		new Test("href", r`http://a.com?q={href{\\|\{\|\}}}`,                                 new STM([new Repl("\\", "{|}")], 15, 32),                                                  new ES("a | b\\c {coisas}\\", "http://a.com?q=a | b{|}c {coisas}{|}")      ),
 		new Test("href", r`http://a.com?q={href{|+}{_*&|%%}{cenas|coiso}} site:{hostname}`,   new STM([new Repl("", "+"), new Repl("_*&", "%%"), new Repl("cenas", "coiso")], 15, 46),   new ES("a b_c_",              "http://a.com?q=a+ +b+_+c+_ site:{hostname}")),
 		new Test("href", r`http://a.com?q={href{ |}{_*&|%%}{cenas|coiso}} site:{hostname}`,   new STM([new Repl(" ", ""), new Repl("_*&", "%%"), new Repl("cenas", "coiso")], 15, 46),   new ES("a b_c_",              "http://a.com?q=ab_c_ site:{hostname}")      ),
+
+		// test case insensitiveness
+		new Test("searchTerms", r`http://a.com?q={searchterms{ |+}{_|-}} site:{hostname}`,                        new STM([new Repl(" ", "+"), new Repl("_", "-")], 15, 38),                                 new ES("a b_c_",              "http://a.com?q=a+b-c- site:{hostname}")     ),
+		new Test("searchTerms", r`http://a.com?q={SEARCHTERMS{  |+}{_*&|%%}{cenas|coiso}} site:{hostname}`,       new STM([new Repl("  ", "+"), new Repl("_*&", "%%"), new Repl("cenas", "coiso")], 15, 55), new ES("a b_c_",              "http://a.com?q=a b_c_ site:{hostname}")     ),
+		new Test("searchTerms", r`http://a.com?q={SEARCHterms}`,                                                  new STM([], 15, 28),                                                                       new ES("a b_c_",              "http://a.com?q=a b_c_")                     ),
+		new Test("searchTerms", r`http://a.com?q={SeArChTeRmS}{searCHTErms{a|b}{g|h}}{searchTerms{b|c}{h|i}}`,    new STM([], 15, 28),                                                                       new ES("a bgch",              "http://a.com?q=a bgchb bhcha cgci")         ),
+		new Test("searchTerms", r`http://a.com?q={SearchTerms{\||\\}{\{|a}}`,                                     new STM([new Repl("|", "\\"), new Repl("{", "a")], 15, 41),                                new ES("a|b\\c{coisas}\\",    "http://a.com?q=a\\b\\cacoisas}\\")          ),
+		new Test("searchTerms", r`http://a.com?q={sEaRcHtErMs{\ |\+}{a|\\}}`,                                     new STM([new Repl(" ", "+"), new Repl("a", "\\")], 15, 41),                                new ES("a | b\\c {coisas}\\", "http://a.com?q=\\+|+b\\c+{cois\\s}\\")      ),
+		new Test("href",        r`http://a.com?q={hREf{\\|\{\|\}}}`,                                              new STM([new Repl("\\", "{|}")], 15, 32),                                                  new ES("a | b\\c {coisas}\\", "http://a.com?q=a | b{|}c {coisas}{|}")      ),
+		new Test("href",        r`http://a.com?q={HREF{|+}{_*&|%%}{cenas|coiso}} site:{hostname}`,                new STM([new Repl("", "+"), new Repl("_*&", "%%"), new Repl("cenas", "coiso")], 15, 46),   new ES("a b_c_",              "http://a.com?q=a+ +b+_+c+_ site:{hostname}")),
+		new Test("href",        r`http://a.com?q={hReF{ |}{_*&|%%}{cenas|coiso}} site:{hostname}`,                new STM([new Repl(" ", ""), new Repl("_*&", "%%"), new Repl("cenas", "coiso")], 15, 46),   new ES("a b_c_",              "http://a.com?q=ab_c_ site:{hostname}")      ),
 	];
 
 	for (const test of tests)

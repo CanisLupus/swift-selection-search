@@ -177,14 +177,20 @@ namespace SearchVariables
 
 	export function getSearchVariableReplacements(url: string, variableName: string, startIndexForIndexOf: number): SearchVariableModifications	// exported for tests
 	{
-		const startString: string = "{" + variableName;	// {searchTerms, {href, etc
-		let startIndex: number = url.indexOf(startString, startIndexForIndexOf);
+		const startString: string = "{" + variableName;	// find things like {searchTerms, {href, etc
+
+		// this is essentially a case insensitive "url.indexOf(startString, startIndexForIndexOf)" (JavaScript doesn't have it)
+		var regex = new RegExp("\\" + startString, "i");	// slash to escape the {, "i" to be case insensitive
+		let startIndex: number = url.substring(startIndexForIndexOf).search(regex);
+
 		// if variable not found, quit
 		if (startIndex === -1) {
 			return SearchVariableModifications.createDefault();
 		}
 
 		let modifications = SearchVariableModifications.createDefault();
+
+		startIndex += startIndexForIndexOf;
 
 		let index: number = startIndex + startString.length;
 		// if variable ends immediately with no replacements, quit
