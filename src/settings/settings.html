@@ -342,7 +342,7 @@
 							</li>
 
 							<li>
-								<popm>{searchTerms}</popm> supports text replacements in the format <popm>{searchTerms{original text|new text}}</popm>, allowing multiple pairs of <popm>{original text|new text}</popm>.
+								Variables such as <popm>{searchTerms}</popm> and the JavaScript URL properties (like <popm>{hostname}</popm>, <popm>{href}</popm>, etc) support text replacements in the format <popm>{variable{original text|new text}}</popm>, allowing multiple pairs of <popm>{original text|new text}</popm>.
 
 								<ul>
 									<li>
@@ -350,7 +350,7 @@
 									</li>
 
 									<li>
-										Since SSS uses the special characters <popm>\</popm>, <popm>{</popm>, <popm>|</popm>, and <popm>}</popm> for delimiting the replacements, if you want to use these characters in the replacement itself, you should precede them with a <popm>\</popm>. This is called "escaping characters". For example, <popm>{searchTerms{\{|\}}}</popm> replaces <popm>{</popm> with <popm>}</popm> in your text and <popm>{searchTerms{ |\\}}</popm> replaces spaces with a <popm>\</popm>.
+										Since SSS uses the special characters <popm>\</popm>, <popm>{</popm>, <popm>|</popm>, and <popm>}</popm> for delimiting the replacements, if you want to use these characters in the replacement itself, you should precede them with a <popm>\</popm>. This is called "escaping characters". For example, <popm>{searchTerms{\{|\}}}</popm> replaces <popm>{</popm> with <popm>}</popm> in your text and <popm>{searchTerms{ |\\}}</popm> replaces spaces with a <popm>\</popm> (yes, that is hard to read!).
 									</li>
 
 									<li>
@@ -371,7 +371,7 @@
 								</ul>
 							</li>
 							<li>
-								<popm>{searchTerms}</popm> supports using only part of the selected text with the indexing format <popm>{searchTerms[index]}</popm> or <popm>{searchTerms[start:end]}</popm> (start and end both optional).
+								Variables support using only part of the selected text with the indexing format <popm>{variable[index]}</popm> or <popm>{variable[start:end]}</popm> (start and end both optional).
 								<ul>
 									<li>
 										<popm>{searchTerms[index]}</popm> allows selecting a character at a certain position (zero based), so if you search for "Firefox" and use <popm>{searchTerms[0]}</popm> you will get "F", and if you use <popm>{searchTerms[2]}</popm> you will get "r".
@@ -388,7 +388,7 @@
 							</li>
 
 							<li>
-								<popm>{searchTerms}</popm> support functions. These are in the format <popm>{searchTerms(function_name)}</popm>.
+								Variables support a few functions. These are in the format <popm>{variable(function_name)}</popm>.
 
 								<ul>
 									<li>
@@ -401,7 +401,7 @@
 							</li>
 
 							<li>
-								Any <popm>{searchTerms}</popm> modifications (replacements, indexing, functions) can be used in conjunction. So something like <popm>{searchTerms[2:5]{ |+}{@|at}(lowercase)}</popm> is valid and will apply each modification in the given order, so first selecting only characters 2, 3 and 4, then converting any spaces and @, and then converting the result to lowercase.
+								Any variable modifications mentioned above (replacements, indexing, functions) can be used in conjunction. So something like <popm>{searchTerms[2:5]{ |+}{@|at}(lowercase)}</popm> is valid and will apply each modification in the given order, so first selecting only characters 2, 3 and 4, then converting any spaces and @, and then converting the result to lowercase.
 							</li>
 						</ul>
 					</details>
