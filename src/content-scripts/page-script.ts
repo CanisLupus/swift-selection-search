@@ -899,8 +899,9 @@ namespace PopupCreator
 			if (positionLeft < margin + window.scrollX) {
 				positionLeft = margin + window.scrollX;
 			} else {
-				if (positionLeft + width + margin > document.body.clientWidth + window.scrollX) {
-					positionLeft = document.body.clientWidth + window.scrollX - width - margin;
+				let clientWidth = Math.max(document.body.clientWidth, document.documentElement.clientWidth);
+				if (positionLeft + width + margin > clientWidth + window.scrollX) {
+					positionLeft = clientWidth + window.scrollX - width - margin;
 				}
 			}
 
@@ -908,8 +909,9 @@ namespace PopupCreator
 			if (positionTop < margin + window.scrollY) {
 				positionTop = margin + window.scrollY;
 			} else {
-				if (positionTop + height + margin > document.body.clientHeight + window.scrollY) {
-					positionTop = document.body.clientHeight + window.scrollY - height - margin;
+				let clientHeight = Math.max(document.body.clientHeight, document.documentElement.clientHeight);
+				if (positionTop + height + margin > clientHeight + window.scrollY) {
+					positionTop = clientHeight + window.scrollY - height - margin;
 				}
 			}
 
