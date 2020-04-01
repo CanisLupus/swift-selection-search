@@ -62,6 +62,7 @@ namespace SSS
 		mouseMiddleButtonBehaviour: OpenResultBehaviour;
 		popupAnimationDuration: number;
 		autoCopyToClipboard: AutoCopyToClipboard;
+		websiteBlocklist: string;
 
 		showSelectionTextField: boolean;
 		selectionTextFieldLocation: SelectionTextFieldLocation;
@@ -121,6 +122,7 @@ namespace SSS
 		settings: Settings;
 		activationSettingsForContentScript: ActivationSettings;
 		settingsForContentScript: ContentScriptSettings;
+		blockedWebsitesCache: RegExp[];
 	}
 
 	enum SearchEngineType {
@@ -220,6 +222,7 @@ namespace SSS
 		mouseMiddleButtonBehaviour: OpenResultBehaviour.NewBgTab,
 		popupAnimationDuration: 100,
 		autoCopyToClipboard: AutoCopyToClipboard.Off,
+		websiteBlocklist: "",
 
 		showSelectionTextField: true,
 		selectionTextFieldLocation: SelectionTextFieldLocation.Top,
@@ -419,6 +422,7 @@ namespace SSS
 		sss.settings = settings;
 		sss.activationSettingsForContentScript = getActivationSettingsForContentScript(settings);
 		sss.settingsForContentScript = getPopupSettingsForContentScript(settings);
+		sss.blockedWebsitesCache = buildBlockedWebsitesCache(settings.websiteBlocklist);
 
 		if (isFirstLoad) {
 			if (DEBUG) { log("loading ", settings); }
@@ -469,11 +473,58 @@ namespace SSS
 		return contentScriptSettings;
 	}
 
+	// Builds an array of regular expressions based on the websites in the blocklist.
+	// This makes it easier to just match the regex and a part of the URL later.
+	function buildBlockedWebsitesCache(websitesBlocklistText: string): RegExp[]
+	{
+		websitesBlocklistText = websitesBlocklistText.trim();
+
+		let websites: string[] = websitesBlocklistText.split("\n");
+		let websiteRegexes: RegExp[] = [];
+
+		for (let i = 0; i < websites.length; i++)
+		{
+			let website: string = websites[i].trim();
+			if (website.length == 0) continue;
+
+			let regexStr: string;
+
+			if (website.startsWith("/") && website.endsWith("/"))
+			{
+				regexStr = website.substr(1, website.length-2);	// string without the / /
+			}
+			else if (website.includes("*"))
+			{
+				regexStr = escapeRegexString(website);
+				regexStr = "^" + regexStr.replace("\\*", "(.*?)");	// ^ matches start of string, * are replaced by a non greedy match for "any characters"
+			}
+			else
+			{
+				regexStr = "^" + escapeRegexString(website);	// ^ matches start of string
+			}
+
+			try {
+				let regex = new RegExp(regexStr);
+				websiteRegexes.push(regex);
+			} catch (e) {
+				console.warn("[WARNING] [Swift Selection Search]\nRegex parse error in \"Website blocklist\". Problematic regex is:\n\n\t" + website + "\n\n" + e);
+			}
+		}
+
+		return websiteRegexes;
+	}
+
+	function escapeRegexString(str: string): string
+	{
+		return str.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched str
+	}
+
 	function runBackwardsCompatibilityUpdates(settings: Settings): boolean
 	{
 		// add settings that were not available in older versions of SSS
 		let shouldSave: boolean = false;
 
+		// in the comments you can see the first version of SSS where the setting was included
 		if (createSettingIfNonExistent(settings, "popupItemVerticalPadding"))        shouldSave = true; // 3.1.0
 		if (createSettingIfNonExistent(settings, "allowPopupOnEditableFields"))      shouldSave = true; // 3.6.0
 		if (createSettingIfNonExistent(settings, "popupBorderRadius"))               shouldSave = true; // 3.9.1
@@ -492,6 +543,7 @@ namespace SSS
 		if (createSettingIfNonExistent(settings, "useCustomPopupCSS"))               shouldSave = true; // 3.40.0
 		if (createSettingIfNonExistent(settings, "customPopupCSS"))                  shouldSave = true; // 3.40.0
 		if (createSettingIfNonExistent(settings, "selectionTextFieldLocation"))      shouldSave = true; // 3.41.0
+		if (createSettingIfNonExistent(settings, "websiteBlocklist"))                shouldSave = true; // 3.42.0
 
 		// 3.7.0
 		// convert old unchangeable browser-imported engines to normal ones
@@ -547,17 +599,37 @@ namespace SSS
 	{
 		browser.tabs.query({}).then(tabs => {
 			for (const tab of tabs) {
-				activateTab(tab.id);
+				activateTab(tab);
 			}
 		}, getErrorHandler("Error querying tabs."));
 	}
 
-	function activateTab(tabId: number)
+	function activateTab(tab: browser.tabs.Tab)
 	{
-		browser.tabs.sendMessage(tabId, {
+		browser.tabs.sendMessage(tab.id, {
 			type: "activate",
-			activationSettings: sss.activationSettingsForContentScript
+			activationSettings: sss.activationSettingsForContentScript,
+			isPageBlocked: isPageBlocked(tab),
 		}).then(() => {}, () => {});	// suppress errors
+	}
+
+	function isPageBlocked(tab: browser.tabs.Tab): boolean
+	{
+		if (sss.blockedWebsitesCache.length == 0) return false;
+		if (!tab.url) return false;	// tab.url is undefined if we don't have the "tabs" permission
+
+		let index = tab.url.indexOf("://");	// NOTE: assumes the URL does NOT contain :// at an index much after the protocol
+		let url: string = index >= 0 ? tab.url.substr(index + 3) : tab.url;
+
+		for (const regex of sss.blockedWebsitesCache)
+		{
+			if (url.match(regex)) {
+				if (DEBUG) { log("regex " + regex + " matches this URL. BLOCKED " + url); }
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	// default error handler for promises
@@ -873,7 +945,7 @@ namespace SSS
 			browser.tabs.executeScript(tabId, executeScriptOptions).then(() => {
 				executeScriptOptions.file = "/content-scripts/page-script.js";
 				browser.tabs.executeScript(tabId, executeScriptOptions)
-					.then(() => activateTab(tabId), errorHandler)
+					.then(() => getCurrentTab(tab => activateTab(tab)), errorHandler)
 			}, errorHandler);
 		};
 

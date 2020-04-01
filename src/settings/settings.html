@@ -669,6 +669,34 @@
 				<div class="setting-description">Automatically copy selected text to clipboard when popup opens.</div>
 				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
+
+			<div class="setting">
+				<div class="setting-name">Website blocklist</div>
+				<div class="setting-value" style="z-index: 1;">
+					<textarea class="setting-input" name="websiteBlocklist" style="font-size: 12px;"></textarea>
+				</div>
+				<div class="setting-description">
+					Disables the popup on these URLs. Write each URL on a different line and WITHOUT "http", "https", or any other protocol. URLs support the wildcard * (meaning "any number of characters") or regular expressions (regex) in the form /your_regex_here/.
+					<br><br>
+					NOTE: Opening the popup via the keyboard shortcut always works, regardless of this setting.
+					<br><br>
+					<details>
+						<summary>[Press to see examples]</summary>
+						<div>
+							<br>
+							<popm>google.com</popm> → Blocks google.com, but not www.google.com nor drive.google.com
+							<popm>*.google.com</popm> → Blocks www.google.com and drive.google.com, but not google.com
+							<popm>*google.com</popm> → Blocks google.com, www.google.com, drive.google.com
+							<popm>drive.google.com</popm> → Blocks drive.google.com
+							<popm>drive.google.com/spreadsheets</popm> → Blocks drive.google.com/spreadsheets
+							<popm>/\.com/</popm> → (Regex) Blocks all websites that contain ".com" somewhere in the URL
+							<br><br>
+							NOTE: Any regex errors are reported to Firefox' Browser Console (Ctrl+Shift+J) as warnings by SSS. To see them, make sure that "Show Content Messages" is enabled in the top right cog wheel (options) menu of the Browser Console.
+						</div>
+					</details>
+				</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
+			</div>
 		</div>
 	</div>
 

@@ -120,7 +120,7 @@ namespace ContentScript
 				if (activationSettings !== null) {
 					deactivate();
 				}
-				activate(msg.activationSettings);	// background script passes a few settings needed for setup
+				activate(msg.activationSettings, msg.isPageBlocked);	// background script passes a few settings needed for setup
 				break;
 
 			case "showPopup":
@@ -171,7 +171,7 @@ namespace ContentScript
 		}
 	}
 
-	function activate(_activationSettings: SSS.ActivationSettings)
+	function activate(_activationSettings: SSS.ActivationSettings, isPageBlocked: boolean)
 	{
 		activationSettings = _activationSettings;
 
@@ -182,13 +182,16 @@ namespace ContentScript
 			document.addEventListener("mouseenter", onMouseUpdate);
 		}
 
-		if (activationSettings.popupOpenBehaviour === Types.PopupOpenBehaviour.Auto || activationSettings.popupOpenBehaviour === Types.PopupOpenBehaviour.HoldAlt) {
-			selectionchange.start();
-			document.addEventListener("customselectionchange", onSelectionChange);
-		}
-		else if (activationSettings.popupOpenBehaviour === Types.PopupOpenBehaviour.MiddleMouse) {
-			document.addEventListener("mousedown", onMouseDown);
-			document.addEventListener("mouseup", onMouseUp);
+		if (!isPageBlocked)
+		{
+			if (activationSettings.popupOpenBehaviour === Types.PopupOpenBehaviour.Auto || activationSettings.popupOpenBehaviour === Types.PopupOpenBehaviour.HoldAlt) {
+				selectionchange.start();
+				document.addEventListener("customselectionchange", onSelectionChange);
+			}
+			else if (activationSettings.popupOpenBehaviour === Types.PopupOpenBehaviour.MiddleMouse) {
+				document.addEventListener("mousedown", onMouseDown);
+				document.addEventListener("mouseup", onMouseUp);
+			}
 		}
 
 		if (DEBUG) { log("content script activated, url: " + window.location.href.substr(0, 40)); }

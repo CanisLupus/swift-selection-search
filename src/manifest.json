@@ -29,7 +29,7 @@
 	},
 
 	"permissions": ["<all_urls>", "clipboardWrite", "contextMenus", "storage", "webNavigation", "webRequest", "webRequestBlocking"],
-	"optional_permissions": ["downloads"],
+	"optional_permissions": ["downloads", "tabs"],
 
 	"commands": {
 		"open-popup": {

@@ -44,6 +44,7 @@ namespace SSS_Settings
 		maxSelectedCharacters: undefined,
 		popupDelay: undefined,
 		middleMouseSelectionClickMargin: undefined,
+		websiteBlocklist: undefined,
 
 		selectionTextFieldLocation: undefined,
 		nPopupIconsPerRow: undefined,
@@ -465,6 +466,17 @@ namespace SSS_Settings
 		page.popupBackgroundColor.oninput       = () => updatePickerColor(page.popupBackgroundColorPicker, page.popupBackgroundColor.value);
 		page.popupHighlightColorPicker.oninput  = () => updateColorText  (page.popupHighlightColor,        page.popupHighlightColorPicker.value);
 		page.popupHighlightColor.oninput        = () => updatePickerColor(page.popupHighlightColorPicker,  page.popupHighlightColor.value);
+
+		page.websiteBlocklist.onfocus = () => {
+			// to use the website blocklist we need the tabs permission
+			browser.permissions.request({ permissions: ["tabs"] }).then(wasPermissionGranted =>
+			{
+				if (!wasPermissionGranted) {
+					alert("Sorry, you cannot use the website blocklist without the \"Tabs\" permission!");
+					return;
+				}
+			});
+		};
 
 		// setup reset buttons for each option
 
