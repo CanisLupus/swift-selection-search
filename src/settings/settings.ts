@@ -467,13 +467,14 @@ namespace SSS_Settings
 		page.popupHighlightColorPicker.oninput  = () => updateColorText  (page.popupHighlightColor,        page.popupHighlightColorPicker.value);
 		page.popupHighlightColor.oninput        = () => updatePickerColor(page.popupHighlightColorPicker,  page.popupHighlightColor.value);
 
-		page.websiteBlocklist.onfocus = () => {
+		// this should use "onfocus" instead of "onclick" but permissions.request can only be called on user input... (it still works with onfocus, but prints errors)
+		page.websiteBlocklist.onclick = () => {
 			// to use the website blocklist we need the tabs permission
 			browser.permissions.request({ permissions: ["tabs"] }).then(wasPermissionGranted =>
 			{
 				if (!wasPermissionGranted) {
-					alert("Sorry, you cannot use the website blocklist without the \"Tabs\" permission!");
-					return;
+					page.websiteBlocklist.blur();	// remove focus
+					alert("Sorry, the website blocklist won't work without the \"Tabs\" permission!");
 				}
 			});
 		};

@@ -676,7 +676,7 @@
 					<textarea class="setting-input" name="websiteBlocklist" style="font-size: 12px;"></textarea>
 				</div>
 				<div class="setting-description">
-					Disables the popup on these URLs. Write each URL on a different line and WITHOUT "http", "https", or any other protocol. URLs support the wildcard * (meaning "any number of characters") or regular expressions (regex) in the form /your_regex_here/.
+					Disables the popup on these URLs. Write each URL on a different line, WITHOUT using "http", "https", or any other protocol. URLs support the wildcard * (meaning "any number of characters, including zero") or regular expressions (regex) in the form /your_regex_here/.
 					<br><br>
 					NOTE: Opening the popup via the keyboard shortcut always works, regardless of this setting.
 					<br><br>
@@ -688,7 +688,7 @@
 							<popm>*.google.com</popm> → Blocks www.google.com and drive.google.com, but not google.com
 							<popm>*google.com</popm> → Blocks google.com, www.google.com, drive.google.com
 							<popm>drive.google.com</popm> → Blocks drive.google.com
-							<popm>drive.google.com/spreadsheets</popm> → Blocks drive.google.com/spreadsheets
+							<popm>docs.google.com/spreadsheets</popm> → Blocks docs.google.com/spreadsheets (other pages still work)
 							<popm>/\.com/</popm> → (Regex) Blocks all websites that contain ".com" somewhere in the URL
 							<br><br>
 							NOTE: Any regex errors are reported to Firefox' Browser Console (Ctrl+Shift+J) as warnings by SSS. To see them, make sure that "Show Content Messages" is enabled in the top right cog wheel (options) menu of the Browser Console.
