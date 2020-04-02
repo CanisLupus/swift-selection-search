@@ -46,6 +46,8 @@ namespace SSS
 	{
 		[key: string]: any;	// needed to keep old variables like contextMenuEnginesFilter
 
+		useDarkModeInOptionsPage: boolean;
+
 		popupOpenBehaviour: PopupOpenBehaviour;
 		middleMouseSelectionClickMargin: number;
 		popupLocation: PopupLocation;
@@ -205,7 +207,10 @@ namespace SSS
 	};
 
 	// default state of all configurable options
-	const defaultSettings: Settings = {
+	const defaultSettings: Settings =
+	{
+		useDarkModeInOptionsPage: false,
+
 		popupOpenBehaviour: PopupOpenBehaviour.Auto,
 		middleMouseSelectionClickMargin: 14,
 		popupLocation: PopupLocation.Cursor,
@@ -544,6 +549,7 @@ namespace SSS
 		if (createSettingIfNonExistent(settings, "customPopupCSS"))                  shouldSave = true; // 3.40.0
 		if (createSettingIfNonExistent(settings, "selectionTextFieldLocation"))      shouldSave = true; // 3.41.0
 		if (createSettingIfNonExistent(settings, "websiteBlocklist"))                shouldSave = true; // 3.42.0
+		if (createSettingIfNonExistent(settings, "useDarkModeInOptionsPage"))        shouldSave = true; // 3.43.0
 
 		// 3.7.0
 		// convert old unchangeable browser-imported engines to normal ones

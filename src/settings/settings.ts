@@ -33,6 +33,8 @@ namespace SSS_Settings
 		engines: undefined,
 		inputs: undefined,
 
+		toggleDarkMode: undefined,
+
 		addEngineButton: undefined,
 		addSeparatorButton: undefined,
 		importBrowserEnginesFileButton: undefined,
@@ -562,6 +564,21 @@ namespace SSS_Settings
 
 		// register events for more button clicks
 
+		page.toggleDarkMode.setDarkModeState = enable => {
+			if (enable) {
+				document.body.classList.add('dark');
+			} else {
+				document.body.classList.remove('dark');
+			}
+		};
+
+		page.toggleDarkMode.onclick = () => {
+			settings.useDarkModeInOptionsPage = !settings.useDarkModeInOptionsPage;
+			page.toggleDarkMode.setDarkModeState(settings.useDarkModeInOptionsPage);
+
+			saveSettings({ useDarkModeInOptionsPage: settings.useDarkModeInOptionsPage });
+		};
+
 		page.addEngineButton.onclick = () => {
 			let searchUrl = "https://www.google.com/search?q={searchTerms}";	// use google as an example
 			let iconUrl = getFaviconForUrl(searchUrl);	// by default try to get a favicon for the domain
@@ -824,6 +841,10 @@ namespace SSS_Settings
 				classList.toggle("collapsed-section", !isExpanded);
 			}
 		}
+
+		// set dark/light mode
+
+		page.toggleDarkMode.setDarkModeState(settings.useDarkModeInOptionsPage);
 	}
 
 	function saveElementValueToSettings(item: HTMLFormElement, didElementValueChange: boolean = false): boolean
