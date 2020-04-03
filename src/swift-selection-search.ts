@@ -951,7 +951,7 @@ namespace SSS
 			browser.tabs.executeScript(tabId, executeScriptOptions).then(() => {
 				executeScriptOptions.file = "/content-scripts/page-script.js";
 				browser.tabs.executeScript(tabId, executeScriptOptions)
-					.then(() => getCurrentTab(tab => activateTab(tab)), errorHandler)
+					.then(() => getTabWithId(tabId, tab => activateTab(tab)), errorHandler)
 			}, errorHandler);
 		};
 
@@ -1166,6 +1166,15 @@ namespace SSS
 		browser.tabs.query({currentWindow: true, active: true}).then(
 			tabs => callback(tabs[0]),
 			getErrorHandler("Error getting current tab.")
+		);
+	}
+
+	function getTabWithId(tabId, callback)
+	{
+		// get the specified tab and run a function on it
+		browser.tabs.get(tabId).then(
+			tab => callback(tab),
+			getErrorHandler("Error getting tab.")
 		);
 	}
 }
