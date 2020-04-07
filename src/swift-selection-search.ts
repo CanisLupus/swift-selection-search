@@ -6,7 +6,7 @@ namespace SSS
 	/* ====== Swift Selection Search ====== */
 	/* ==================================== */
 
-	const DEBUG = false;
+	const DEBUG = true;
 	if (DEBUG) {
 		var log = console.log;
 	}
@@ -725,27 +725,33 @@ namespace SSS
 
 		if (sss.settings.enableEnginesInContextMenu !== true) return;
 
-		// get only the enabled engines
-		let engines: SearchEngine[] = sss.settings.searchEngines.filter(engine => engine.isEnabledInContextMenu);
-
 		// define parent menu
 		browser.contextMenus.create({
 			id: "sss",
 			title: sss.settings.contextMenuString,
-			contexts: ["selection"],
+			contexts: ["selection"], // "link"],
+			// The code in onContextMenuItemClicked already allows SSS to search by a link's text by right clicking it,
+			// so uncommenting the above "link" context would magically add this feature. However, by default, SSS's
+			// contextMenuString uses %s, which Firefox replaces ONLY with the currently selected text, MEANING that if you just
+			// right click a link with nothing selected, the context menu would just say [Search for “%s”] with a literal %s.
+			// Since this feels dumb, the feature is commented-out for now.
 		});
 
+		let engines: SearchEngine[] = sss.settings.searchEngines;
+
 		// define sub options (one per engine)
-		for (const engine of engines)
+		for (let i = 0; i < engines.length; i++)
 		{
+			const engine = engines[i];
+			if (!engine.isEnabledInContextMenu) continue;
+
 			let contextMenuOption = {
 				id: undefined,
 				title: undefined,
 				type: undefined,
 				parentId: "sss",
-				contexts: ["selection" as browser.contextMenus.ContextType],
+				icons: undefined,
 			};
-			// "icons" is also part of contextMenuOption, but only on Firefox 56+, so don't declare it
 
 			if (engine.type === SearchEngineType.SSS) {
 				let concreteEngine = engine as SearchEngine_SSS;
@@ -754,11 +760,9 @@ namespace SSS
 					browser.contextMenus.create(contextMenuOption);
 					continue;
 				}
-				contextMenuOption.id = concreteEngine.id;
 				contextMenuOption.title = sssIcons[concreteEngine.id].name;
 			} else {
 				let concreteEngine = engine as SearchEngine_Custom;
-				contextMenuOption.id = concreteEngine.searchUrl;
 				contextMenuOption.title = concreteEngine.name;
 			}
 
@@ -778,27 +782,20 @@ namespace SSS
 				}
 			}
 
-			contextMenuOption["icons"] = {
-				"32": icon,
-			};
+			contextMenuOption.icons = { "32": icon };
 
+			contextMenuOption.id = "" + i;
 			browser.contextMenus.create(contextMenuOption);
 		}
 
 		browser.contextMenus.onClicked.addListener(onContextMenuItemClicked);
 	}
 
-	function onContextMenuItemClicked(info, tab)
+	function onContextMenuItemClicked(info: browser.contextMenus.OnClickData, tab: browser.tabs.Tab)
 	{
-		let engine = sss.settings.searchEngines.find(engine => {
-			if (engine.type === SearchEngineType.SSS) {
-				return (engine as SearchEngine_SSS).id === info.menuItemId;
-			} else {
-				return (engine as SearchEngine_Custom).searchUrl === info.menuItemId;
-			}
-		});
-
-		if (engine === undefined) return;
+		let menuId: number = parseInt(info.menuItemId as string);
+		let engines: SearchEngine[] = sss.settings.searchEngines;
+		let engine: SearchEngine = engines[menuId];
 
 		// check if it's a special SSS engine
 		if (engine.type === SearchEngineType.SSS)
@@ -806,10 +803,14 @@ namespace SSS
 			let engine_SSS = engine as SearchEngine_SSS;
 
 			if (engine_SSS.id === "copyToClipboard") {
-				copyToClipboard(engine as SearchEngine_SSS_Copy);
+				if (info.selectionText) {
+					copyToClipboard(engine as SearchEngine_SSS_Copy);	// copy in the page script, to allow choice between HTML and plain text copy
+				} else if (info.linkText) {
+					navigator.clipboard.writeText(info.linkText);	// if copying a link, just always copy its text
+				}
 			}
 			else if (engine_SSS.id === "openAsLink") {
-				let searchUrl = getOpenAsLinkSearchUrl(info.selectionText);
+				let searchUrl = getOpenAsLinkSearchUrl(info.selectionText || info.linkText);
 				openUrl(searchUrl, sss.settings.contextMenuItemBehaviour);
 			}
 		}
@@ -818,7 +819,7 @@ namespace SSS
 		{
 			// search using the engine
 			let url = new URL(info.pageUrl);
-			let searchUrl = getSearchQuery(engine as SearchEngine_Custom, info.selectionText, url);
+			let searchUrl = getSearchQuery(engine as SearchEngine_Custom, info.selectionText || info.linkText, url);
 			openUrl(searchUrl, sss.settings.contextMenuItemBehaviour);
 		}
 	}
