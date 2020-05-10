@@ -629,6 +629,7 @@ namespace SSS
 
 	function isPageBlocked(tab: browser.tabs.Tab): boolean
 	{
+		if (sss.blockedWebsitesCache === undefined) return false;	// can happen when reloading extension in about:debugging
 		if (sss.blockedWebsitesCache.length == 0) return false;
 		if (!tab.url) return false;	// tab.url is undefined if we don't have the "tabs" permission
 
