@@ -459,11 +459,14 @@
 									<li>
 										<popm>{searchTerms(encodeURIComponent)}</popm> applies URL encoding to the text, replacing forbidden URL characters with their escaped versions. For example, % is replaced by %25, / is replaced by %2F, etc. NOTE: SSS <pop>always</pop> applies URL encoding after all replacements happen (otherwise the URL could have invalid characters), so this function should be used only for the rare sites that apply encoding more than once, or apply encoding and then do additional modifications.
 									</li>
+									<li>
+										<popm>{searchTerms(disableURIEncoding)}</popm> disables the default URL encoding that is otherwise always applied to the final text. This is useful for websites that search for links. For example, the Internet Archive website can search for <popm>https://www.mozilla.org</popm> but not for <popm>https%3A%2F%2Fwww.mozilla.org</popm> (the result of the encoding), so you should use <popm>disableURIEncoding</popm>.
+									</li>
 								</ul>
 							</li>
 
 							<li>
-								Any variable modifications mentioned above (replacements, indexing, functions) can be used in conjunction. So something like <popm>{searchTerms[2:5]{ |+}{@|at}(lowercase)}</popm> is valid and will apply each modification in the given order, so first selecting only characters 2, 3 and 4, then converting any spaces and @, and then converting the result to lowercase.
+								Any variable modifications mentioned above (replacements, indexing, functions) can be used in conjunction. So something like <popm>{searchTerms[2:5]{ |+}{@|at}(lowercase)}</popm> is valid and will apply each modification in the given order, so first selecting only characters 2, 3 and 4, then converting any spaces and @, and then converting the result to lowercase. (The only exception is disableURIEncoding, whose order doesn't matter.)
 							</li>
 						</ul>
 					</details>

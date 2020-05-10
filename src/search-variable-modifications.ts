@@ -9,20 +9,23 @@ namespace SearchVariables
 
 		while (true)
 		{
-			let modifications = getSearchVariableReplacements(url, variableName, searchIndex);
+			let variableModifications = getSearchVariableReplacements(url, variableName, searchIndex);
 
-			if (modifications.searchVariableEndIndex == -1) {
+			if (variableModifications.searchVariableEndIndex == -1) {
 				break;
 			}
 
-			queryParts.push(url.substring(searchIndex, modifications.searchVariableStartIndex));
-			if (encode) {
-				// encode chars after replacement
-				queryParts.push(encodeURIComponent(replace(text, modifications.modifications)));
-			} else {
-				queryParts.push(replace(text, modifications.modifications));
+			queryParts.push(url.substring(searchIndex, variableModifications.searchVariableStartIndex));
+
+			let replacedText: string = replace(text, variableModifications.modifications);
+
+			// encode chars after replacement (but only if the modifications DON'T include the disableURIEncoding function)
+			if (encode && !variableModifications.containsDisableURIEncoding()) {
+				replacedText = encodeURIComponent(replacedText);
 			}
-			searchIndex = modifications.searchVariableEndIndex;
+
+			queryParts.push(replacedText);
+			searchIndex = variableModifications.searchVariableEndIndex;
 		}
 
 		queryParts.push(url.substring(searchIndex));
@@ -142,6 +145,7 @@ namespace SearchVariables
 				case "lowercase": return text.toLowerCase();
 				case "uppercase": return text.toUpperCase();
 				case "encodeuricomponent": return encodeURIComponent(text);
+				case "disableuriencoding": return text;	// doesn't apply anything, only makes it so that the variable doesn't get encoded at the end
 				default: return text;
 			}
 		}
@@ -159,6 +163,11 @@ namespace SearchVariables
 		static createDefault(): SearchVariableModifications
 		{
 			return new SearchVariableModifications([], -1, -1);
+		}
+
+		containsDisableURIEncoding(): boolean
+		{
+			return this.modifications.find(mod => (mod instanceof SearchVariableFunction) && mod.functionName.toLowerCase() == "disableuriencoding") !== undefined;
 		}
 	}
 
