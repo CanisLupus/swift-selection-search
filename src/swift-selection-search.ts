@@ -36,6 +36,7 @@ namespace SSS
 		searchUrl: string;
 		iconUrl: string;
 		encoding: string;
+		discardOnOpen: boolean;
 	}
 
 	export class SearchEngine_Browser extends SearchEngine_Custom
@@ -825,7 +826,7 @@ namespace SSS
 			}
 			else if (engine_SSS.id === "openAsLink") {
 				let searchUrl = getOpenAsLinkSearchUrl(info.selectionText || info.linkText);
-				openUrl(searchUrl, sss.settings.contextMenuItemBehaviour);
+				openUrl(searchUrl, sss.settings.contextMenuItemBehaviour, false);
 			}
 		}
 		// here we know it's a normal search engine, so run the search
@@ -833,8 +834,9 @@ namespace SSS
 		{
 			// search using the engine
 			let url = new URL(info.pageUrl);
-			let searchUrl = getSearchQuery(engine as SearchEngine_Custom, info.selectionText || info.linkText, url);
-			openUrl(searchUrl, sss.settings.contextMenuItemBehaviour);
+			let customEngine: SearchEngine_Custom = engine as SearchEngine_Custom;
+			let searchUrl = getSearchQuery(customEngine, info.selectionText || info.linkText, url);
+			openUrl(searchUrl, sss.settings.contextMenuItemBehaviour, customEngine.discardOnOpen);
 		}
 	}
 
@@ -1039,11 +1041,11 @@ namespace SSS
 				if (DEBUG) { log("open as link: " + link); }
 
 				if (clickType === "leftClick") {
-					openUrl(link, sss.settings.mouseLeftButtonBehaviour);
+					openUrl(link, sss.settings.mouseLeftButtonBehaviour, false);
 				} else if (clickType === "middleClick") {
-					openUrl(link, sss.settings.mouseMiddleButtonBehaviour);
+					openUrl(link, sss.settings.mouseMiddleButtonBehaviour, false);
 				} else if (clickType === "ctrlClick") {
-					openUrl(link, OpenResultBehaviour.NewBgTab);
+					openUrl(link, OpenResultBehaviour.NewBgTab, false);
 				}
 			}
 		}
@@ -1057,11 +1059,11 @@ namespace SSS
 			) as SearchEngine_Custom;
 
 			if (clickType === "leftClick") {
-				openUrl(getSearchQuery(engine, searchText, new URL(href)), sss.settings.mouseLeftButtonBehaviour);
+				openUrl(getSearchQuery(engine, searchText, new URL(href)), sss.settings.mouseLeftButtonBehaviour, engine.discardOnOpen);
 			} else if (clickType === "middleClick") {
-				openUrl(getSearchQuery(engine, searchText, new URL(href)), sss.settings.mouseMiddleButtonBehaviour);
+				openUrl(getSearchQuery(engine, searchText, new URL(href)), sss.settings.mouseMiddleButtonBehaviour, engine.discardOnOpen);
 			} else if (clickType === "ctrlClick") {
-				openUrl(getSearchQuery(engine, searchText, new URL(href)), OpenResultBehaviour.NewBgTab);
+				openUrl(getSearchQuery(engine, searchText, new URL(href)), OpenResultBehaviour.NewBgTab, engine.discardOnOpen);
 			}
 		}
 	}
@@ -1131,7 +1133,7 @@ namespace SSS
 		return query;
 	}
 
-	function openUrl(urlToOpen: string, openingBehaviour: OpenResultBehaviour)
+	function openUrl(urlToOpen: string, openingBehaviour: OpenResultBehaviour, discardOnOpen: boolean)
 	{
 		getCurrentTab(tab => {
 			const lastTabIndex: number = 9999;	// "guarantees" tab opens as last for some behaviours
@@ -1139,6 +1141,11 @@ namespace SSS
 
 			if (openingBehaviour !== OpenResultBehaviour.NewWindow && openingBehaviour !== OpenResultBehaviour.NewBgWindow) {
 				options["openerTabId"] = tab.id;
+			}
+
+			if (discardOnOpen) {
+				// to be able to discard we need to open the URL in a new tab, regardless of opening behaviour choice
+				openingBehaviour = OpenResultBehaviour.NewTabNextToThis;
 			}
 
 			switch (openingBehaviour)
@@ -1157,7 +1164,13 @@ namespace SSS
 					break;
 				case OpenResultBehaviour.NewTabNextToThis:
 					options["index"] = tab.index + 1;
-					browser.tabs.create(options);
+					let promise = browser.tabs.create(options);
+					// NOTE: we actually wanted to do this in a new BACKGROUND tab, to avoid the flickering when opening a new tab and then deleting it.
+					// However, tabs opened in the background take time to actually process the URL, so we'd have to use a timer before
+					// removing the tab and we don't even know how much time this will take.
+					if (discardOnOpen) {
+						promise.then(tab => browser.tabs.remove(tab.id));
+					}
 					break;
 				case OpenResultBehaviour.NewBgTabNextToThis:
 					options["index"] = tab.index + 1;

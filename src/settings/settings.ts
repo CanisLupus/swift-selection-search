@@ -1089,7 +1089,7 @@ namespace SSS_Settings
 
 		if (engine.type !== SearchEngineType.SSS)
 		{
-			let dropdownParent = createDropdown(
+			let textEncodingDropdownParent = createDropdown(
 				"Text encoding",
 				`encoding-dropdown-${i}`,
 				encodings,
@@ -1103,8 +1103,20 @@ namespace SSS_Settings
 					saveSettings({ searchEngines: settings.searchEngines });
 				}
 			);
+			textEncodingDropdownParent.title = "If this is a search engine for non-latin alphabets, like Cyrillic, Chinese, Japanese, etc, it might use a different text encoding. You can change it here.";
+			engineOptions.appendChild(textEncodingDropdownParent);
 
-			engineOptions.appendChild(dropdownParent);
+			let discardOnOpenCheckboxParent = createCheckbox(
+				"Discard on open (Advanced)",
+				`discard-on-open-${i}`,
+				engine.discardOnOpen,
+				isOn => {
+					engine.discardOnOpen = isOn;
+					saveSettings({ searchEngines: settings.searchEngines });
+				}
+			);
+			discardOnOpenCheckboxParent.title = "Opens the search but discards the resulting page. Useful if this is a \"non-http\" search engine that opens outside the browser, because that generates an empty tab/page.";
+			engineOptions.appendChild(discardOnOpenCheckboxParent);
 		}
 
 		if (!engineOptions.hasChildNodes())
