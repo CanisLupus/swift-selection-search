@@ -1177,15 +1177,18 @@ namespace SSS
 				case OpenResultBehaviour.ThisTab:
 					browser.tabs.update(undefined, options);
 					break;
+
 				case OpenResultBehaviour.NewTab:
 					options["index"] = lastTabIndex + 1;
 					browser.tabs.create(options);
 					break;
+
 				case OpenResultBehaviour.NewBgTab:
 					options["index"] = lastTabIndex + 1;
 					options["active"] = false;
 					browser.tabs.create(options);
 					break;
+
 				case OpenResultBehaviour.NewTabNextToThis:
 					options["index"] = tab.index + 1;
 					let promise = browser.tabs.create(options);
@@ -1196,14 +1199,17 @@ namespace SSS
 						promise.then(tab => browser.tabs.remove(tab.id));
 					}
 					break;
+
 				case OpenResultBehaviour.NewBgTabNextToThis:
 					options["index"] = tab.index + 1;
 					options["active"] = false;
 					browser.tabs.create(options);
 					break;
+
 				case OpenResultBehaviour.NewWindow:
 					browser.windows.create(options);
 					break;
+
 				case OpenResultBehaviour.NewBgWindow:
 					// options["focused"] = false;	// fails because it's unsupported by Firefox
 					browser.windows.create(options);
