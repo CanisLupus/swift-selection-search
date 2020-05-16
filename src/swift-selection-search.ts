@@ -6,7 +6,7 @@ namespace SSS
 	/* ====== Swift Selection Search ====== */
 	/* ==================================== */
 
-	const DEBUG = true;
+	const DEBUG = false;
 	if (DEBUG) {
 		var log = console.log;
 	}
