@@ -62,6 +62,7 @@ namespace SSS
 		popupOpenCommand: string;
 		popupDisableCommand: string;
 		mouseLeftButtonBehaviour: OpenResultBehaviour;
+		mouseRightButtonBehaviour: OpenResultBehaviour;
 		mouseMiddleButtonBehaviour: OpenResultBehaviour;
 		popupAnimationDuration: number;
 		autoCopyToClipboard: AutoCopyToClipboard;
@@ -90,6 +91,8 @@ namespace SSS
 
 		enableEnginesInContextMenu: boolean;
 		contextMenuItemBehaviour: OpenResultBehaviour;
+		contextMenuItemRightButtonBehaviour: OpenResultBehaviour;
+		contextMenuItemMiddleButtonBehaviour: OpenResultBehaviour;
 		contextMenuString: string;
 		searchEngines: SearchEngine[];
 		searchEnginesCache: { [id: string] : string; };
@@ -225,7 +228,8 @@ namespace SSS
 		popupOpenCommand: "Ctrl+Shift+Space",
 		popupDisableCommand: "Ctrl+Shift+U",
 		mouseLeftButtonBehaviour: OpenResultBehaviour.ThisTab,
-		mouseMiddleButtonBehaviour: OpenResultBehaviour.NewBgTab,
+		mouseRightButtonBehaviour: OpenResultBehaviour.ThisTab,
+		mouseMiddleButtonBehaviour: OpenResultBehaviour.NewBgTabNextToThis,
 		popupAnimationDuration: 100,
 		autoCopyToClipboard: AutoCopyToClipboard.Off,
 		websiteBlocklist: "",
@@ -252,7 +256,9 @@ namespace SSS
 		customPopupCSS: "",
 
 		enableEnginesInContextMenu: true,
-		contextMenuItemBehaviour: OpenResultBehaviour.NewBgTab,
+		contextMenuItemBehaviour: OpenResultBehaviour.NewTabNextToThis,
+		contextMenuItemRightButtonBehaviour: OpenResultBehaviour.NewTabNextToThis,
+		contextMenuItemMiddleButtonBehaviour: OpenResultBehaviour.NewBgTabNextToThis,
 		contextMenuString: "Search for “%s”",
 		// sectionsExpansionState: {},
 
@@ -539,26 +545,29 @@ namespace SSS
 		let shouldSave: boolean = false;
 
 		// in the comments you can see the first version of SSS where the setting was included
-		if (createSettingIfNonExistent(settings, "popupItemVerticalPadding"))        shouldSave = true; // 3.1.0
-		if (createSettingIfNonExistent(settings, "allowPopupOnEditableFields"))      shouldSave = true; // 3.6.0
-		if (createSettingIfNonExistent(settings, "popupBorderRadius"))               shouldSave = true; // 3.9.1
-		if (createSettingIfNonExistent(settings, "popupItemBorderRadius"))           shouldSave = true; // 3.12.0
-		if (createSettingIfNonExistent(settings, "minSelectedCharacters"))           shouldSave = true; // 3.13.0
-		if (createSettingIfNonExistent(settings, "middleMouseSelectionClickMargin")) shouldSave = true; // 3.14.1
-		if (createSettingIfNonExistent(settings, "hidePopupOnRightClick"))           shouldSave = true; // 3.15.0
-		if (createSettingIfNonExistent(settings, "popupSeparatorWidth"))             shouldSave = true; // 3.21.0
-		if (createSettingIfNonExistent(settings, "popupOpenCommand"))                shouldSave = true; // 3.22.0
-		if (createSettingIfNonExistent(settings, "popupDisableCommand"))             shouldSave = true; // 3.22.0
-		if (createSettingIfNonExistent(settings, "iconAlignmentInGrid"))             shouldSave = true; // 3.25.0
-		if (createSettingIfNonExistent(settings, "popupDelay"))                      shouldSave = true; // 3.29.0
-		if (createSettingIfNonExistent(settings, "maxSelectedCharacters"))           shouldSave = true; // 3.30.0
-		if (createSettingIfNonExistent(settings, "contextMenuString"))               shouldSave = true; // 3.32.0
-		if (createSettingIfNonExistent(settings, "showSelectionTextField"))          shouldSave = true; // 3.40.0
-		if (createSettingIfNonExistent(settings, "useCustomPopupCSS"))               shouldSave = true; // 3.40.0
-		if (createSettingIfNonExistent(settings, "customPopupCSS"))                  shouldSave = true; // 3.40.0
-		if (createSettingIfNonExistent(settings, "selectionTextFieldLocation"))      shouldSave = true; // 3.41.0
-		if (createSettingIfNonExistent(settings, "websiteBlocklist"))                shouldSave = true; // 3.42.0
-		if (createSettingIfNonExistent(settings, "useDarkModeInOptionsPage"))        shouldSave = true; // 3.43.0
+		if (createSettingIfNonExistent(settings, "popupItemVerticalPadding"))             shouldSave = true; // 3.1.0
+		if (createSettingIfNonExistent(settings, "allowPopupOnEditableFields"))           shouldSave = true; // 3.6.0
+		if (createSettingIfNonExistent(settings, "popupBorderRadius"))                    shouldSave = true; // 3.9.1
+		if (createSettingIfNonExistent(settings, "popupItemBorderRadius"))                shouldSave = true; // 3.12.0
+		if (createSettingIfNonExistent(settings, "minSelectedCharacters"))                shouldSave = true; // 3.13.0
+		if (createSettingIfNonExistent(settings, "middleMouseSelectionClickMargin"))      shouldSave = true; // 3.14.1
+		if (createSettingIfNonExistent(settings, "hidePopupOnRightClick"))                shouldSave = true; // 3.15.0
+		if (createSettingIfNonExistent(settings, "popupSeparatorWidth"))                  shouldSave = true; // 3.21.0
+		if (createSettingIfNonExistent(settings, "popupOpenCommand"))                     shouldSave = true; // 3.22.0
+		if (createSettingIfNonExistent(settings, "popupDisableCommand"))                  shouldSave = true; // 3.22.0
+		if (createSettingIfNonExistent(settings, "iconAlignmentInGrid"))                  shouldSave = true; // 3.25.0
+		if (createSettingIfNonExistent(settings, "popupDelay"))                           shouldSave = true; // 3.29.0
+		if (createSettingIfNonExistent(settings, "maxSelectedCharacters"))                shouldSave = true; // 3.30.0
+		if (createSettingIfNonExistent(settings, "contextMenuString"))                    shouldSave = true; // 3.32.0
+		if (createSettingIfNonExistent(settings, "showSelectionTextField"))               shouldSave = true; // 3.40.0
+		if (createSettingIfNonExistent(settings, "useCustomPopupCSS"))                    shouldSave = true; // 3.40.0
+		if (createSettingIfNonExistent(settings, "customPopupCSS"))                       shouldSave = true; // 3.40.0
+		if (createSettingIfNonExistent(settings, "selectionTextFieldLocation"))           shouldSave = true; // 3.41.0
+		if (createSettingIfNonExistent(settings, "websiteBlocklist"))                     shouldSave = true; // 3.42.0
+		if (createSettingIfNonExistent(settings, "useDarkModeInOptionsPage"))             shouldSave = true; // 3.43.0
+		if (createSettingIfNonExistent(settings, "mouseRightButtonBehaviour"))            shouldSave = true; // 3.43.0
+		if (createSettingIfNonExistent(settings, "contextMenuItemRightButtonBehaviour"))  shouldSave = true; // 3.43.0
+		if (createSettingIfNonExistent(settings, "contextMenuItemMiddleButtonBehaviour")) shouldSave = true; // 3.43.0
 
 		// 3.7.0
 		// convert old unchangeable browser-imported engines to normal ones
@@ -812,21 +821,32 @@ namespace SSS
 		let engines: SearchEngine[] = sss.settings.searchEngines;
 		let engine: SearchEngine = engines[menuId];
 
+		let button = info.button != null ? info.button : 0;
+
 		// check if it's a special SSS engine
 		if (engine.type === SearchEngineType.SSS)
 		{
 			let engine_SSS = engine as SearchEngine_SSS;
 
-			if (engine_SSS.id === "copyToClipboard") {
+			if (engine_SSS.id === "copyToClipboard")
+			{
 				if (info.selectionText) {
 					copyToClipboard(engine as SearchEngine_SSS_Copy);	// copy in the page script, to allow choice between HTML and plain text copy
 				} else if (info.linkText) {
 					navigator.clipboard.writeText(info.linkText);	// if copying a link, just always copy its text
 				}
 			}
-			else if (engine_SSS.id === "openAsLink") {
+			else if (engine_SSS.id === "openAsLink")
+			{
 				let searchUrl = getOpenAsLinkSearchUrl(info.selectionText || info.linkText);
-				openUrl(searchUrl, sss.settings.contextMenuItemBehaviour, false);
+
+				if (button === 0) {
+					openUrl(searchUrl, sss.settings.contextMenuItemBehaviour, false);
+				} else if (button === 1) {
+					openUrl(searchUrl, sss.settings.contextMenuItemMiddleButtonBehaviour, false);
+				} else {
+					openUrl(searchUrl, sss.settings.contextMenuItemRightButtonBehaviour, false);
+				}
 			}
 		}
 		// here we know it's a normal search engine, so run the search
@@ -836,7 +856,14 @@ namespace SSS
 			let url = new URL(info.pageUrl);
 			let customEngine: SearchEngine_Custom = engine as SearchEngine_Custom;
 			let searchUrl = getSearchQuery(customEngine, info.selectionText || info.linkText, url);
-			openUrl(searchUrl, sss.settings.contextMenuItemBehaviour, customEngine.discardOnOpen);
+
+			if (button === 0) {
+				openUrl(searchUrl, sss.settings.contextMenuItemBehaviour, customEngine.discardOnOpen);
+			} else if (button === 1) {
+				openUrl(searchUrl, sss.settings.contextMenuItemMiddleButtonBehaviour, customEngine.discardOnOpen);
+			} else {
+				openUrl(searchUrl, sss.settings.contextMenuItemRightButtonBehaviour, customEngine.discardOnOpen);
+			}
 		}
 	}
 
@@ -1044,6 +1071,8 @@ namespace SSS
 					openUrl(link, sss.settings.mouseLeftButtonBehaviour, false);
 				} else if (clickType === "middleClick") {
 					openUrl(link, sss.settings.mouseMiddleButtonBehaviour, false);
+				} else if (clickType === "rightClick") {
+					openUrl(link, sss.settings.mouseRightButtonBehaviour, false);
 				} else if (clickType === "ctrlClick") {
 					openUrl(link, OpenResultBehaviour.NewBgTab, false);
 				}
@@ -1062,6 +1091,8 @@ namespace SSS
 				openUrl(getSearchQuery(engine, searchText, new URL(href)), sss.settings.mouseLeftButtonBehaviour, engine.discardOnOpen);
 			} else if (clickType === "middleClick") {
 				openUrl(getSearchQuery(engine, searchText, new URL(href)), sss.settings.mouseMiddleButtonBehaviour, engine.discardOnOpen);
+			} else if (clickType === "rightClick") {
+				openUrl(getSearchQuery(engine, searchText, new URL(href)), sss.settings.mouseRightButtonBehaviour, engine.discardOnOpen);
 			} else if (clickType === "ctrlClick") {
 				openUrl(getSearchQuery(engine, searchText, new URL(href)), OpenResultBehaviour.NewBgTab, engine.discardOnOpen);
 			}

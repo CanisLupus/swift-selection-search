@@ -505,10 +505,13 @@ namespace ContentScript
 		if (ev.button === 1 && !canMiddleClickEngine) return;
 
 		if (settings.hidePopupOnSearch) {
-			maybeHidePopup();
+			// If we hide the popup *immediately* and this is a right click,
+			// it will consequently be detected on whatever's behind the popup
+			// and call the context menu, which we don't want.
+			setTimeout(() => maybeHidePopup(), 0);
 		}
 
-		if (ev.button === 0 || ev.button === 1)
+		if (ev.button === 0 || ev.button === 1 || ev.button === 2)
 		{
 			let message: EngineClickMessage = createSearchMessage(engine, settings);
 
@@ -523,8 +526,10 @@ namespace ContentScript
 				message.clickType = "ctrlClick";
 			} else if (ev.button === 0) {
 				message.clickType = "leftClick";
-			} else {
+			} else if (ev.button === 1) {
 				message.clickType = "middleClick";
+			} else {
+				message.clickType = "rightClick";
 			}
 
 			browser.runtime.sendMessage(message);
@@ -847,6 +852,11 @@ namespace PopupCreator
 			if (isInteractive) {
 				icon.title = iconTitle;	// tooltip
 				icon.addEventListener("mouseup", ev => onSearchEngineClick(ev, engine, settings)); // "mouse up" instead of "click" to support middle click
+				// prevent context menu since icons have a right click behaviour
+				icon.addEventListener('contextmenu', ev => {
+					ev.preventDefault();
+					return false;
+				});
 			}
 
 			// prevents focus from changing to icon and breaking copy from input fields
