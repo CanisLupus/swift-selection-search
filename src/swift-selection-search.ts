@@ -821,7 +821,10 @@ namespace SSS
 		let engines: SearchEngine[] = sss.settings.searchEngines;
 		let engine: SearchEngine = engines[menuId];
 
-		let button = info.button != null ? info.button : 0;
+		let button = info.button || info.button == 0 ? info.button : 0;
+
+		let url: string = null;
+		let discardOnOpen: boolean;
 
 		// check if it's a special SSS engine
 		if (engine.type === SearchEngineType.SSS)
@@ -838,31 +841,27 @@ namespace SSS
 			}
 			else if (engine_SSS.id === "openAsLink")
 			{
-				let searchUrl = getOpenAsLinkSearchUrl(info.selectionText || info.linkText);
-
-				if (button === 0) {
-					openUrl(searchUrl, sss.settings.contextMenuItemBehaviour, false);
-				} else if (button === 1) {
-					openUrl(searchUrl, sss.settings.contextMenuItemMiddleButtonBehaviour, false);
-				} else {
-					openUrl(searchUrl, sss.settings.contextMenuItemRightButtonBehaviour, false);
-				}
+				url = getOpenAsLinkSearchUrl(info.selectionText || info.linkText);
+				discardOnOpen = false;
 			}
 		}
 		// here we know it's a normal search engine, so run the search
 		else
 		{
 			// search using the engine
-			let url = new URL(info.pageUrl);
-			let customEngine: SearchEngine_Custom = engine as SearchEngine_Custom;
-			let searchUrl = getSearchQuery(customEngine, info.selectionText || info.linkText, url);
+			let engine_Custom = engine as SearchEngine_Custom;
+			url = getSearchQuery(engine_Custom, info.selectionText || info.linkText, new URL(info.pageUrl));
+			discardOnOpen = engine_Custom.discardOnOpen;
+		}
 
+		if (url !== null)
+		{
 			if (button === 0) {
-				openUrl(searchUrl, sss.settings.contextMenuItemBehaviour, customEngine.discardOnOpen);
+				openUrl(url, sss.settings.contextMenuItemBehaviour, discardOnOpen);
 			} else if (button === 1) {
-				openUrl(searchUrl, sss.settings.contextMenuItemMiddleButtonBehaviour, customEngine.discardOnOpen);
+				openUrl(url, sss.settings.contextMenuItemMiddleButtonBehaviour, discardOnOpen);
 			} else {
-				openUrl(searchUrl, sss.settings.contextMenuItemRightButtonBehaviour, customEngine.discardOnOpen);
+				openUrl(url, sss.settings.contextMenuItemRightButtonBehaviour, discardOnOpen);
 			}
 		}
 	}
@@ -1054,6 +1053,9 @@ namespace SSS
 
 	function onSearchEngineClick(selectedEngine: SearchEngine, clickType: string, searchText: string, href: string)
 	{
+		let url: string = null;
+		let discardOnOpen: boolean;
+
 		// check if it's a special SSS engine
 		if (selectedEngine.type === SearchEngineType.SSS)
 		{
@@ -1063,38 +1065,29 @@ namespace SSS
 				copyToClipboard(engine_SSS as SearchEngine_SSS_Copy);
 			}
 			else if (engine_SSS.id === "openAsLink") {
-				let link: string = getOpenAsLinkSearchUrl(searchText);
-
-				if (DEBUG) { log("open as link: " + link); }
-
-				if (clickType === "leftClick") {
-					openUrl(link, sss.settings.mouseLeftButtonBehaviour, false);
-				} else if (clickType === "middleClick") {
-					openUrl(link, sss.settings.mouseMiddleButtonBehaviour, false);
-				} else if (clickType === "rightClick") {
-					openUrl(link, sss.settings.mouseRightButtonBehaviour, false);
-				} else if (clickType === "ctrlClick") {
-					openUrl(link, OpenResultBehaviour.NewBgTab, false);
-				}
+				url = getOpenAsLinkSearchUrl(searchText);
+				discardOnOpen = false;
+				if (DEBUG) { log("open as link: " + url); }
 			}
 		}
-		// here we know it's a normal search engine, so run the search
-		else// if (selectedEngine.type === SearchEngineType.Custom) // can't do this because "browser" type wouldn't be caught
+		// otherwise it's a normal search engine (type Custom or Browser), so run the search
+		else
 		{
 			let engine_Custom = selectedEngine as SearchEngine_Custom;
+			url = getSearchQuery(engine_Custom, searchText, new URL(href));
+			discardOnOpen = engine_Custom.discardOnOpen;
+		}
 
-			let engine = sss.settings.searchEngines.find(
-				eng => eng.type !== SearchEngineType.SSS && (eng as SearchEngine_Custom).searchUrl === engine_Custom.searchUrl
-			) as SearchEngine_Custom;
-
+		if (url !== null)
+		{
 			if (clickType === "leftClick") {
-				openUrl(getSearchQuery(engine, searchText, new URL(href)), sss.settings.mouseLeftButtonBehaviour, engine.discardOnOpen);
+				openUrl(url, sss.settings.mouseLeftButtonBehaviour, discardOnOpen);
 			} else if (clickType === "middleClick") {
-				openUrl(getSearchQuery(engine, searchText, new URL(href)), sss.settings.mouseMiddleButtonBehaviour, engine.discardOnOpen);
+				openUrl(url, sss.settings.mouseMiddleButtonBehaviour, discardOnOpen);
 			} else if (clickType === "rightClick") {
-				openUrl(getSearchQuery(engine, searchText, new URL(href)), sss.settings.mouseRightButtonBehaviour, engine.discardOnOpen);
+				openUrl(url, sss.settings.mouseRightButtonBehaviour, discardOnOpen);
 			} else if (clickType === "ctrlClick") {
-				openUrl(getSearchQuery(engine, searchText, new URL(href)), OpenResultBehaviour.NewBgTab, engine.discardOnOpen);
+				openUrl(url, OpenResultBehaviour.NewBgTab, discardOnOpen);
 			}
 		}
 	}
