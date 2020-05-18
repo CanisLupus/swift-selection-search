@@ -403,9 +403,11 @@ namespace SSS
 		browserVersion = parseInt(browserInfo.version.split(".")[0]);
 		if (DEBUG) { log("Firefox is version " + browserVersion); }
 
-		// clear all settings (for test purposes)
-		// browser.storage.local.clear();
-		// browser.storage.sync.clear();
+		// Clear all settings (for test purposes only).
+		// Since the mistake from version 3.43.0, "removeToUse" was added to the call
+		// and the add-on submission script now checks for calls to the clear() function.
+		// browser.storage.local.cle_removeToUse_ar();
+		// browser.storage.sync.cle_removeToUse_ar();
 
 		// register with content script messages and changes to settings
 		browser.runtime.onMessage.addListener(onContentScriptMessage);
