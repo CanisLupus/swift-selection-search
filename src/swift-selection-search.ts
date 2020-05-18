@@ -404,7 +404,7 @@ namespace SSS
 		if (DEBUG) { log("Firefox is version " + browserVersion); }
 
 		// clear all settings (for test purposes)
-		browser.storage.local.clear();
+		// browser.storage.local.clear();
 		// browser.storage.sync.clear();
 
 		// register with content script messages and changes to settings
