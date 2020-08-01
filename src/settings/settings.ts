@@ -445,7 +445,7 @@ namespace SSS_Settings
 			browser.permissions.request({ permissions: ["downloads"] }).then(wasPermissionGranted =>
 			{
 				if (!wasPermissionGranted) {
-					alert("Sorry, you cannot export your file without the \"Downloads\" permission!");
+					alert("Sorry, you cannot export your file without the \"Downloads\" permission! I know it's weird, but it's really needed. :(");
 					return;
 				}
 
@@ -1115,7 +1115,7 @@ namespace SSS_Settings
 					saveSettings({ searchEngines: settings.searchEngines });
 				}
 			);
-			discardOnOpenCheckboxParent.title = "Opens the search but discards the resulting page. Useful if this is a \"non-http\" search engine that opens outside the browser, because that generates an empty tab/page.";
+			discardOnOpenCheckboxParent.title = "Opens the search but discards the resulting page. Useful if this is a \"non-http\" search engine that opens outside the browser, because that would generate an empty tab/page.";
 			engineOptions.appendChild(discardOnOpenCheckboxParent);
 		}
 
