@@ -19,6 +19,7 @@ namespace Types
 	}
 	export enum AutoCopyToClipboard {
 		Always = "always",
+		NonEditableOnly = "non-editable-only",
 	}
 	export enum SelectionTextFieldLocation {
 		Top = "top",
@@ -364,7 +365,12 @@ namespace ContentScript
 			}
 		}
 
-		if (settings.autoCopyToClipboard === Types.AutoCopyToClipboard.Always) {
+		if (settings.autoCopyToClipboard === Types.AutoCopyToClipboard.Always
+		|| (settings.autoCopyToClipboard === Types.AutoCopyToClipboard.NonEditableOnly
+			&& !selection.isInEditableField
+			&& !isInEditableField(selection.selection.anchorNode)))
+		{
+			if (DEBUG) { log("auto copied to clipboard: " + selection.text); }
 			document.execCommand("copy");
 		}
 

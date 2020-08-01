@@ -163,6 +163,7 @@ namespace SSS
 	enum AutoCopyToClipboard {
 		Off = "off",
 		Always = "always",
+		NonEditableOnly = "non-editable-only",
 	}
 
 	enum SelectionTextFieldLocation {
