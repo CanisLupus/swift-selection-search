@@ -24,6 +24,10 @@ namespace SSS_Settings
 		Custom = "custom",
 		Browser = "browser",
 	}
+	enum SearchEngineIconsSource {
+		None = "none",
+		FaviconKit = "favicon-kit",
+	}
 	enum PopupOpenBehaviour {
 		Auto = "auto",
 		MiddleMouse = "middle-mouse",
@@ -321,7 +325,7 @@ namespace SSS_Settings
 				settings.searchEngines.push(createDefaultEngine({
 					type: SearchEngineType.Browser,
 					name: engine._name,
-					iconUrl: getFaviconForUrl(url),
+					iconUrl: getIconUrlFromSearchUrl(url),
 					searchUrl: url,
 				}));
 			}
@@ -581,7 +585,7 @@ namespace SSS_Settings
 
 		page.addEngineButton.onclick = () => {
 			let searchUrl = "https://www.google.com/search?q={searchTerms}";	// use google as an example
-			let iconUrl = getFaviconForUrl(searchUrl);	// by default try to get a favicon for the domain
+			let iconUrl = getIconUrlFromSearchUrl(searchUrl);	// by default try to get a favicon for the domain
 
 			settings.searchEngines.push(createDefaultEngine({
 				type: SearchEngineType.Custom,
@@ -1275,9 +1279,9 @@ namespace SSS_Settings
 			}
 
 			if (previousSearchLinkInputValue !== url) {
-				// if we're using the default favicon search for the previous search url, update it
-				if (engine.iconUrl.length == 0 || engine.iconUrl === getFaviconForUrl(previousSearchLinkInputValue)) {
-					let iconUrl = getFaviconForUrl(url);
+				// if we're using the default icon source for the previous search url, update it
+				if (engine.iconUrl.length == 0 || engine.iconUrl === getIconUrlFromSearchUrl(previousSearchLinkInputValue)) {
+					let iconUrl = getIconUrlFromSearchUrl(url);
 					references.iconLinkInput.value = iconUrl;	// doesn't trigger oninput or onchange
 					setIconUrlInput(engine, references.iconLinkInput, references.icon);
 				}
@@ -1315,7 +1319,7 @@ namespace SSS_Settings
 
 		iconLinkInput.onchange = () => {
 			if (iconLinkInput.value.length == 0) {
-				iconLinkInput.value = getFaviconForUrl(references.searchLinkInput.value);
+				iconLinkInput.value = getIconUrlFromSearchUrl(references.searchLinkInput.value);
 				setIconUrlInput(engine, iconLinkInput, icon);
 			}
 			trimSearchEnginesCache(settings);
@@ -1525,9 +1529,13 @@ namespace SSS_Settings
 		if (DEBUG) { log("saved!", settings); }
 	}
 
-	function getFaviconForUrl(url)
+	function getIconUrlFromSearchUrl(url)
 	{
-		return "https://api.faviconkit.com/" + getDomainFromUrl(url) + "/64";
+		if (settings.searchEngineIconsSource === SearchEngineIconsSource.FaviconKit) {
+			return "https://api.faviconkit.com/" + getDomainFromUrl(url) + "/64";
+		} else {
+			return "";
+		}
 	}
 
 	function getDomainFromUrl(url)

@@ -49,6 +49,8 @@ namespace SSS
 
 		useDarkModeInOptionsPage: boolean;
 
+		searchEngineIconsSource: SearchEngineIconsSource;
+
 		popupOpenBehaviour: PopupOpenBehaviour;
 		middleMouseSelectionClickMargin: number;
 		popupLocation: PopupLocation;
@@ -137,6 +139,11 @@ namespace SSS
 		Browser = "browser",
 	}
 
+	enum SearchEngineIconsSource {
+		None = "none",
+		FaviconKit = "favicon-kit",
+	}
+
 	enum PopupOpenBehaviour {
 		Off = "off",
 		Auto = "auto",
@@ -215,6 +222,8 @@ namespace SSS
 	const defaultSettings: Settings =
 	{
 		useDarkModeInOptionsPage: false,
+
+		searchEngineIconsSource: SearchEngineIconsSource.FaviconKit,
 
 		popupOpenBehaviour: PopupOpenBehaviour.Auto,
 		middleMouseSelectionClickMargin: 14,
@@ -571,6 +580,7 @@ namespace SSS
 		if (createSettingIfNonExistent(settings, "mouseRightButtonBehaviour"))            shouldSave = true; // 3.43.0
 		if (createSettingIfNonExistent(settings, "contextMenuItemRightButtonBehaviour"))  shouldSave = true; // 3.43.0
 		if (createSettingIfNonExistent(settings, "contextMenuItemMiddleButtonBehaviour")) shouldSave = true; // 3.43.0
+		if (createSettingIfNonExistent(settings, "searchEngineIconsSource"))              shouldSave = true; // 3.44.0
 
 		// 3.7.0
 		// convert old unchangeable browser-imported engines to normal ones
