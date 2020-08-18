@@ -530,13 +530,6 @@ namespace ContentScript
 		{
 			let message: EngineClickMessage = createSearchMessage(engine, settings);
 
-			if (DEBUG) {
-				log("engine clicked with button " + ev.button + ": "
-					+ (engine.type === Types.SearchEngineType.SSS
-						? (engine as SSS.SearchEngine_SSS).id
-						: (engine as SSS.SearchEngine_Custom).searchUrl));
-			}
-
 			if (ev[selectionchange.modifierKey]) {
 				message.clickType = "ctrlClick";
 			} else if (ev.button === 0) {

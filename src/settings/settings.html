@@ -223,7 +223,8 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 	.engine-name {
 		width: 15%;
 	}
-	.engine-search-link {
+	.engine-search-link,
+	.engine-description-small {
 		width: 50%;
 	}
 	.engine-icon-link {
@@ -519,18 +520,10 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 			<div class="setting">
 				<div class="setting-name">Load browser search engines</div>
 				<div class="setting-value">
-					<input name="importBrowserEnginesFileButton" type="button" value='Select "search.json.mozlz4"'/>
-					<input name="importBrowserEnginesFileButton_real" type="file" accept=".json.mozlz4" style="display: none"/>
+					<input type="button" name="importBrowserEnginesButton" value="Import"/>
 				</div>
-				<div class="setting-description">
-					Import browser engines. SSS can't do this automatically in WebExtensions! Please select the "search.json.mozlz4" file, usually located here:<br><br>
-					<span class="os-windows">C:\Users\[user]\AppData\Roaming\Mozilla\Firefox\Profiles\[profile-id]<br></span>
-					<span class="os-mac">/Users/[user]/Library/Application Support/Firefox/Profiles/[profile-id]<br></span>
-					<span class="os-mac">/Users/[user]/Library/Mozilla/Firefox/Profiles/[profile-id]<br></span>
-					<span class="os-linux">/home/[user]/.mozilla/firefox/[profile-id]<br></span>
-					<br>NOTE: The folder<span class="os-mac">s</span> may be hidden. Please refer to <a target="_blank" href="http://kb.mozillazine.org/Profile_folder_-_Firefox">this page</a>.
-					<br>NOTE: Some icons may not appear if they are "resource://" links.
-				</div>
+				<div class="setting-description">Imports the browser engines that you usually use in the search bar.
+					<br><br>NOTE: These engines are internal to Firefox and can't use some of the options. For example, browser engines only respect "Open in this tab" or "Open in new tab" (other click behaviours behave as "Open in new tab").</div>
 				<div class="setting-reset"></div>
 			</div>
 
@@ -555,14 +548,6 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 				<div class="setting-description">Defines the origin of automatic search engine icons when you add a new engine. Change this option if you have privacy concerns or would prefer to add all icons yourself.</div>
 				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
-
-			<!-- <div class="setting">
-				<div class="setting-name">Manage browser search engines</div>
-				<div class="setting-value">
-					<input type="button" name="openEngineManager" value="Manage">
-				</div>
-				<div class="setting-description">Opens Firefox's search engines manager. To select which engines are shown in the popup, use the "Select from available search engines" button below.</div>
-			</div> -->
 		</div>
 	</div>
 

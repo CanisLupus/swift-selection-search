@@ -30,6 +30,7 @@ namespace SSS
 		var log = console.log;
 	}
 
+	// Base class for all engines.
 	export abstract class SearchEngine
 	{
 		[key: string]: any;	// needed to keep legacy variables that are now unused, like iconSrc and id
@@ -39,16 +40,21 @@ namespace SSS
 		isEnabledInContextMenu: boolean;
 	}
 
+	// SSS-specific engine base class, for copy to clipboard, open as link, etc.
+	// (SearchEngineType: SSS)
 	export class SearchEngine_SSS extends SearchEngine
 	{
 		id: string;
 	}
 
+	// SSS-specific engine "copy to clipboard".
 	export class SearchEngine_SSS_Copy extends SearchEngine_SSS
 	{
 		isPlainText: boolean;
 	}
 
+	// All custom engines created by the user (or imported from a search.json.mozlz4 file, the old way to import browser engines).
+	// (SearchEngineType: Custom or BrowserLegacy)
 	export class SearchEngine_Custom extends SearchEngine
 	{
 		name: string;
@@ -58,8 +64,12 @@ namespace SSS
 		discardOnOpen: boolean;
 	}
 
-	export class SearchEngine_Browser extends SearchEngine_Custom
+	// Search engines imported from the browser via the WebExtensions search API. More limited.
+	// (SearchEngineType: BrowserSearchApi)
+	export class SearchEngine_BrowserSearchApi extends SearchEngine
 	{
+		name: string;
+		iconUrl: string;
 	}
 
 	export class Settings
@@ -160,7 +170,8 @@ namespace SSS
 	enum SearchEngineType {
 		SSS = "sss",
 		Custom = "custom",
-		Browser = "browser",
+		BrowserLegacy = "browser",
+		BrowserSearchApi = "browser-search-api",
 	}
 
 	enum SearchEngineIconsSource {
@@ -616,7 +627,7 @@ namespace SSS
 		// convert old unchangeable browser-imported engines to normal ones
 		for (let engine of settings.searchEngines)
 		{
-			if (engine.iconUrl === undefined && engine.type === SearchEngineType.Browser) {
+			if (engine.iconUrl === undefined && engine.type === SearchEngineType.BrowserLegacy) {
 				engine.iconUrl = engine.iconSrc;
 				delete engine.iconSrc;
 				delete engine.id;
@@ -1113,7 +1124,19 @@ namespace SSS
 				if (DEBUG) { log("open as link: " + url); }
 			}
 		}
-		// otherwise it's a normal search engine (type Custom or Browser), so run the search
+		// check if it's a browser-managed engine (BrowserSearchApi)
+		else if (selectedEngine.type === SearchEngineType.BrowserSearchApi)
+		{
+			getCurrentTab((tab: browser.tabs.Tab) => {
+				browser.search.search({
+					engine: (selectedEngine as SearchEngine_BrowserSearchApi).name,
+					query: cleanSearchText(searchText),
+					// we want all open behaviours that are not "ThisTab" to open in another tab
+					tabId: getOpenResultBehaviour(clickType) === OpenResultBehaviour.ThisTab ? tab.id : undefined
+				});
+			});
+		}
+		// otherwise it's a normal search engine (type Custom or BrowserLegacy), so run the search
 		else
 		{
 			let engine_Custom = selectedEngine as SearchEngine_Custom;
@@ -1123,16 +1146,17 @@ namespace SSS
 
 		if (url !== null)
 		{
-			if (clickType === "leftClick") {
-				openUrl(url, sss.settings.mouseLeftButtonBehaviour, discardOnOpen);
-			} else if (clickType === "middleClick") {
-				openUrl(url, sss.settings.mouseMiddleButtonBehaviour, discardOnOpen);
-			} else if (clickType === "rightClick") {
-				openUrl(url, sss.settings.mouseRightButtonBehaviour, discardOnOpen);
-			} else if (clickType === "ctrlClick") {
-				openUrl(url, OpenResultBehaviour.NewBgTab, discardOnOpen);
-			}
+			openUrl(url, getOpenResultBehaviour(clickType), discardOnOpen);
 		}
+	}
+
+	function getOpenResultBehaviour(clickType: string)
+	{
+		if (clickType === "leftClick")   return sss.settings.mouseLeftButtonBehaviour;
+		if (clickType === "middleClick") return sss.settings.mouseMiddleButtonBehaviour;
+		if (clickType === "rightClick")  return sss.settings.mouseRightButtonBehaviour;
+		if (clickType === "ctrlClick")   return OpenResultBehaviour.NewBgTab;
+		return OpenResultBehaviour.NewBgTab;	// shouldn't happen
 	}
 
 	function copyToClipboard(engine: SearchEngine_SSS_Copy)
@@ -1166,11 +1190,15 @@ namespace SSS
 		return link;
 	}
 
+	function cleanSearchText(searchText: string): string
+	{
+		return searchText.trim().replace("\r\n", " ").replace("\n", " ");
+	}
+
 	// gets the complete search URL by applying the selected text to the engine's own searchUrl
 	function getSearchQuery(engine: SearchEngine_Custom, searchText: string, url: URL): string
 	{
-		// replace newlines with spaces
-		searchText = searchText.trim().replace("\r\n", " ").replace("\n", " ");
+		searchText = cleanSearchText(searchText);
 
 		let hasCustomEncoding = engine.encoding && engine.encoding !== "utf8";
 		if (hasCustomEncoding) {

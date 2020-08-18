@@ -33,7 +33,8 @@ namespace SSS_Settings
 	enum SearchEngineType {
 		SSS = "sss",
 		Custom = "custom",
-		Browser = "browser",
+		BrowserLegacy = "browser",
+		BrowserSearchApi = "browser-search-api",
 	}
 	enum SearchEngineIconsSource {
 		None = "none",
@@ -52,8 +53,7 @@ namespace SSS_Settings
 
 		addEngineButton: undefined,
 		addSeparatorButton: undefined,
-		importBrowserEnginesFileButton: undefined,
-		importBrowserEnginesFileButton_real: undefined,
+		importBrowserEnginesButton: undefined,
 		resetSearchEnginesButton: undefined,
 		resetSearchEnginesButton_real: undefined,
 
@@ -190,156 +190,29 @@ namespace SSS_Settings
 		return engine;
 	}
 
-	// This method's code was taken from node-lz4 by Pierre Curto. MIT license.
-	// CHANGES: Added ; to all lines. Reformated one-liners. Removed n = eIdx. Fixed eIdx skipping end bytes if sIdx != 0. Changed "var" to "let".
-	function decodeLz4Block(input: Uint8Array, output: Uint8Array, sIdx?: number, eIdx?: number)
-	{
-		sIdx = sIdx || 0;
-		eIdx = eIdx || input.length;
-
-		let j = 0;
-
-		// Process each sequence in the incoming data
-		for (let i = sIdx; i < eIdx;)
-		{
-			let token = input[i++];
-
-			// Literals
-			let literals_length = (token >> 4);
-			if (literals_length > 0) {
-				// length of literals
-				let l = literals_length + 240;
-				while (l === 255) {
-					l = input[i++];
-					literals_length += l;
-				}
-
-				// Copy the literals
-				let end = i + literals_length;
-				while (i < end) {
-					output[j++] = input[i++];
-				}
-
-				// End of buffer?
-				if (i === eIdx) {
-					return j;
-				}
-			}
-
-			// Match copy
-			// 2 bytes offset (little endian)
-			let offset = input[i++] | (input[i++] << 8);
-
-			// 0 is an invalid offset value
-			if (offset === 0 || offset > j) {
-				return -(i-2);
-			}
-
-			// length of match copy
-			let match_length = (token & 0xf);
-			let l = match_length + 240;
-			while (l === 255) {
-				l = input[i++];
-				match_length += l;
-			}
-
-			// Copy the match
-			let pos = j - offset; // position of the match copy in the current output
-			let end = j + match_length + 4; // minmatch = 4
-			while (j < end) {
-				output[j++] = output[pos++];
-			}
-		}
-
-		return j;
-	}
-
-	// reads a .mozlz4 compressed file and returns its bytes
-	function readMozlz4File(file: Blob, onRead, onError?)
-	{
-		let reader = new FileReader();
-
-		// prepare onload function before actually trying to read the file
-		reader.onload = () => {
-			let input = new Uint8Array(reader.result as ArrayBuffer);
-			let output;
-			let uncompressedSize = input.length*3;	// size _estimate_ for uncompressed data!
-
-			// Decode whole file.
-			do {
-				output = new Uint8Array(uncompressedSize);
-				uncompressedSize = decodeLz4Block(input, output, 8+4);	// skip 8 byte magic number + 4 byte data size field
-				// if there's more data than our output estimate, create a bigger output array and retry (at most one retry)
-			} while (uncompressedSize > output.length);
-
-			output = output.slice(0, uncompressedSize);	// remove excess bytes
-
-			let decodedText = new TextDecoder().decode(output);
-			onRead(decodedText);
-		};
-
-		if (onError) {
-			reader.onerror = onError;
-		}
-
-		reader.readAsArrayBuffer(file);	// read as bytes
-	}
-
-	// adds to SSS all engines from the browser's search engines file
-	function updateBrowserEnginesFromSearchJson(browserSearchEngines)
+	// adds to SSS all engines from the browser (these are special and contain very little information)
+	function addBrowserEnginesToEnginesList(browserSearchEngines: browser.search.SearchEngine[])
 	{
 		// "hash set" of search URLs (will help avoiding duplicates of previously imported browser engines)
-		let searchUrls = {};
+		let names = {};
 		for (let engine of settings.searchEngines) {
-			if (engine.type === SearchEngineType.Browser) {
-				searchUrls[(engine as SSS.SearchEngine_Browser).searchUrl] = true;
+			if (engine.type === SearchEngineType.BrowserSearchApi) {
+				names[(engine as SSS.SearchEngine_BrowserSearchApi).name] = true;
 			}
 		}
 
-		// add all given search engines
-		for (let engine of browserSearchEngines.engines)
+		// add all browser search engines
+		for (let engine of browserSearchEngines)
 		{
-			// don't add hidden engines
-			if (engine._metaData.hidden) {
-				continue;
-			}
+			// avoid duplicates if this browser engine is already in the "hash set"
+			if (names.hasOwnProperty(engine.name)) continue;
 
-			// browser engines can have several URLs, but we want only certain kinds
-			for (let urlObj of engine._urls)
-			{
-				if (urlObj.type !== undefined && urlObj.type !== "text/html") {
-					continue;
-				}
-
-				let url = urlObj.template;
-
-				if (urlObj.params.length > 0) {
-					// template has params, so join them to get the full query URL
-					url += "?" + urlObj.params
-						.filter(p => p.value === "{searchTerms}")
-						.map(p => p.name + "=" + p.value)
-						.join("&");
-				} else {
-					// template has no params, so template is the full query URL
-					url = url.replace("{searchTerms}", "[sss-searchTerms]");	// easy way to "protect" {searchTerms} from regex replace...
-					url = url.replace(/{(.*)}/g, "");
-					url = url.replace("[sss-searchTerms]", "{searchTerms}");	// ...and add it back afterwards
-				}
-
-				// avoid duplicates if this URL is already in the "hash set"
-				if (searchUrls.hasOwnProperty(url)) {
-					continue;
-				}
-
-				// finally add the engine to the user's engines
-
-				settings.searchEngines.push(createDefaultEngine({
-					type: SearchEngineType.Browser,
-					name: engine._name,
-					iconUrl: getIconUrlFromSearchUrl(url),
-					searchUrl: url,
-				}));
-			}
+			// create an engine object compatible with class SearchEngine_BrowserSearchApi
+			settings.searchEngines.push(createDefaultEngine({
+				type: SearchEngineType.BrowserSearchApi,
+				name: engine.name,
+				iconUrl: engine.favIconUrl ?? "",
+			}));
 		}
 	}
 
@@ -425,18 +298,7 @@ namespace SSS_Settings
 
 			// special things in the options page need special code
 
-			if (item.name === "importBrowserEnginesFileButton_real")
-			{
-				readMozlz4File(ev.target.files[0], json => {
-					let browserSearchEngines = JSON.parse(json);
-					if (DEBUG) { log(browserSearchEngines); }
-					updateBrowserEnginesFromSearchJson(browserSearchEngines);
-					updateUIWithSettings();
-					saveSettings({ searchEngines: settings.searchEngines });
-					// alert("Your browser's search engines were imported!");
-				});
-			}
-			else if (item.name === "importSettingsFromFileButton_real")
+			if (item.name === "importSettingsFromFileButton_real")
 			{
 				let reader = new FileReader();
 				reader.onload = () => {
@@ -452,8 +314,19 @@ namespace SSS_Settings
 			}
 		};
 
-		// there are two elements for some buttons: a button for display and the actual "real" button that does the work
-		page.importBrowserEnginesFileButton.onclick = () => page.importBrowserEnginesFileButton_real.click();
+		page.importBrowserEnginesButton.onclick = () =>
+		{
+			if (confirm("Really import your browser's search engines?"))
+			{
+				browser.search.get().then((browserSearchEngines: browser.search.SearchEngine[]) => {
+					if (DEBUG) { log(browserSearchEngines); }
+					addBrowserEnginesToEnginesList(browserSearchEngines);
+					updateUIWithSettings();
+					saveSettings({ searchEngines: settings.searchEngines });
+				});
+			}
+		}
+
 		page.exportSettingsToFileButton.onclick = () =>
 		{
 			// to save as a file we need the "downloads permission"
@@ -476,6 +349,7 @@ namespace SSS_Settings
 				});
 			});
 		};
+		// there are two elements for some buttons: a button for display and the actual "real" button that does the work
 		page.importSettingsFromFileButton.onclick = () => page.importSettingsFromFileButton_real.click();
 
 		// register events for specific behaviour when certain fields change (color pickers change their text and vice versa)
@@ -1078,7 +952,16 @@ namespace SSS_Settings
 			// it can use the search URL to generate a new icon URL.
 			// Only the anonymous callbacks inside the following functions will use values inside this object.
 			let references = {};
-			engineRow.appendChild(createEngineSearchLink(engine, references));
+
+			if (engine.type === SearchEngineType.BrowserSearchApi) {
+				let engineDescription = document.createElement("div");
+				engineDescription.className = "engine-sss engine-description-small";
+				engineDescription.textContent = "Engine managed by the browser";
+				engineRow.appendChild(engineDescription);
+			} else {
+				engineRow.appendChild(createEngineSearchLink(engine, references));
+			}
+
 			engineRow.appendChild(createEngineIconLink(engine, icon, references));
 			engineRow.appendChild(createDeleteButton(i));
 		}
@@ -1107,7 +990,7 @@ namespace SSS_Settings
 			engineOptions.appendChild(isPlainTextCheckboxParent);
 		}
 
-		if (engine.type !== SearchEngineType.SSS)
+		if (engine.type === SearchEngineType.Custom || engine.type === SearchEngineType.BrowserLegacy)
 		{
 			let textEncodingDropdownParent = createDropdown(
 				"Text encoding",
@@ -1334,7 +1217,7 @@ namespace SSS_Settings
 		};
 
 		iconLinkInput.onchange = () => {
-			if (iconLinkInput.value.length == 0) {
+			if (iconLinkInput.value.length == 0 && references.searchLinkInput !== undefined) {
 				iconLinkInput.value = getIconUrlFromSearchUrl(references.searchLinkInput.value);
 				setIconUrlInput(engine, iconLinkInput, icon);
 			}
