@@ -55,7 +55,6 @@ namespace SSS_Settings
 		addSeparatorButton: undefined,
 		importBrowserEnginesButton: undefined,
 		resetSearchEnginesButton: undefined,
-		resetSearchEnginesButton_real: undefined,
 
 		minSelectedCharacters: undefined,
 		maxSelectedCharacters: undefined,
@@ -79,10 +78,8 @@ namespace SSS_Settings
 		importSettingsFromFileButton_real: undefined,
 		saveSettingsToSyncButton: undefined,
 		loadSettingsFromSyncButton: undefined,
-		loadSettingsFromSyncButton_real: undefined,
 
 		resetSettingsButton: undefined,
-		resetSettingsButton_real: undefined,
 	};
 
 	class EncodingGroup
@@ -357,7 +354,10 @@ namespace SSS_Settings
 				});
 			});
 		};
-		// there are two elements for some buttons: a button for display and the actual "real" button that does the work
+
+		// There are two elements for the import button: a button for display and the actual "real" button that lets the user pick the file.
+		// This is done because the file picker button can't be formatted and would look very ugly.
+		// When we click the visual one, we want to call the real one.
 		page.importSettingsFromFileButton.onclick = () => page.importSettingsFromFileButton_real.click();
 
 		// register events for specific behaviour when certain fields change (color pickers change their text and vice versa)
@@ -523,69 +523,55 @@ namespace SSS_Settings
 			if (DEBUG) { log("saved in sync!", chunks); }
 		};
 
-		// confirmation buttons (some buttons make another button show for the actual action and change their own text to "Cancel")
+		// buttons with confirmation
 
-		let setupConfirmationProcessForButton = (mainButton, confirmationButton, originalMainButtonValue, onConfirm) => {
-			// the clicked button becomes a "Cancel" button
-			mainButton.onclick = () => {
-				if (mainButton.value === "Cancel") {
-					mainButton.value = originalMainButtonValue;
-					confirmationButton.style.display = "none";
-				} else {
-					mainButton.value = "Cancel";
-					confirmationButton.style.display = "";
-				}
-			};
-
-			// the other button appears and does the actual action
-			confirmationButton.onclick = ev => {
-				mainButton.value = originalMainButtonValue;
-				confirmationButton.style.display = "none";
-
-				ev.preventDefault();
-				onConfirm();
-			};
-		};
-
-		setupConfirmationProcessForButton(page.resetSearchEnginesButton, page.resetSearchEnginesButton_real, page.resetSearchEnginesButton.value,
-			() => {
+		page.resetSearchEnginesButton.onclick = () =>
+		{
+			if (confirm("Really reset search engines to the default ones?"))
+			{
 				let defaultEngines = JSON.parse(JSON.stringify(defaultSettings.searchEngines));
 				settings.searchEngines = defaultEngines;
 				updateUIWithSettings();
 				saveSettings({ searchEngines: settings.searchEngines });
 			}
-		);
+		};
 
-		setupConfirmationProcessForButton(page.resetSettingsButton, page.resetSettingsButton_real, page.resetSettingsButton.value,
-			() => {
+		page.resetSettingsButton.onclick = () =>
+		{
+			if (confirm("Really reset all settings to their default values?"))
+			{
 				let searchEngines = settings.searchEngines;	// stash engines
 				settings = JSON.parse(JSON.stringify(defaultSettings));	// copy default settings
 				settings.searchEngines = searchEngines;	// restore engines
 				updateUIWithSettings();
 				saveSettings(settings);
 			}
-		);
+		};
 
-		setupConfirmationProcessForButton(page.loadSettingsFromSyncButton, page.loadSettingsFromSyncButton_real, page.loadSettingsFromSyncButton.value,
-			() => browser.storage.sync.get().then(chunks => {
-				if (DEBUG) { log(chunks); }
+		page.loadSettingsFromSyncButton.onclick = () =>
+		{
+			if (confirm("Really load all settings from Firefox Sync?"))
+			{
+				browser.storage.sync.get().then(chunks => {
+					if (DEBUG) { log(chunks); }
 
-				// join all chunks of data we uploaded to sync in a list
-				let chunksList = [];
-				let p;
-				for (let i = 0; (p = chunks["p"+i]) !== undefined; i++) {
-					chunksList.push(p);
-				}
+					// join all chunks of data we uploaded to sync in a list
+					let chunksList = [];
+					let p;
+					for (let i = 0; (p = chunks["p"+i]) !== undefined; i++) {
+						chunksList.push(p);
+					}
 
-				// parse the chunks into an actual object
-				let parsedSettings = parseSyncChunksList(chunksList);
+					// parse the chunks into an actual object
+					let parsedSettings = parseSyncChunksList(chunksList);
 
-				// finally try importing the read settings
-				if (parsedSettings !== null) {
-					importSettings(parsedSettings);
-				}
-			}, getErrorHandler("Error getting settings from sync."))
-		);
+					// finally try importing the read settings
+					if (parsedSettings !== null) {
+						importSettings(parsedSettings);
+					}
+				}, getErrorHandler("Error getting settings from sync."));
+			}
+		};
 
 		// finish and set elements based on settings, if they are already loaded
 

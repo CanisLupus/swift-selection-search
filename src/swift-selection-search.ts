@@ -883,8 +883,7 @@ namespace SSS
 		let engines: SearchEngine[] = sss.settings.searchEngines;
 		let selectedEngine: SearchEngine = engines[menuId];
 
-		let button = info.button || info.button == 0 ? info.button : 0;
-
+		let button = info?.button ?? 0;
 		let url: string = null;
 		let discardOnOpen: boolean;
 
