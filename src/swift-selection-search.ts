@@ -848,14 +848,22 @@ namespace SSS
 			if (engine.type === SearchEngineType.SSS) {
 				let concreteEngine = engine as SearchEngine_SSS;
 				icon = sssIcons[concreteEngine.id].iconPath;
-			} else {
-				let concreteEngine = engine as SearchEngine_Custom;
-				if (concreteEngine.iconUrl.startsWith("data:")) {
-					icon = concreteEngine.iconUrl;
+			}
+			else {
+				let iconUrl: string;
+
+				if (engine.type === SearchEngineType.Custom || engine.type === SearchEngineType.BrowserLegacy) {
+					iconUrl = (engine as SearchEngine_Custom).iconUrl;
+				} else { // engine.type === SearchEngineType.BrowserSearchApi
+					iconUrl = (engine as SearchEngine_BrowserSearchApi).iconUrl;
+				}
+
+				if (iconUrl.startsWith("data:")) {
+					icon = iconUrl;
 				} else {
-					icon = sss.settings.searchEnginesCache[concreteEngine.iconUrl];
+					icon = sss.settings.searchEnginesCache[iconUrl];
 					if (icon === undefined) {
-						icon = concreteEngine.iconUrl;
+						icon = iconUrl;
 					}
 				}
 			}
@@ -873,7 +881,7 @@ namespace SSS
 	{
 		let menuId: number = parseInt(info.menuItemId as string);
 		let engines: SearchEngine[] = sss.settings.searchEngines;
-		let engine: SearchEngine = engines[menuId];
+		let selectedEngine: SearchEngine = engines[menuId];
 
 		let button = info.button || info.button == 0 ? info.button : 0;
 
@@ -881,14 +889,14 @@ namespace SSS
 		let discardOnOpen: boolean;
 
 		// check if it's a special SSS engine
-		if (engine.type === SearchEngineType.SSS)
+		if (selectedEngine.type === SearchEngineType.SSS)
 		{
-			let engine_SSS = engine as SearchEngine_SSS;
+			let engine_SSS = selectedEngine as SearchEngine_SSS;
 
 			if (engine_SSS.id === "copyToClipboard")
 			{
 				if (info.selectionText) {
-					copyToClipboard(engine as SearchEngine_SSS_Copy);	// copy in the page script, to allow choice between HTML and plain text copy
+					copyToClipboard(selectedEngine as SearchEngine_SSS_Copy);	// copy in the page script, to allow choice between HTML and plain text copy
 				} else if (info.linkText) {
 					navigator.clipboard.writeText(info.linkText);	// if copying a link, just always copy its text
 				}
@@ -899,25 +907,35 @@ namespace SSS
 				discardOnOpen = false;
 			}
 		}
-		// here we know it's a normal search engine, so run the search
+		// check if it's a browser-managed engine (BrowserSearchApi)
+		else if (selectedEngine.type === SearchEngineType.BrowserSearchApi)
+		{
+			searchUsingSearchApi(
+				selectedEngine as SearchEngine_BrowserSearchApi,
+				info.selectionText || info.linkText,
+				getOpenResultBehaviourForContextMenu(button)
+			);
+		}
+		// otherwise it's a normal search engine (type Custom or BrowserLegacy), so run the search
 		else
 		{
 			// search using the engine
-			let engine_Custom = engine as SearchEngine_Custom;
+			let engine_Custom = selectedEngine as SearchEngine_Custom;
 			url = getSearchQuery(engine_Custom, info.selectionText || info.linkText, new URL(info.pageUrl));
 			discardOnOpen = engine_Custom.discardOnOpen;
 		}
 
 		if (url !== null)
 		{
-			if (button === 0) {
-				openUrl(url, sss.settings.contextMenuItemBehaviour, discardOnOpen);
-			} else if (button === 1) {
-				openUrl(url, sss.settings.contextMenuItemMiddleButtonBehaviour, discardOnOpen);
-			} else {
-				openUrl(url, sss.settings.contextMenuItemRightButtonBehaviour, discardOnOpen);
-			}
+			openUrl(url, getOpenResultBehaviourForContextMenu(button), discardOnOpen);
 		}
+	}
+
+	function getOpenResultBehaviourForContextMenu(button: number)
+	{
+		if (button === 0) return sss.settings.contextMenuItemBehaviour;
+		if (button === 1) return sss.settings.contextMenuItemMiddleButtonBehaviour;
+		/* if (button === 2)  */return sss.settings.contextMenuItemRightButtonBehaviour;
 	}
 
 	/* ------------------------------------ */
@@ -1127,14 +1145,11 @@ namespace SSS
 		// check if it's a browser-managed engine (BrowserSearchApi)
 		else if (selectedEngine.type === SearchEngineType.BrowserSearchApi)
 		{
-			getCurrentTab((tab: browser.tabs.Tab) => {
-				browser.search.search({
-					engine: (selectedEngine as SearchEngine_BrowserSearchApi).name,
-					query: cleanSearchText(searchText),
-					// we want all open behaviours that are not "ThisTab" to open in another tab
-					tabId: getOpenResultBehaviour(clickType) === OpenResultBehaviour.ThisTab ? tab.id : undefined
-				});
-			});
+			searchUsingSearchApi(
+				selectedEngine as SearchEngine_BrowserSearchApi,
+				cleanSearchText(searchText),
+				getOpenResultBehaviour(clickType)
+			);
 		}
 		// otherwise it's a normal search engine (type Custom or BrowserLegacy), so run the search
 		else
@@ -1286,6 +1301,18 @@ namespace SSS
 					browser.windows.create(options);
 					break;
 			}
+		});
+	}
+
+	function searchUsingSearchApi(engine: SearchEngine_BrowserSearchApi, searchText: string, openingBehaviour: OpenResultBehaviour)
+	{
+		getCurrentTab((tab: browser.tabs.Tab) => {
+			browser.search.search({
+				engine: engine.name,
+				query: cleanSearchText(searchText),
+				// we want all open behaviours that are not "ThisTab" to open in another tab
+				tabId: openingBehaviour === OpenResultBehaviour.ThisTab ? tab.id : undefined
+			});
 		});
 	}
 
