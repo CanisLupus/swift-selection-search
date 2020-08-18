@@ -1,3 +1,14 @@
+/*
+
+This file contains functions related to the modifications the user can apply to URL text "variables"
+like searchTerms, href, host, etc. The user can essentially "substring" a variable' value and do all kinds
+of text replacements on it, even using regex.
+
+This could be part of the background script's code, since it's only used there, but it's large and specific
+enough that it's better located in a different file and included in separate.
+
+*/
+
 namespace SearchVariables
 {
 	export function modifySearchVariable(url: string, variableName: string, text: string, encode: boolean): string

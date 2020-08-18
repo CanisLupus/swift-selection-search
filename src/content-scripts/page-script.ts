@@ -1,3 +1,12 @@
+/*
+
+Content script that gets injected into all webpages (actually all frames) for the SSS popup to work.
+This script is initialized by the background script and, when needed, requests all the required info
+to show the popup. It also listens for text selections and applies formatting to the popup, based
+on the user's settings.
+
+*/
+
 var DEBUG_STATE: boolean;	// avoid TS compilation errors but still get working JS code
 
 namespace Types

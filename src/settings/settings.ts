@@ -1,17 +1,28 @@
-// How to add a new setting:
-// - swift-selection-search.ts
-	// - add variable to "class Settings"
-	// - add default value to "const defaultSettings"
-	// - add to "function runBackwardsCompatibilityUpdates" and write down the first SSS version where the setting is going to exist
-	// - [extra] if needed, add to "class ActivationSettings" and "function getActivationSettingsForContentScript"
-// - settings.html
-	// - create a new setting
-	// - [extra] if dependent on another setting, add "hidden" (and perhaps "indent") as a class
-// - settings.ts
-	// - [extra] if dependent on another setting, add both to "const page" object
-	// - [extra] if dependent on another setting, create a new "updateSetting_??" function and add it to "function updateSetting"
-// - page-script.ts
-	// - implement!
+/*
+
+Script that controls how the SSS options page works. Its job is to load the user's settings,
+handle dynamic page elements based on that, respond to user input, and detect changes
+to the UI that need to be saved back into settings.
+
+How to add a new setting:
+
+- swift-selection-search.ts
+	- Add variable to "class Settings".
+	- Add its default value to "const defaultSettings".
+	- Add it to "function runBackwardsCompatibilityUpdates" and write down the first SSS version where the setting is going to exist.
+		- If you don't know, don't worry, it will be filled later.
+	- [extra] If needed, add it to "class ActivationSettings" and "function getActivationSettingsForContentScript"
+		- This is necessary if the setting affects something that happens before the popup shows up.
+- settings.html
+	- Create a new setting.
+	- [extra] If it depends on another setting, add "hidden" (and perhaps "indent") as a class.
+- settings.ts
+	- [extra] If it depends on another setting, add both to "const page" object.
+	- [extra] If it depends on another setting, create a new "updateSetting_??" function and add it to "function updateSetting".
+- page-script.ts
+	- Implement! (Unless it's not a setting that affects the page script, of course. ;))
+
+*/
 
 var Sortable;	// avoid TS compilation errors but still get working JS code
 
@@ -129,7 +140,7 @@ namespace SSS_Settings
 
 	let sssIcons: { [id: string] : SSS.SSSIconDefinition; };
 	let defaultSettings: SSS.Settings;
-	let browserVersion: number;
+	let browserVersion: number;	// unused for now, but we may want it to control compatibility
 	let hasDOMContentLoaded: boolean = false;
 
 	document.addEventListener("DOMContentLoaded", onDOMContentLoaded);
@@ -1061,6 +1072,11 @@ namespace SSS_Settings
 		{
 			// create columns for normal icons
 			engineRow.appendChild(createEngineName(engine));
+
+			// This object keeps references to a few variables so that when the user changes the search URL
+			// we can update the icon URL (if it was using the default URL), and when the icon URL is cleared
+			// it can use the search URL to generate a new icon URL.
+			// Only the anonymous callbacks inside the following functions will use values inside this object.
 			let references = {};
 			engineRow.appendChild(createEngineSearchLink(engine, references));
 			engineRow.appendChild(createEngineIconLink(engine, icon, references));

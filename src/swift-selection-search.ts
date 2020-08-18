@@ -1,3 +1,19 @@
+/*
+
+This is the background script for SSS. It's always running. Things it does:
+
+- Injects content scripts (a.k.a. page scripts) into each tab that is opened, to be able to show the engines popup there.
+- Registers the search engines to appear on Firefox's context menu.
+- Trades messages with the content scripts.
+	To initialize them, be informed of search engine clicks to begin searches, among other things.
+- Detects changes to settings from the options page and resets all running page scripts to use the new settings.
+	Also updates settings objects created on previous SSS versions to contain new settings.
+
+Here you'll find the declarations for most classes and enums related to search engines and settings,
+as well as the default settings and engines that come with SSS.
+
+*/
+
 var iconv;	// avoid TS compilation errors but still get working JS code
 
 namespace SSS
@@ -6,14 +22,17 @@ namespace SSS
 	/* ====== Swift Selection Search ====== */
 	/* ==================================== */
 
+	// Set to true if you want to see SSS's logs in Firefox's "Browser Console".
+	// In general, use for development and don't commit this enabled.
 	const DEBUG = false;
+
 	if (DEBUG) {
 		var log = console.log;
 	}
 
 	export abstract class SearchEngine
 	{
-		[key: string]: any;	// needed to keep old variables like iconSrc and id
+		[key: string]: any;	// needed to keep legacy variables that are now unused, like iconSrc and id
 
 		type: SearchEngineType;
 		isEnabled: boolean;
@@ -45,7 +64,10 @@ namespace SSS
 
 	export class Settings
 	{
-		[key: string]: any;	// needed to keep old variables like contextMenuEnginesFilter
+		// NOTE: When adding new variables, keep the same order used in the settings page, roughly divided by section.
+
+		// Any unspecified settings go here. This is needed to support legacy variables that are now unused, like contextMenuEnginesFilter.
+		[key: string]: any;
 
 		useDarkModeInOptionsPage: boolean;
 
@@ -96,8 +118,10 @@ namespace SSS
 		contextMenuItemRightButtonBehaviour: OpenResultBehaviour;
 		contextMenuItemMiddleButtonBehaviour: OpenResultBehaviour;
 		contextMenuString: string;
+
 		searchEngines: SearchEngine[];
 		searchEnginesCache: { [id: string] : string; };
+
 		// sectionsExpansionState: { [id: string] : boolean; };
 	}
 
@@ -218,9 +242,11 @@ namespace SSS
 		}
 	};
 
-	// default state of all configurable options
+	// Default state of all configurable options.
 	const defaultSettings: Settings =
 	{
+		// NOTE: When adding new variables, keep the same order used in the settings page, roughly divided by section.
+
 		useDarkModeInOptionsPage: false,
 
 		searchEngineIconsSource: SearchEngineIconsSource.FaviconKit,
@@ -415,7 +441,9 @@ namespace SSS
 
 		// Clear all settings (for test purposes only).
 		// Since the mistake from version 3.43.0, "removeToUse" was added to the call
-		// and the add-on submission script now checks for calls to the clear() function.
+		// and the add-on submission script (not included in the repository) now
+		// checks for calls to the clear() function.
+
 		// browser.storage.local.cle_removeToUse_ar();
 		// browser.storage.sync.cle_removeToUse_ar();
 
@@ -551,9 +579,11 @@ namespace SSS
 		return str.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched str
 	}
 
+	// Adds settings that were not available in older versions of SSS to the settings object.
+	// For simplicity, all other code in SSS assumes that all settings exist and have a value.
+	// This method ensures it, regardless of what SSS version the user last changed settings at.
 	function runBackwardsCompatibilityUpdates(settings: Settings): boolean
 	{
-		// add settings that were not available in older versions of SSS
 		let shouldSave: boolean = false;
 
 		// in the comments you can see the first version of SSS where the setting was included
