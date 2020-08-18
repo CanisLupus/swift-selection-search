@@ -201,6 +201,8 @@ namespace SSS_Settings
 			}
 		}
 
+		let nAddedEngines = 0;
+
 		// add all browser search engines
 		for (let engine of browserSearchEngines)
 		{
@@ -213,6 +215,12 @@ namespace SSS_Settings
 				name: engine.name,
 				iconUrl: engine.favIconUrl ?? "",
 			}));
+
+			nAddedEngines++;
+		}
+
+		if (nAddedEngines == 0) {
+			alert("No new engines were added.");
 		}
 	}
 
@@ -956,7 +964,7 @@ namespace SSS_Settings
 			if (engine.type === SearchEngineType.BrowserSearchApi) {
 				let engineDescription = document.createElement("div");
 				engineDescription.className = "engine-sss engine-description-small";
-				engineDescription.textContent = "Engine managed by the browser";
+				engineDescription.textContent = "Engine managed by the browser.";
 				engineRow.appendChild(engineDescription);
 			} else {
 				engineRow.appendChild(createEngineSearchLink(engine, references));
