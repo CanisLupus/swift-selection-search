@@ -182,7 +182,7 @@ namespace SearchVariables
 		}
 	}
 
-	enum SearchVariableParserState
+	const enum SearchVariableParserState
 	{
 		EXPECTING_MODIFICATION_OR_END,	// expecting a {}, (), or [] modification block (or the end of the variable name, like "searchTerms")
 		IN_REPLACE,						// inside a {} replacement block

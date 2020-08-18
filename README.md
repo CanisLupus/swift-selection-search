@@ -83,8 +83,8 @@ Content scripts don't see code from the background script, or vice-versa, and th
 
 An example that works is that we can declare types/classes in the background script and reference them in other scripts, since only the type checker cares about them. We get type checking and it's fine.
 
-However, if we try adding to those classes some methods, variable assignments, etc, or if we create enums (which have concrete values, so "data") then content scripts or options page scripts won't see these. When transpiling to JavaScript, they will be left as a reference to code in another script, which can't be referenced at runtime due to WebExtensions sandboxing.
+However, if we try adding to those classes some methods, variable assignments, etc, then content scripts or options page scripts won't see these. When transpiling to JavaScript, they will be left as a reference to code in another script, which can't be referenced at runtime due to WebExtensions sandboxing. This is also true of enums (which have concrete values, so "data") UNLESS we declare them as "const enum", in which case TypeScript copies their values to where they are used instead of creating JavaScript objects.
 
-So, if you see a class or enum fully or partially declared in more than one script in this project (for example in both background script and page script), the above is why.
+So, if you see a class fully or partially declared in more than one script in this project (for example in both background script and page script), the above is why.
 
 Another thing that may fail is using instanceof to check if an object is of a certain class. Don't do this for custom created classes since it may fail due to the sandboxing.

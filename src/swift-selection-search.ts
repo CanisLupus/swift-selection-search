@@ -167,19 +167,19 @@ namespace SSS
 		blockedWebsitesCache: RegExp[];
 	}
 
-	enum SearchEngineType {
+	export const enum SearchEngineType {
 		SSS = "sss",
 		Custom = "custom",
 		BrowserLegacy = "browser",
 		BrowserSearchApi = "browser-search-api",
 	}
 
-	enum SearchEngineIconsSource {
+	export const enum SearchEngineIconsSource {
 		None = "none",
 		FaviconKit = "favicon-kit",
 	}
 
-	enum PopupOpenBehaviour {
+	export const enum PopupOpenBehaviour {
 		Off = "off",
 		Auto = "auto",
 		Keyboard = "keyboard",
@@ -187,12 +187,12 @@ namespace SSS
 		MiddleMouse = "middle-mouse",
 	}
 
-	enum PopupLocation {
+	export const enum PopupLocation {
 		Selection = "selection",
 		Cursor = "cursor",
 	}
 
-	enum OpenResultBehaviour {
+	export const enum OpenResultBehaviour {
 		ThisTab = "this-tab",
 		NewTab = "new-tab",
 		NewBgTab = "new-bg-tab",
@@ -202,24 +202,24 @@ namespace SSS
 		NewBgWindow = "new-bg-window",
 	}
 
-	enum AutoCopyToClipboard {
+	export const enum AutoCopyToClipboard {
 		Off = "off",
 		Always = "always",
 		NonEditableOnly = "non-editable-only",
 	}
 
-	enum SelectionTextFieldLocation {
+	export const enum SelectionTextFieldLocation {
 		Top = "top",
 		Bottom = "bottom",
 	}
 
-	enum IconAlignment {
+	export const enum IconAlignment {
 		Left = "left",
 		Middle = "middle",
 		Right = "right",
 	}
 
-	enum ItemHoverBehaviour {
+	export const enum ItemHoverBehaviour {
 		Nothing = "nothing",
 		Highlight = "highlight",
 		HighlightAndMove = "highlight-and-move",
@@ -227,7 +227,7 @@ namespace SSS
 	}
 
 	// not used anymore but needed for retrocompatibility
-	enum ContextMenuEnginesFilter {
+	const enum ContextMenuEnginesFilter {
 		All = "all",
 		SameAsPopup = "same-as-popup",
 	}

@@ -28,23 +28,6 @@ var Sortable;	// avoid TS compilation errors but still get working JS code
 
 namespace SSS_Settings
 {
-	// Subset of enums from the background script (only the ones needed).
-	// We duplicate enum definitions because otherwise the generated JS code is incomplete.
-	enum SearchEngineType {
-		SSS = "sss",
-		Custom = "custom",
-		BrowserLegacy = "browser",
-		BrowserSearchApi = "browser-search-api",
-	}
-	enum SearchEngineIconsSource {
-		None = "none",
-		FaviconKit = "favicon-kit",
-	}
-	enum PopupOpenBehaviour {
-		Auto = "auto",
-		MiddleMouse = "middle-mouse",
-	}
-
 	const page = {
 		engines: undefined,
 		inputs: undefined,
@@ -193,7 +176,7 @@ namespace SSS_Settings
 		// "hash set" of search URLs (will help avoiding duplicates of previously imported browser engines)
 		let names = {};
 		for (let engine of settings.searchEngines) {
-			if (engine.type === SearchEngineType.BrowserSearchApi) {
+			if (engine.type === SSS.SearchEngineType.BrowserSearchApi) {
 				names[(engine as SSS.SearchEngine_BrowserSearchApi).name] = true;
 			}
 		}
@@ -208,7 +191,7 @@ namespace SSS_Settings
 
 			// create an engine object compatible with class SearchEngine_BrowserSearchApi
 			settings.searchEngines.push(createDefaultEngine({
-				type: SearchEngineType.BrowserSearchApi,
+				type: SSS.SearchEngineType.BrowserSearchApi,
 				name: engine.name,
 				iconUrl: engine.favIconUrl ?? "",
 			}));
@@ -481,7 +464,7 @@ namespace SSS_Settings
 			let iconUrl = getIconUrlFromSearchUrl(searchUrl);	// by default try to get a favicon for the domain
 
 			settings.searchEngines.push(createDefaultEngine({
-				type: SearchEngineType.Custom,
+				type: SSS.SearchEngineType.Custom,
 				name: "New Search Engine",
 				searchUrl: searchUrl,
 				iconUrl: iconUrl
@@ -493,7 +476,7 @@ namespace SSS_Settings
 
 		page.addSeparatorButton.onclick = () => {
 			settings.searchEngines.push(createDefaultEngine({
-				type: SearchEngineType.SSS,
+				type: SSS.SearchEngineType.SSS,
 				id: "separator",
 			}));
 
@@ -894,7 +877,7 @@ namespace SSS_Settings
 
 		let icon;
 
-		if (engine.type === SearchEngineType.SSS)
+		if (engine.type === SSS.SearchEngineType.SSS)
 		{
 			// special SSS icons have data that never changes, so just get it from constants
 			let sssIcon = sssIcons[engine.id];
@@ -910,7 +893,7 @@ namespace SSS_Settings
 
 		engineRow.appendChild(iconElem);
 
-		if (engine.type === SearchEngineType.SSS)
+		if (engine.type === SSS.SearchEngineType.SSS)
 		{
 			// create columns for this row, most disabled because special SSS icons can't be edited
 
@@ -947,7 +930,7 @@ namespace SSS_Settings
 			// Only the anonymous callbacks inside the following functions will use values inside this object.
 			let references = {};
 
-			if (engine.type === SearchEngineType.BrowserSearchApi) {
+			if (engine.type === SSS.SearchEngineType.BrowserSearchApi) {
 				let engineDescription = document.createElement("div");
 				engineDescription.className = "engine-sss engine-description-small";
 				engineDescription.textContent = "Engine managed by the browser.";
@@ -984,7 +967,7 @@ namespace SSS_Settings
 			engineOptions.appendChild(isPlainTextCheckboxParent);
 		}
 
-		if (engine.type === SearchEngineType.Custom || engine.type === SearchEngineType.BrowserLegacy)
+		if (engine.type === SSS.SearchEngineType.Custom || engine.type === SSS.SearchEngineType.BrowserLegacy)
 		{
 			let textEncodingDropdownParent = createDropdown(
 				"Text encoding",
@@ -1345,22 +1328,22 @@ namespace SSS_Settings
 
 	function updateSetting_popupDelay(popupOpenBehaviour)
 	{
-		updateSetting_specific(page.popupDelay, popupOpenBehaviour === PopupOpenBehaviour.Auto);
+		updateSetting_specific(page.popupDelay, popupOpenBehaviour === SSS.PopupOpenBehaviour.Auto);
 	}
 
 	function updateSetting_minSelectedCharacters(popupOpenBehaviour)
 	{
-		updateSetting_specific(page.minSelectedCharacters, popupOpenBehaviour === PopupOpenBehaviour.Auto);
+		updateSetting_specific(page.minSelectedCharacters, popupOpenBehaviour === SSS.PopupOpenBehaviour.Auto);
 	}
 
 	function updateSetting_maxSelectedCharacters(popupOpenBehaviour)
 	{
-		updateSetting_specific(page.maxSelectedCharacters, popupOpenBehaviour === PopupOpenBehaviour.Auto);
+		updateSetting_specific(page.maxSelectedCharacters, popupOpenBehaviour === SSS.PopupOpenBehaviour.Auto);
 	}
 
 	function updateSetting_middleMouseSelectionClickMargin(popupOpenBehaviour)
 	{
-		updateSetting_specific(page.middleMouseSelectionClickMargin, popupOpenBehaviour === PopupOpenBehaviour.MiddleMouse);
+		updateSetting_specific(page.middleMouseSelectionClickMargin, popupOpenBehaviour === SSS.PopupOpenBehaviour.MiddleMouse);
 	}
 
 	function updateSetting_selectionTextFieldLocation(showSelectionTextField)
@@ -1424,7 +1407,7 @@ namespace SSS_Settings
 
 	function getIconUrlFromSearchUrl(url)
 	{
-		if (settings.searchEngineIconsSource === SearchEngineIconsSource.FaviconKit) {
+		if (settings.searchEngineIconsSource === SSS.SearchEngineIconsSource.FaviconKit) {
 			return "https://api.faviconkit.com/" + getDomainFromUrl(url) + "/64";
 		} else {
 			return "";
