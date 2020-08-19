@@ -1,39 +1,38 @@
-// How to add a new setting:
-// - swift-selection-search.ts
-	// - add variable to "class Settings"
-	// - add default value to "const defaultSettings"
-	// - add to "function runBackwardsCompatibilityUpdates" and write down the first SSS version where the setting is going to exist
-	// - [extra] if needed, add to "class ActivationSettings" and "function getActivationSettingsForContentScript"
-// - settings.html
-	// - create a new setting
-	// - [extra] if dependent on another setting, add "hidden" (and perhaps "indent") as a class
-// - settings.ts
-	// - [extra] if dependent on another setting, add both to "const page" object
-	// - [extra] if dependent on another setting, create a new "updateSetting_??" function and add it to "function updateSetting"
-// - page-script.ts
-	// - implement!
+/*
+
+Script that controls how the SSS options page works. Its job is to load the user's settings,
+handle dynamic page elements based on that, respond to user input, and detect changes
+to the UI that need to be saved back into settings.
+
+How to add a new setting:
+
+- swift-selection-search.ts
+	- Add variable to "class Settings".
+	- Add its default value to "const defaultSettings".
+	- Add it to "function runBackwardsCompatibilityUpdates" and write down the first SSS version where the setting is going to exist.
+		- If you don't know, don't worry, it will be filled later.
+	- [extra] If needed, add it to "class ActivationSettings" and "function getActivationSettingsForContentScript"
+		- This is necessary if the setting affects something that happens before the popup shows up.
+- settings.html
+	- Create a new setting.
+	- [extra] If it depends on another setting, add "hidden" (and perhaps "indent") as a class.
+- settings.ts
+	- [extra] If it depends on another setting, add both to "const page" object.
+	- [extra] If it depends on another setting, create a new "updateSetting_??" function and add it to "function updateSetting".
+- page-script.ts
+	- Implement! (Unless it's not a setting that affects the page script, of course. ;))
+
+*/
 
 var Sortable;	// avoid TS compilation errors but still get working JS code
 
 namespace SSS_Settings
 {
-	// Subset of enums from the background script (only the ones needed).
-	// We duplicate enum definitions because otherwise the generated JS code is incomplete.
-	enum SearchEngineType {
-		SSS = "sss",
-		Custom = "custom",
-		Browser = "browser",
-	}
-	enum SearchEngineIconsSource {
-		None = "none",
-		FaviconKit = "favicon-kit",
-	}
-	enum PopupOpenBehaviour {
-		Auto = "auto",
-		MiddleMouse = "middle-mouse",
-	}
-
 	const page = {
+
+		useEngineShortcut: undefined,
+		useEngineShortcutWithoutPopup: undefined,
+
 		engines: undefined,
 		inputs: undefined,
 
@@ -41,10 +40,8 @@ namespace SSS_Settings
 
 		addEngineButton: undefined,
 		addSeparatorButton: undefined,
-		importBrowserEnginesFileButton: undefined,
-		importBrowserEnginesFileButton_real: undefined,
+		importBrowserEnginesButton: undefined,
 		resetSearchEnginesButton: undefined,
-		resetSearchEnginesButton_real: undefined,
 
 		minSelectedCharacters: undefined,
 		maxSelectedCharacters: undefined,
@@ -68,10 +65,8 @@ namespace SSS_Settings
 		importSettingsFromFileButton_real: undefined,
 		saveSettingsToSyncButton: undefined,
 		loadSettingsFromSyncButton: undefined,
-		loadSettingsFromSyncButton_real: undefined,
 
 		resetSettingsButton: undefined,
-		resetSettingsButton_real: undefined,
 	};
 
 	class EncodingGroup
@@ -129,7 +124,7 @@ namespace SSS_Settings
 
 	let sssIcons: { [id: string] : SSS.SSSIconDefinition; };
 	let defaultSettings: SSS.Settings;
-	let browserVersion: number;
+	let browserVersion: number;	// unused for now, but we may want it to control compatibility
 	let hasDOMContentLoaded: boolean = false;
 
 	document.addEventListener("DOMContentLoaded", onDOMContentLoaded);
@@ -179,156 +174,37 @@ namespace SSS_Settings
 		return engine;
 	}
 
-	// This method's code was taken from node-lz4 by Pierre Curto. MIT license.
-	// CHANGES: Added ; to all lines. Reformated one-liners. Removed n = eIdx. Fixed eIdx skipping end bytes if sIdx != 0. Changed "var" to "let".
-	function decodeLz4Block(input: Uint8Array, output: Uint8Array, sIdx?: number, eIdx?: number)
-	{
-		sIdx = sIdx || 0;
-		eIdx = eIdx || input.length;
-
-		let j = 0;
-
-		// Process each sequence in the incoming data
-		for (let i = sIdx; i < eIdx;)
-		{
-			let token = input[i++];
-
-			// Literals
-			let literals_length = (token >> 4);
-			if (literals_length > 0) {
-				// length of literals
-				let l = literals_length + 240;
-				while (l === 255) {
-					l = input[i++];
-					literals_length += l;
-				}
-
-				// Copy the literals
-				let end = i + literals_length;
-				while (i < end) {
-					output[j++] = input[i++];
-				}
-
-				// End of buffer?
-				if (i === eIdx) {
-					return j;
-				}
-			}
-
-			// Match copy
-			// 2 bytes offset (little endian)
-			let offset = input[i++] | (input[i++] << 8);
-
-			// 0 is an invalid offset value
-			if (offset === 0 || offset > j) {
-				return -(i-2);
-			}
-
-			// length of match copy
-			let match_length = (token & 0xf);
-			let l = match_length + 240;
-			while (l === 255) {
-				l = input[i++];
-				match_length += l;
-			}
-
-			// Copy the match
-			let pos = j - offset; // position of the match copy in the current output
-			let end = j + match_length + 4; // minmatch = 4
-			while (j < end) {
-				output[j++] = output[pos++];
-			}
-		}
-
-		return j;
-	}
-
-	// reads a .mozlz4 compressed file and returns its bytes
-	function readMozlz4File(file: Blob, onRead, onError?)
-	{
-		let reader = new FileReader();
-
-		// prepare onload function before actually trying to read the file
-		reader.onload = () => {
-			let input = new Uint8Array(reader.result as ArrayBuffer);
-			let output;
-			let uncompressedSize = input.length*3;	// size _estimate_ for uncompressed data!
-
-			// Decode whole file.
-			do {
-				output = new Uint8Array(uncompressedSize);
-				uncompressedSize = decodeLz4Block(input, output, 8+4);	// skip 8 byte magic number + 4 byte data size field
-				// if there's more data than our output estimate, create a bigger output array and retry (at most one retry)
-			} while (uncompressedSize > output.length);
-
-			output = output.slice(0, uncompressedSize);	// remove excess bytes
-
-			let decodedText = new TextDecoder().decode(output);
-			onRead(decodedText);
-		};
-
-		if (onError) {
-			reader.onerror = onError;
-		}
-
-		reader.readAsArrayBuffer(file);	// read as bytes
-	}
-
-	// adds to SSS all engines from the browser's search engines file
-	function updateBrowserEnginesFromSearchJson(browserSearchEngines)
+	// adds to SSS all engines from the browser (these are special and contain very little information)
+	function addBrowserEnginesToEnginesList(browserSearchEngines: browser.search.SearchEngine[])
 	{
 		// "hash set" of search URLs (will help avoiding duplicates of previously imported browser engines)
-		let searchUrls = {};
+		let names = {};
 		for (let engine of settings.searchEngines) {
-			if (engine.type === SearchEngineType.Browser) {
-				searchUrls[(engine as SSS.SearchEngine_Browser).searchUrl] = true;
+			if (engine.type === SSS.SearchEngineType.BrowserSearchApi) {
+				names[(engine as SSS.SearchEngine_BrowserSearchApi).name] = true;
 			}
 		}
 
-		// add all given search engines
-		for (let engine of browserSearchEngines.engines)
+		let nAddedEngines = 0;
+
+		// add all browser search engines
+		for (let engine of browserSearchEngines)
 		{
-			// don't add hidden engines
-			if (engine._metaData.hidden) {
-				continue;
-			}
+			// avoid duplicates if this browser engine is already in the "hash set"
+			if (names.hasOwnProperty(engine.name)) continue;
 
-			// browser engines can have several URLs, but we want only certain kinds
-			for (let urlObj of engine._urls)
-			{
-				if (urlObj.type !== undefined && urlObj.type !== "text/html") {
-					continue;
-				}
+			// create an engine object compatible with class SearchEngine_BrowserSearchApi
+			settings.searchEngines.push(createDefaultEngine({
+				type: SSS.SearchEngineType.BrowserSearchApi,
+				name: engine.name,
+				iconUrl: engine.favIconUrl ?? "",
+			}));
 
-				let url = urlObj.template;
+			nAddedEngines++;
+		}
 
-				if (urlObj.params.length > 0) {
-					// template has params, so join them to get the full query URL
-					url += "?" + urlObj.params
-						.filter(p => p.value === "{searchTerms}")
-						.map(p => p.name + "=" + p.value)
-						.join("&");
-				} else {
-					// template has no params, so template is the full query URL
-					url = url.replace("{searchTerms}", "[sss-searchTerms]");	// easy way to "protect" {searchTerms} from regex replace...
-					url = url.replace(/{(.*)}/g, "");
-					url = url.replace("[sss-searchTerms]", "{searchTerms}");	// ...and add it back afterwards
-				}
-
-				// avoid duplicates if this URL is already in the "hash set"
-				if (searchUrls.hasOwnProperty(url)) {
-					continue;
-				}
-
-				// finally add the engine to the user's engines
-
-				settings.searchEngines.push(createDefaultEngine({
-					type: SearchEngineType.Browser,
-					name: engine._name,
-					iconUrl: getIconUrlFromSearchUrl(url),
-					searchUrl: url,
-				}));
-			}
+		if (nAddedEngines == 0) {
+			alert("No new engines were added.");
 		}
 	}
 
@@ -414,18 +290,7 @@ namespace SSS_Settings
 
 			// special things in the options page need special code
 
-			if (item.name === "importBrowserEnginesFileButton_real")
-			{
-				readMozlz4File(ev.target.files[0], json => {
-					let browserSearchEngines = JSON.parse(json);
-					if (DEBUG) { log(browserSearchEngines); }
-					updateBrowserEnginesFromSearchJson(browserSearchEngines);
-					updateUIWithSettings();
-					saveSettings({ searchEngines: settings.searchEngines });
-					// alert("Your browser's search engines were imported!");
-				});
-			}
-			else if (item.name === "importSettingsFromFileButton_real")
+			if (item.name === "importSettingsFromFileButton_real")
 			{
 				let reader = new FileReader();
 				reader.onload = () => {
@@ -441,8 +306,19 @@ namespace SSS_Settings
 			}
 		};
 
-		// there are two elements for some buttons: a button for display and the actual "real" button that does the work
-		page.importBrowserEnginesFileButton.onclick = () => page.importBrowserEnginesFileButton_real.click();
+		page.importBrowserEnginesButton.onclick = () =>
+		{
+			if (confirm("Really import your browser's search engines?"))
+			{
+				browser.search.get().then((browserSearchEngines: browser.search.SearchEngine[]) => {
+					if (DEBUG) { log(browserSearchEngines); }
+					addBrowserEnginesToEnginesList(browserSearchEngines);
+					updateUIWithSettings();
+					saveSettings({ searchEngines: settings.searchEngines });
+				});
+			}
+		}
+
 		page.exportSettingsToFileButton.onclick = () =>
 		{
 			// to save as a file we need the "downloads permission"
@@ -465,6 +341,10 @@ namespace SSS_Settings
 				});
 			});
 		};
+
+		// There are two elements for the import button: a button for display and the actual "real" button that lets the user pick the file.
+		// This is done because the file picker button can't be formatted and would look very ugly.
+		// When we click the visual one, we want to call the real one.
 		page.importSettingsFromFileButton.onclick = () => page.importSettingsFromFileButton_real.click();
 
 		// register events for specific behaviour when certain fields change (color pickers change their text and vice versa)
@@ -588,7 +468,7 @@ namespace SSS_Settings
 			let iconUrl = getIconUrlFromSearchUrl(searchUrl);	// by default try to get a favicon for the domain
 
 			settings.searchEngines.push(createDefaultEngine({
-				type: SearchEngineType.Custom,
+				type: SSS.SearchEngineType.Custom,
 				name: "New Search Engine",
 				searchUrl: searchUrl,
 				iconUrl: iconUrl
@@ -600,7 +480,7 @@ namespace SSS_Settings
 
 		page.addSeparatorButton.onclick = () => {
 			settings.searchEngines.push(createDefaultEngine({
-				type: SearchEngineType.SSS,
+				type: SSS.SearchEngineType.SSS,
 				id: "separator",
 			}));
 
@@ -630,69 +510,55 @@ namespace SSS_Settings
 			if (DEBUG) { log("saved in sync!", chunks); }
 		};
 
-		// confirmation buttons (some buttons make another button show for the actual action and change their own text to "Cancel")
+		// buttons with confirmation
 
-		let setupConfirmationProcessForButton = (mainButton, confirmationButton, originalMainButtonValue, onConfirm) => {
-			// the clicked button becomes a "Cancel" button
-			mainButton.onclick = () => {
-				if (mainButton.value === "Cancel") {
-					mainButton.value = originalMainButtonValue;
-					confirmationButton.style.display = "none";
-				} else {
-					mainButton.value = "Cancel";
-					confirmationButton.style.display = "";
-				}
-			};
-
-			// the other button appears and does the actual action
-			confirmationButton.onclick = ev => {
-				mainButton.value = originalMainButtonValue;
-				confirmationButton.style.display = "none";
-
-				ev.preventDefault();
-				onConfirm();
-			};
-		};
-
-		setupConfirmationProcessForButton(page.resetSearchEnginesButton, page.resetSearchEnginesButton_real, page.resetSearchEnginesButton.value,
-			() => {
+		page.resetSearchEnginesButton.onclick = () =>
+		{
+			if (confirm("Really reset search engines to the default ones?"))
+			{
 				let defaultEngines = JSON.parse(JSON.stringify(defaultSettings.searchEngines));
 				settings.searchEngines = defaultEngines;
 				updateUIWithSettings();
 				saveSettings({ searchEngines: settings.searchEngines });
 			}
-		);
+		};
 
-		setupConfirmationProcessForButton(page.resetSettingsButton, page.resetSettingsButton_real, page.resetSettingsButton.value,
-			() => {
+		page.resetSettingsButton.onclick = () =>
+		{
+			if (confirm("Really reset all settings to their default values?"))
+			{
 				let searchEngines = settings.searchEngines;	// stash engines
 				settings = JSON.parse(JSON.stringify(defaultSettings));	// copy default settings
 				settings.searchEngines = searchEngines;	// restore engines
 				updateUIWithSettings();
 				saveSettings(settings);
 			}
-		);
+		};
 
-		setupConfirmationProcessForButton(page.loadSettingsFromSyncButton, page.loadSettingsFromSyncButton_real, page.loadSettingsFromSyncButton.value,
-			() => browser.storage.sync.get().then(chunks => {
-				if (DEBUG) { log(chunks); }
+		page.loadSettingsFromSyncButton.onclick = () =>
+		{
+			if (confirm("Really load all settings from Firefox Sync?"))
+			{
+				browser.storage.sync.get().then(chunks => {
+					if (DEBUG) { log(chunks); }
 
-				// join all chunks of data we uploaded to sync in a list
-				let chunksList = [];
-				let p;
-				for (let i = 0; (p = chunks["p"+i]) !== undefined; i++) {
-					chunksList.push(p);
-				}
+					// join all chunks of data we uploaded to sync in a list
+					let chunksList = [];
+					let p;
+					for (let i = 0; (p = chunks["p"+i]) !== undefined; i++) {
+						chunksList.push(p);
+					}
 
-				// parse the chunks into an actual object
-				let parsedSettings = parseSyncChunksList(chunksList);
+					// parse the chunks into an actual object
+					let parsedSettings = parseSyncChunksList(chunksList);
 
-				// finally try importing the read settings
-				if (parsedSettings !== null) {
-					importSettings(parsedSettings);
-				}
-			}, getErrorHandler("Error getting settings from sync."))
-		);
+					// finally try importing the read settings
+					if (parsedSettings !== null) {
+						importSettings(parsedSettings);
+					}
+				}, getErrorHandler("Error getting settings from sync."));
+			}
+		};
 
 		// finish and set elements based on settings, if they are already loaded
 
@@ -931,6 +797,9 @@ namespace SSS_Settings
 			case "useCustomPopupCSS":
 				updateSetting_customPopupCSS(value);
 				break;
+				case "useEngineShortcut":
+					updateSetting_useEngineShortcut(value);
+					break;
 		}
 	}
 
@@ -1015,7 +884,7 @@ namespace SSS_Settings
 
 		let icon;
 
-		if (engine.type === SearchEngineType.SSS)
+		if (engine.type === SSS.SearchEngineType.SSS)
 		{
 			// special SSS icons have data that never changes, so just get it from constants
 			let sssIcon = sssIcons[engine.id];
@@ -1031,7 +900,7 @@ namespace SSS_Settings
 
 		engineRow.appendChild(iconElem);
 
-		if (engine.type === SearchEngineType.SSS)
+		if (engine.type === SSS.SearchEngineType.SSS)
 		{
 			// create columns for this row, most disabled because special SSS icons can't be edited
 
@@ -1050,10 +919,11 @@ namespace SSS_Settings
 			engineDescription.className = "engine-sss engine-sss-description";
 			engineDescription.textContent = sssIcon.description;
 			engineRow.appendChild(engineDescription);
-
 			if (engine.id === "separator") {
+				engineRow.appendChild(createEngineShortcutFieldDiv());
 				engineRow.appendChild(createDeleteButton(i));
 			} else {
+				engineRow.appendChild(createEngineShortcutField(engine));
 				engineRow.appendChild(createDeleteButtonDiv());
 			}
 		}
@@ -1061,9 +931,24 @@ namespace SSS_Settings
 		{
 			// create columns for normal icons
 			engineRow.appendChild(createEngineName(engine));
+
+			// This object keeps references to a few variables so that when the user changes the search URL
+			// we can update the icon URL (if it was using the default URL), and when the icon URL is cleared
+			// it can use the search URL to generate a new icon URL.
+			// Only the anonymous callbacks inside the following functions will use values inside this object.
 			let references = {};
-			engineRow.appendChild(createEngineSearchLink(engine, references));
+
+			if (engine.type === SSS.SearchEngineType.BrowserSearchApi) {
+				let engineDescription = document.createElement("div");
+				engineDescription.className = "engine-sss engine-description-small";
+				engineDescription.textContent = "Engine managed by the browser.";
+				engineRow.appendChild(engineDescription);
+			} else {
+				engineRow.appendChild(createEngineSearchLink(engine, references));
+			}
+
 			engineRow.appendChild(createEngineIconLink(engine, icon, references));
+			engineRow.appendChild(createEngineShortcutField(engine));
 			engineRow.appendChild(createDeleteButton(i));
 		}
 
@@ -1091,7 +976,7 @@ namespace SSS_Settings
 			engineOptions.appendChild(isPlainTextCheckboxParent);
 		}
 
-		if (engine.type !== SearchEngineType.SSS)
+		if (engine.type === SSS.SearchEngineType.Custom || engine.type === SSS.SearchEngineType.BrowserLegacy)
 		{
 			let textEncodingDropdownParent = createDropdown(
 				"Text encoding",
@@ -1318,7 +1203,7 @@ namespace SSS_Settings
 		};
 
 		iconLinkInput.onchange = () => {
-			if (iconLinkInput.value.length == 0) {
+			if (iconLinkInput.value.length == 0 && references.searchLinkInput !== undefined) {
 				iconLinkInput.value = getIconUrlFromSearchUrl(references.searchLinkInput.value);
 				setIconUrlInput(engine, iconLinkInput, icon);
 			}
@@ -1349,6 +1234,75 @@ namespace SSS_Settings
 		}
 	}
 
+	function createEngineShortcutField(engine) {
+		const parent = createEngineShortcutFieldDiv();
+		const label = document.createElement("label");
+		label.title = "Type a single character to use as a shortcut for this engine. No modifiers are allowed."
+		const shortcutField = document.createElement("input") as any;
+		label.appendChild(shortcutField)
+        shortcutField.type = "text";
+
+        // The shortcut must be a single character.
+        shortcutField.maxLength = 1;
+
+        // If this engine already has a shortcut, populate the field with it's value.
+        if (engine.shortcut) {
+			shortcutField.value = shortcutField.originalValue = engine.shortcut;
+		}
+
+		// Disable modifiers when setting shortcuts
+        shortcutField.onkeydown = (e) => {
+			if (e.shiftKey || e.ctrlKey || e .altKey || e.metaKey) e.preventDefault();
+		}
+
+		// Setting the shortcut
+        shortcutField.oninput = (e) => {
+			const element = e.target as HTMLInputElement;
+			let newValue = element.value.toString().toUpperCase();
+			let duplicate;
+
+			// Only check for duplicate when the user types a new value.
+			// Otherwise, isDuplicate() would be called when pressing backspace.
+			if (newValue.length > 0 && newValue !== shortcutField.originalValue) {
+				duplicate = isDuplicate(newValue);
+				if (duplicate) {
+					const override = confirm(`This shortcut is already assigned to '${duplicate.name}'! Override?`)
+					if (override) {
+						engine.shortcut = newValue;
+
+						// Overwriting implies emptying the shortcut value of the engine to which it was assigned earlier.
+						// This way each engine has an unique shortcut.
+						duplicate.shortcut = undefined;
+					} else {
+						// If the user decides not to override (cancel), nothing is set.
+						element.value = shortcutField.originalValue || "";
+						return;
+					}
+				}
+			}
+
+			engine.shortcut = newValue;
+			saveSettings({ searchEngines: settings.searchEngines });
+        }
+        parent.appendChild(label);
+        return parent;
+	}
+
+    /**
+     * Check if a shortcut was already assigned to another engine.
+     *
+     * @param {string} shortcut The character that will be assigned as a shortcut.
+     *
+     * @returns {(object|boolean)} The engine in which the duplicate was found or false if there's no duplicate.
+     */
+    function isDuplicate(shortcut) {
+        for(let engine of settings.searchEngines) {
+			if (engine.shortcut && engine.shortcut == shortcut)
+                return engine;
+        }
+        return false;
+    }
+
 	// sets the delete button for a search engine in the engines table
 	function createDeleteButton(i)
 	{
@@ -1375,6 +1329,12 @@ namespace SSS_Settings
 		parent.className = "engine-delete";
 		return parent;
 	}
+
+	    function createEngineShortcutFieldDiv() {
+        let parent = document.createElement("div");
+        parent.className = "engine-shortcut";
+        return parent;
+    }
 
 	// removes all non-existent engines from the icon cache
 	function trimSearchEnginesCache(settings)
@@ -1450,24 +1410,29 @@ namespace SSS_Settings
 		}
 	}
 
+	function updateSetting_useEngineShortcut(useEngineShortcut)
+	{
+		updateSetting_specific(page.useEngineShortcutWithoutPopup, useEngineShortcut === true);
+
+	}
 	function updateSetting_popupDelay(popupOpenBehaviour)
 	{
-		updateSetting_specific(page.popupDelay, popupOpenBehaviour === PopupOpenBehaviour.Auto);
+		updateSetting_specific(page.popupDelay, popupOpenBehaviour === SSS.PopupOpenBehaviour.Auto);
 	}
 
 	function updateSetting_minSelectedCharacters(popupOpenBehaviour)
 	{
-		updateSetting_specific(page.minSelectedCharacters, popupOpenBehaviour === PopupOpenBehaviour.Auto);
+		updateSetting_specific(page.minSelectedCharacters, popupOpenBehaviour === SSS.PopupOpenBehaviour.Auto);
 	}
 
 	function updateSetting_maxSelectedCharacters(popupOpenBehaviour)
 	{
-		updateSetting_specific(page.maxSelectedCharacters, popupOpenBehaviour === PopupOpenBehaviour.Auto);
+		updateSetting_specific(page.maxSelectedCharacters, popupOpenBehaviour === SSS.PopupOpenBehaviour.Auto);
 	}
 
 	function updateSetting_middleMouseSelectionClickMargin(popupOpenBehaviour)
 	{
-		updateSetting_specific(page.middleMouseSelectionClickMargin, popupOpenBehaviour === PopupOpenBehaviour.MiddleMouse);
+		updateSetting_specific(page.middleMouseSelectionClickMargin, popupOpenBehaviour === SSS.PopupOpenBehaviour.MiddleMouse);
 	}
 
 	function updateSetting_selectionTextFieldLocation(showSelectionTextField)
@@ -1531,7 +1496,7 @@ namespace SSS_Settings
 
 	function getIconUrlFromSearchUrl(url)
 	{
-		if (settings.searchEngineIconsSource === SearchEngineIconsSource.FaviconKit) {
+		if (settings.searchEngineIconsSource === SSS.SearchEngineIconsSource.FaviconKit) {
 			return "https://api.faviconkit.com/" + getDomainFromUrl(url) + "/64";
 		} else {
 			return "";

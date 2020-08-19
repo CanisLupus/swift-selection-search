@@ -1,7 +1,7 @@
 {
 	"manifest_version": 2,
 	"name": "Swift Selection Search",
-	"version": "3.44.0",
+	"version": "3.45.1",
 
 	"description": "Swiftly access your search engines in a popup panel when you select text in a webpage. Context search menu also included!",
 	"homepage_url": "https://github.com/CanisLupus/swift-selection-search",
@@ -28,7 +28,7 @@
 		"open_in_tab": true
 	},
 
-	"permissions": ["<all_urls>", "clipboardWrite", "contextMenus", "storage", "webNavigation", "webRequest", "webRequestBlocking"],
+	"permissions": ["<all_urls>", "clipboardWrite", "contextMenus", "search", "storage", "webNavigation", "webRequest", "webRequestBlocking"],
 	"optional_permissions": ["downloads", "tabs"],
 
 	"commands": {

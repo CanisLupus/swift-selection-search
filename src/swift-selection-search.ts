@@ -1,3 +1,19 @@
+/*
+
+This is the background script for SSS. It's always running. Things it does:
+
+- Injects content scripts (a.k.a. page scripts) into each tab that is opened, to be able to show the engines popup there.
+- Registers the search engines to appear on Firefox's context menu.
+- Trades messages with the content scripts.
+	To initialize them, be informed of search engine clicks to begin searches, among other things.
+- Detects changes to settings from the options page and resets all running page scripts to use the new settings.
+	Also updates settings objects created on previous SSS versions to contain new settings.
+
+Here you'll find the declarations for most classes and enums related to search engines and settings,
+as well as the default settings and engines that come with SSS.
+
+*/
+
 var iconv;	// avoid TS compilation errors but still get working JS code
 
 namespace SSS
@@ -6,30 +22,39 @@ namespace SSS
 	/* ====== Swift Selection Search ====== */
 	/* ==================================== */
 
+	// Set to true if you want to see SSS's logs in Firefox's "Browser Console".
+	// In general, use for development and don't commit this enabled.
 	const DEBUG = false;
+
 	if (DEBUG) {
 		var log = console.log;
 	}
 
+	// Base class for all engines.
 	export abstract class SearchEngine
 	{
-		[key: string]: any;	// needed to keep old variables like iconSrc and id
+		[key: string]: any;	// needed to keep legacy variables that are now unused, like iconSrc and id
 
 		type: SearchEngineType;
 		isEnabled: boolean;
 		isEnabledInContextMenu: boolean;
 	}
 
+	// SSS-specific engine base class, for copy to clipboard, open as link, etc.
+	// (SearchEngineType: SSS)
 	export class SearchEngine_SSS extends SearchEngine
 	{
 		id: string;
 	}
 
+	// SSS-specific engine "copy to clipboard".
 	export class SearchEngine_SSS_Copy extends SearchEngine_SSS
 	{
 		isPlainText: boolean;
 	}
 
+	// All custom engines created by the user (or imported from a search.json.mozlz4 file, the old way to import browser engines).
+	// (SearchEngineType: Custom or BrowserLegacy)
 	export class SearchEngine_Custom extends SearchEngine
 	{
 		name: string;
@@ -39,13 +64,23 @@ namespace SSS
 		discardOnOpen: boolean;
 	}
 
-	export class SearchEngine_Browser extends SearchEngine_Custom
+	// Search engines imported from the browser via the WebExtensions search API. More limited.
+	// (SearchEngineType: BrowserSearchApi)
+	export class SearchEngine_BrowserSearchApi extends SearchEngine
 	{
+		name: string;
+		iconUrl: string;
 	}
 
 	export class Settings
 	{
-		[key: string]: any;	// needed to keep old variables like contextMenuEnginesFilter
+		// NOTE: When adding new variables, keep the same order used in the settings page, roughly divided by section.
+
+		// Any unspecified settings go here. This is needed to support legacy variables that are now unused, like contextMenuEnginesFilter.
+		[key: string]: any;
+
+		useEngineShortcut: boolean;
+		useEngineShortcutWithoutPopup: boolean;
 
 		useDarkModeInOptionsPage: boolean;
 
@@ -66,6 +101,7 @@ namespace SSS
 		mouseLeftButtonBehaviour: OpenResultBehaviour;
 		mouseRightButtonBehaviour: OpenResultBehaviour;
 		mouseMiddleButtonBehaviour: OpenResultBehaviour;
+		shortcutBehaviour: OpenResultBehaviour;
 		popupAnimationDuration: number;
 		autoCopyToClipboard: AutoCopyToClipboard;
 		websiteBlocklist: string;
@@ -96,13 +132,19 @@ namespace SSS
 		contextMenuItemRightButtonBehaviour: OpenResultBehaviour;
 		contextMenuItemMiddleButtonBehaviour: OpenResultBehaviour;
 		contextMenuString: string;
+
 		searchEngines: SearchEngine[];
 		searchEnginesCache: { [id: string] : string; };
+
 		// sectionsExpansionState: { [id: string] : boolean; };
 	}
 
 	export class ActivationSettings
 	{
+
+		useEngineShortcutWithoutPopup: boolean;
+		useEngineShortcut: boolean;
+
 		popupLocation: PopupLocation;
 		popupOpenBehaviour: PopupOpenBehaviour;
 		middleMouseSelectionClickMargin: number;
@@ -133,18 +175,19 @@ namespace SSS
 		blockedWebsitesCache: RegExp[];
 	}
 
-	enum SearchEngineType {
+	export const enum SearchEngineType {
 		SSS = "sss",
 		Custom = "custom",
-		Browser = "browser",
+		BrowserLegacy = "browser",
+		BrowserSearchApi = "browser-search-api",
 	}
 
-	enum SearchEngineIconsSource {
+	export const enum SearchEngineIconsSource {
 		None = "none",
 		FaviconKit = "favicon-kit",
 	}
 
-	enum PopupOpenBehaviour {
+	export const enum PopupOpenBehaviour {
 		Off = "off",
 		Auto = "auto",
 		Keyboard = "keyboard",
@@ -152,12 +195,12 @@ namespace SSS
 		MiddleMouse = "middle-mouse",
 	}
 
-	enum PopupLocation {
+	export const enum PopupLocation {
 		Selection = "selection",
 		Cursor = "cursor",
 	}
 
-	enum OpenResultBehaviour {
+	export const enum OpenResultBehaviour {
 		ThisTab = "this-tab",
 		NewTab = "new-tab",
 		NewBgTab = "new-bg-tab",
@@ -167,24 +210,24 @@ namespace SSS
 		NewBgWindow = "new-bg-window",
 	}
 
-	enum AutoCopyToClipboard {
+	export const enum AutoCopyToClipboard {
 		Off = "off",
 		Always = "always",
 		NonEditableOnly = "non-editable-only",
 	}
 
-	enum SelectionTextFieldLocation {
+	export const enum SelectionTextFieldLocation {
 		Top = "top",
 		Bottom = "bottom",
 	}
 
-	enum IconAlignment {
+	export const enum IconAlignment {
 		Left = "left",
 		Middle = "middle",
 		Right = "right",
 	}
 
-	enum ItemHoverBehaviour {
+	export const enum ItemHoverBehaviour {
 		Nothing = "nothing",
 		Highlight = "highlight",
 		HighlightAndMove = "highlight-and-move",
@@ -192,7 +235,7 @@ namespace SSS
 	}
 
 	// not used anymore but needed for retrocompatibility
-	enum ContextMenuEnginesFilter {
+	const enum ContextMenuEnginesFilter {
 		All = "all",
 		SameAsPopup = "same-as-popup",
 	}
@@ -218,9 +261,11 @@ namespace SSS
 		}
 	};
 
-	// default state of all configurable options
+	// Default state of all configurable options.
 	const defaultSettings: Settings =
 	{
+		// NOTE: When adding new variables, keep the same order used in the settings page, roughly divided by section.
+
 		useDarkModeInOptionsPage: false,
 
 		searchEngineIconsSource: SearchEngineIconsSource.FaviconKit,
@@ -235,11 +280,14 @@ namespace SSS
 		hidePopupOnPageScroll: true,
 		hidePopupOnRightClick: true,
 		hidePopupOnSearch: true,
+		useEngineShortcut: false,
+		useEngineShortcutWithoutPopup: false,
 		popupOpenCommand: "Ctrl+Shift+Space",
 		popupDisableCommand: "Ctrl+Shift+U",
 		mouseLeftButtonBehaviour: OpenResultBehaviour.ThisTab,
 		mouseRightButtonBehaviour: OpenResultBehaviour.ThisTab,
 		mouseMiddleButtonBehaviour: OpenResultBehaviour.NewBgTabNextToThis,
+		shortcutBehaviour: OpenResultBehaviour.NewBgTabNextToThis,
 		popupAnimationDuration: 100,
 		autoCopyToClipboard: AutoCopyToClipboard.Off,
 		websiteBlocklist: "",
@@ -279,11 +327,13 @@ namespace SSS
 			createDefaultEngine({
 				type: SearchEngineType.SSS,
 				id: "copyToClipboard",
+				name: "Copy to Clipboard",
 				isPlainText: false,
 			}),
 			createDefaultEngine({
 				type: SearchEngineType.SSS,
 				id: "openAsLink",
+				name: "Open as Link"
 			}),
 			createDefaultEngine({
 				type: SearchEngineType.SSS,
@@ -415,7 +465,9 @@ namespace SSS
 
 		// Clear all settings (for test purposes only).
 		// Since the mistake from version 3.43.0, "removeToUse" was added to the call
-		// and the add-on submission script now checks for calls to the clear() function.
+		// and the add-on submission script (not included in the repository) now
+		// checks for calls to the clear() function.
+
 		// browser.storage.local.cle_removeToUse_ar();
 		// browser.storage.sync.cle_removeToUse_ar();
 
@@ -474,6 +526,8 @@ namespace SSS
 	function getActivationSettingsForContentScript(settings: Settings): ActivationSettings
 	{
 		let activationSettings = new ActivationSettings();
+		activationSettings.useEngineShortcutWithoutPopup = settings.useEngineShortcutWithoutPopup;
+		activationSettings.useEngineShortcut = settings.useEngineShortcut;
 		activationSettings.popupLocation = settings.popupLocation;
 		activationSettings.popupOpenBehaviour = settings.popupOpenBehaviour;
 		activationSettings.middleMouseSelectionClickMargin = settings.middleMouseSelectionClickMargin;
@@ -551,9 +605,11 @@ namespace SSS
 		return str.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched str
 	}
 
+	// Adds settings that were not available in older versions of SSS to the settings object.
+	// For simplicity, all other code in SSS assumes that all settings exist and have a value.
+	// This method ensures it, regardless of what SSS version the user last changed settings at.
 	function runBackwardsCompatibilityUpdates(settings: Settings): boolean
 	{
-		// add settings that were not available in older versions of SSS
 		let shouldSave: boolean = false;
 
 		// in the comments you can see the first version of SSS where the setting was included
@@ -581,12 +637,15 @@ namespace SSS
 		if (createSettingIfNonExistent(settings, "contextMenuItemRightButtonBehaviour"))  shouldSave = true; // 3.43.0
 		if (createSettingIfNonExistent(settings, "contextMenuItemMiddleButtonBehaviour")) shouldSave = true; // 3.43.0
 		if (createSettingIfNonExistent(settings, "searchEngineIconsSource"))              shouldSave = true; // 3.44.0
+		if (createSettingIfNonExistent(settings, "useEngineShortcut")) 					  shouldSave = true; // ?
+		if (createSettingIfNonExistent(settings, "shortcutBehaviour")) 					  shouldSave = true; // ?
+		if (createSettingIfNonExistent(settings, "useEngineShortcutWithoutPopup"))		  shouldSave = true; // ?
 
 		// 3.7.0
 		// convert old unchangeable browser-imported engines to normal ones
 		for (let engine of settings.searchEngines)
 		{
-			if (engine.iconUrl === undefined && engine.type === SearchEngineType.Browser) {
+			if (engine.iconUrl === undefined && engine.type === SearchEngineType.BrowserLegacy) {
 				engine.iconUrl = engine.iconSrc;
 				delete engine.iconSrc;
 				delete engine.id;
@@ -807,14 +866,22 @@ namespace SSS
 			if (engine.type === SearchEngineType.SSS) {
 				let concreteEngine = engine as SearchEngine_SSS;
 				icon = sssIcons[concreteEngine.id].iconPath;
-			} else {
-				let concreteEngine = engine as SearchEngine_Custom;
-				if (concreteEngine.iconUrl.startsWith("data:")) {
-					icon = concreteEngine.iconUrl;
+			}
+			else {
+				let iconUrl: string;
+
+				if (engine.type === SearchEngineType.Custom || engine.type === SearchEngineType.BrowserLegacy) {
+					iconUrl = (engine as SearchEngine_Custom).iconUrl;
+				} else { // engine.type === SearchEngineType.BrowserSearchApi
+					iconUrl = (engine as SearchEngine_BrowserSearchApi).iconUrl;
+				}
+
+				if (iconUrl.startsWith("data:")) {
+					icon = iconUrl;
 				} else {
-					icon = sss.settings.searchEnginesCache[concreteEngine.iconUrl];
+					icon = sss.settings.searchEnginesCache[iconUrl];
 					if (icon === undefined) {
-						icon = concreteEngine.iconUrl;
+						icon = iconUrl;
 					}
 				}
 			}
@@ -832,22 +899,21 @@ namespace SSS
 	{
 		let menuId: number = parseInt(info.menuItemId as string);
 		let engines: SearchEngine[] = sss.settings.searchEngines;
-		let engine: SearchEngine = engines[menuId];
+		let selectedEngine: SearchEngine = engines[menuId];
 
-		let button = info.button || info.button == 0 ? info.button : 0;
-
+		let button = info?.button ?? 0;
 		let url: string = null;
 		let discardOnOpen: boolean;
 
 		// check if it's a special SSS engine
-		if (engine.type === SearchEngineType.SSS)
+		if (selectedEngine.type === SearchEngineType.SSS)
 		{
-			let engine_SSS = engine as SearchEngine_SSS;
+			let engine_SSS = selectedEngine as SearchEngine_SSS;
 
 			if (engine_SSS.id === "copyToClipboard")
 			{
 				if (info.selectionText) {
-					copyToClipboard(engine as SearchEngine_SSS_Copy);	// copy in the page script, to allow choice between HTML and plain text copy
+					copyToClipboard(selectedEngine as SearchEngine_SSS_Copy);	// copy in the page script, to allow choice between HTML and plain text copy
 				} else if (info.linkText) {
 					navigator.clipboard.writeText(info.linkText);	// if copying a link, just always copy its text
 				}
@@ -858,25 +924,35 @@ namespace SSS
 				discardOnOpen = false;
 			}
 		}
-		// here we know it's a normal search engine, so run the search
+		// check if it's a browser-managed engine (BrowserSearchApi)
+		else if (selectedEngine.type === SearchEngineType.BrowserSearchApi)
+		{
+			searchUsingSearchApi(
+				selectedEngine as SearchEngine_BrowserSearchApi,
+				info.selectionText || info.linkText,
+				getOpenResultBehaviourForContextMenu(button)
+			);
+		}
+		// otherwise it's a normal search engine (type Custom or BrowserLegacy), so run the search
 		else
 		{
 			// search using the engine
-			let engine_Custom = engine as SearchEngine_Custom;
+			let engine_Custom = selectedEngine as SearchEngine_Custom;
 			url = getSearchQuery(engine_Custom, info.selectionText || info.linkText, new URL(info.pageUrl));
 			discardOnOpen = engine_Custom.discardOnOpen;
 		}
 
 		if (url !== null)
 		{
-			if (button === 0) {
-				openUrl(url, sss.settings.contextMenuItemBehaviour, discardOnOpen);
-			} else if (button === 1) {
-				openUrl(url, sss.settings.contextMenuItemMiddleButtonBehaviour, discardOnOpen);
-			} else {
-				openUrl(url, sss.settings.contextMenuItemRightButtonBehaviour, discardOnOpen);
-			}
+			openUrl(url, getOpenResultBehaviourForContextMenu(button), discardOnOpen);
 		}
+	}
+
+	function getOpenResultBehaviourForContextMenu(button: number)
+	{
+		if (button === 0) return sss.settings.contextMenuItemBehaviour;
+		if (button === 1) return sss.settings.contextMenuItemMiddleButtonBehaviour;
+		/* if (button === 2)  */return sss.settings.contextMenuItemRightButtonBehaviour;
 	}
 
 	/* ------------------------------------ */
@@ -948,7 +1024,10 @@ namespace SSS
 		// remove eventual previous registrations
 		browser.webNavigation.onDOMContentLoaded.removeListener(onDOMContentLoaded);
 
-		if (sss.settings.popupOpenBehaviour !== PopupOpenBehaviour.Off) {
+
+		// If the user has set the option to always use the engine shortcuts, we inject the script
+		// even if the opening behaviour of the popup is set to Off (never).
+		if (sss.settings.popupOpenBehaviour !== PopupOpenBehaviour.Off || sss.settings.useEngineShortcutWithoutPopup) {
 			// register page load event and try to add the content script to all open pages
 			browser.webNavigation.onDOMContentLoaded.addListener(onDOMContentLoaded);
 			browser.tabs.query({}).then(installOnOpenTabs, getErrorHandler("Error querying tabs."));
@@ -1083,7 +1162,16 @@ namespace SSS
 				if (DEBUG) { log("open as link: " + url); }
 			}
 		}
-		// otherwise it's a normal search engine (type Custom or Browser), so run the search
+		// check if it's a browser-managed engine (BrowserSearchApi)
+		else if (selectedEngine.type === SearchEngineType.BrowserSearchApi)
+		{
+			searchUsingSearchApi(
+				selectedEngine as SearchEngine_BrowserSearchApi,
+				cleanSearchText(searchText),
+				getOpenResultBehaviour(clickType)
+			);
+		}
+		// otherwise it's a normal search engine (type Custom or BrowserLegacy), so run the search
 		else
 		{
 			let engine_Custom = selectedEngine as SearchEngine_Custom;
@@ -1093,16 +1181,18 @@ namespace SSS
 
 		if (url !== null)
 		{
-			if (clickType === "leftClick") {
-				openUrl(url, sss.settings.mouseLeftButtonBehaviour, discardOnOpen);
-			} else if (clickType === "middleClick") {
-				openUrl(url, sss.settings.mouseMiddleButtonBehaviour, discardOnOpen);
-			} else if (clickType === "rightClick") {
-				openUrl(url, sss.settings.mouseRightButtonBehaviour, discardOnOpen);
-			} else if (clickType === "ctrlClick") {
-				openUrl(url, OpenResultBehaviour.NewBgTab, discardOnOpen);
-			}
+			openUrl(url, getOpenResultBehaviour(clickType), discardOnOpen);
 		}
+	}
+
+	function getOpenResultBehaviour(clickType: string)
+	{
+		if (clickType === "leftClick")   	return sss.settings.mouseLeftButtonBehaviour;
+		if (clickType === "middleClick") 	return sss.settings.mouseMiddleButtonBehaviour;
+		if (clickType === "rightClick")  	return sss.settings.mouseRightButtonBehaviour;
+		if (clickType === "shortcutClick")  return sss.settings.shortcutBehaviour;
+		if (clickType === "ctrlClick")  	return OpenResultBehaviour.NewBgTab;
+		return OpenResultBehaviour.NewBgTab;	// shouldn't happen
 	}
 
 	function copyToClipboard(engine: SearchEngine_SSS_Copy)
@@ -1136,11 +1226,15 @@ namespace SSS
 		return link;
 	}
 
+	function cleanSearchText(searchText: string): string
+	{
+		return searchText.trim().replace("\r\n", " ").replace("\n", " ");
+	}
+
 	// gets the complete search URL by applying the selected text to the engine's own searchUrl
 	function getSearchQuery(engine: SearchEngine_Custom, searchText: string, url: URL): string
 	{
-		// replace newlines with spaces
-		searchText = searchText.trim().replace("\r\n", " ").replace("\n", " ");
+		searchText = cleanSearchText(searchText);
 
 		let hasCustomEncoding = engine.encoding && engine.encoding !== "utf8";
 		if (hasCustomEncoding) {
@@ -1228,6 +1322,18 @@ namespace SSS
 					browser.windows.create(options);
 					break;
 			}
+		});
+	}
+
+	function searchUsingSearchApi(engine: SearchEngine_BrowserSearchApi, searchText: string, openingBehaviour: OpenResultBehaviour)
+	{
+		getCurrentTab((tab: browser.tabs.Tab) => {
+			browser.search.search({
+				engine: engine.name,
+				query: cleanSearchText(searchText),
+				// we want all open behaviours that are not "ThisTab" to open in another tab
+				tabId: openingBehaviour === OpenResultBehaviour.ThisTab ? tab.id : undefined
+			});
 		});
 	}
 

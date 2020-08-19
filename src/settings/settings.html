@@ -1,3 +1,10 @@
+<!--
+
+SSS's options page elements and formatting. All functionality, including setting default values
+or loading the user settings, is provided by settings.ts and possibly some helper scripts.
+
+-->
+
 <!DOCTYPE html>
 <html>
 
@@ -200,6 +207,16 @@
 	.engine-is-enabled,
 	.engine-is-enabled-in-context-menu,
 	.engine-icon-img,
+	.engine-shortcut {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 30px;
+	}
+	.engine-shortcut input {	
+		text-transform: uppercase;
+		text-align: center;
+	}
 	.engine-delete {
 		display: flex;
 		align-items: center;
@@ -216,7 +233,8 @@
 	.engine-name {
 		width: 15%;
 	}
-	.engine-search-link {
+	.engine-search-link,
+	.engine-description-small {
 		width: 50%;
 	}
 	.engine-icon-link {
@@ -490,6 +508,7 @@
 							<div class="engine-name">Name</div>
 							<div class="engine-search-link">Search URL</div>
 							<div class="engine-icon-link">Icon URL</div>
+							<div class="engine-shortcut" title="Shortcut">S.</div>
 							<div class="engine-delete"></div>
 						</div>
 					</div>
@@ -510,20 +529,12 @@
 			</div>
 
 			<div class="setting">
-				<div class="setting-name">Load browser search engines</div>
+				<div class="setting-name">Import browser search engines</div>
 				<div class="setting-value">
-					<input name="importBrowserEnginesFileButton" type="button" value='Select "search.json.mozlz4"'/>
-					<input name="importBrowserEnginesFileButton_real" type="file" accept=".json.mozlz4" style="display: none"/>
+					<input type="button" name="importBrowserEnginesButton" value="Import"/>
 				</div>
-				<div class="setting-description">
-					Import browser engines. SSS can't do this automatically in WebExtensions! Please select the "search.json.mozlz4" file, usually located here:<br><br>
-					<span class="os-windows">C:\Users\[user]\AppData\Roaming\Mozilla\Firefox\Profiles\[profile-id]<br></span>
-					<span class="os-mac">/Users/[user]/Library/Application Support/Firefox/Profiles/[profile-id]<br></span>
-					<span class="os-mac">/Users/[user]/Library/Mozilla/Firefox/Profiles/[profile-id]<br></span>
-					<span class="os-linux">/home/[user]/.mozilla/firefox/[profile-id]<br></span>
-					<br>NOTE: The folder<span class="os-mac">s</span> may be hidden. Please refer to <a target="_blank" href="http://kb.mozillazine.org/Profile_folder_-_Firefox">this page</a>.
-					<br>NOTE: Some icons may not appear if they are "resource://" links.
-				</div>
+				<div class="setting-description">Imports the search engines that you usually use in the browser's search bar.
+					<br><br>NOTE: These engines are managed by Firefox and so they can't use some SSS settings. For example, browser engines only respect "Open in this tab" or "Open in new tab" (other click behaviours behave as "Open in new tab").</div>
 				<div class="setting-reset"></div>
 			</div>
 
@@ -531,7 +542,6 @@
 				<div class="setting-name">Reset search engines</div>
 				<div class="setting-value">
 					<input type="button" name="resetSearchEnginesButton" value="Reset engines">
-					<input type="button" name="resetSearchEnginesButton_real" value="Really reset engines" style="display: none">
 				</div>
 				<div class="setting-description">Resets search engines to the defaults (as if running SSS for the first time).</div>
 				<div class="setting-reset"></div>
@@ -548,14 +558,6 @@
 				<div class="setting-description">Defines the origin of automatic search engine icons when you add a new engine. Change this option if you have privacy concerns or would prefer to add all icons yourself.</div>
 				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
-
-			<!-- <div class="setting">
-				<div class="setting-name">Manage browser search engines</div>
-				<div class="setting-value">
-					<input type="button" name="openEngineManager" value="Manage">
-				</div>
-				<div class="setting-description">Opens Firefox's search engines manager. To select which engines are shown in the popup, use the "Select from available search engines" button below.</div>
-			</div> -->
 		</div>
 	</div>
 
@@ -678,6 +680,23 @@
 			</div>
 
 			<div class="setting">
+				<div class="setting-name">When using a shortcut</div>
+				<div class="setting-value">
+					<select class="setting-input" name="shortcutBehaviour">
+						<option value="this-tab">Open in this tab</option>
+						<option value="new-tab">Open in new tab</option>
+						<option value="new-bg-tab">Open in new background tab</option>
+						<option value="new-tab-next">Open in new tab (next to current tab)</option>
+						<option value="new-bg-tab-next">Open in new background tab (next to current tab)</option>
+						<option value="new-window">Open in new window</option>
+						<option value="new-bg-window">(unsupported in Firefox) Open in new background window</option>
+					</select>
+				</div>
+				<div class="setting-description">What to do when a search engine is used via shortcut.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
+			</div>
+
+			<div class="setting">
 				<div class="setting-name">Allow popup on editable fields</div>
 				<div class="setting-value">
 					<input class="setting-input" type="checkbox" name="allowPopupOnEditableFields" autocomplete="off">
@@ -709,7 +728,28 @@
 				<div class="setting-value">
 					<input class="setting-input" type="checkbox" name="hidePopupOnSearch" autocomplete="off" checked>
 				</div>
-				<div class="setting-description">Hides the popup when a search engine is clicked.</div>
+				<div class="setting-description">Hides the popup when a search engine is clicked. This also applies when using shortcuts.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Use shortcuts for the search engines</div>
+				<div class="setting-value">
+					<input class="setting-input" type="checkbox" name="useEngineShortcut" autocomplete="off" checked>
+				</div>
+				<div class="setting-description">Search using a shortcut assigned to an engine.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
+			</div>
+
+			<div class="setting hidden indent">
+				<div class="setting-name">Always enable shortcuts</div>
+				<div class="setting-value">
+					<input class="setting-input" type="checkbox" name="useEngineShortcutWithoutPopup" autocomplete="off" checked>
+				</div>
+				<div class="setting-description">Shortcuts work whether the popup is visible or not.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
+			</div>
+							
 				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 
@@ -1106,7 +1146,6 @@
 				<div class="setting-name">Sync options (download)</div>
 				<div class="setting-value">
 					<input type="button" name="loadSettingsFromSyncButton" value="Load from Sync">
-					<input type="button" name="loadSettingsFromSyncButton_real" value="Really load from Sync" style="display: none">
 				</div>
 				<div class="setting-description">
 					Downloads previously saved SSS options and engines from Firefox Sync. This will override all existing options and engines!
@@ -1118,7 +1157,6 @@
 				<div class="setting-name">Export options to file</div>
 				<div class="setting-value">
 					<input type="button" name="exportSettingsToFileButton" value="Export to file">
-					<input name="exportSettingsToFileButton_real" type="file" accept=".json" style="display: none"/>
 				</div>
 				<div class="setting-description">
 					Exports all SSS options and engines to a file.
@@ -1148,7 +1186,6 @@
 				<div class="setting-name">Reset all options</div>
 				<div class="setting-value">
 					<input type="button" name="resetSettingsButton" value="Reset options">
-					<input type="button" name="resetSettingsButton_real" value="Really reset options" style="display: none">
 				</div>
 				<div class="setting-description">Resets all options except search engines to their defaults (as if running SSS for the first time).</div>
 				<div class="setting-reset"></div>
