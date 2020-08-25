@@ -79,9 +79,6 @@ namespace SSS
 		// Any unspecified settings go here. This is needed to support legacy variables that are now unused, like contextMenuEnginesFilter.
 		[key: string]: any;
 
-		useEngineShortcut: boolean;
-		useEngineShortcutWithoutPopup: boolean;
-
 		useDarkModeInOptionsPage: boolean;
 
 		searchEngineIconsSource: SearchEngineIconsSource;
@@ -96,6 +93,8 @@ namespace SSS
 		hidePopupOnPageScroll: boolean;
 		hidePopupOnRightClick: boolean;
 		hidePopupOnSearch: boolean;
+		useEngineShortcut: boolean;
+		useEngineShortcutWithoutPopup: boolean;
 		popupOpenCommand: string;
 		popupDisableCommand: string;
 		mouseLeftButtonBehaviour: OpenResultBehaviour;
