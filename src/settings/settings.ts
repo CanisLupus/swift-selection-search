@@ -30,9 +30,6 @@ namespace SSS_Settings
 {
 	const page = {
 
-		useEngineShortcut: undefined,
-		useEngineShortcutWithoutPopup: undefined,
-
 		engines: undefined,
 		inputs: undefined,
 
@@ -42,6 +39,9 @@ namespace SSS_Settings
 		addSeparatorButton: undefined,
 		importBrowserEnginesButton: undefined,
 		resetSearchEnginesButton: undefined,
+
+		useEngineShortcut: undefined,
+		useEngineShortcutWithoutPopup: undefined,
 
 		minSelectedCharacters: undefined,
 		maxSelectedCharacters: undefined,
