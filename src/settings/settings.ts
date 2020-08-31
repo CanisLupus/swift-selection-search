@@ -1273,6 +1273,7 @@ namespace SSS_Settings
 						// Overwriting implies emptying the shortcut value of the engine to which it was assigned earlier.
 						// This way each engine has an unique shortcut.
 						duplicate.shortcut = undefined;
+						updateUIWithSettings();
 					} else {
 						// If the user decides not to override (cancel), nothing is set.
 						element.value = shortcutField.originalValue || "";
