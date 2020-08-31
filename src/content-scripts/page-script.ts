@@ -412,6 +412,10 @@ namespace ContentScript
 
 		let popup = document.createElement("sss-popup") as PopupCreator.SSSPopup;
 
+		// Make sure the popup is not displayed when created.
+		// Useful when the behaviour is set to 'Off' and 'Always enable shortcuts' is checked.
+		popup.content.style.setProperty("display", "none");
+
 		document.documentElement.appendChild(popup);
 
 		// register popup events
