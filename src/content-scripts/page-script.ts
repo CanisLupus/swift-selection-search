@@ -485,10 +485,11 @@ namespace ContentScript
 		// Loop the icons using 'Tab'
 		if(ev.key === "Tab") {
 			if(popup.content.style.display === "inline-block") {
-				const firstIcon = popup.content.querySelector(`img[name="${(settings.searchEngines[0].searchUrl || settings.searchEngines[0].id)}"]`) as HTMLImageElement
+				const firstIcon = popup.enginesContainer.firstChild as HTMLImageElement
+				const lastIcon = popup.enginesContainer.lastChild as HTMLImageElement
 
-				// Focus the first icon for the first time, as well as after focusing the last one.
-				if (document.activeElement.nodeName !== "SSS-POPUP" || settings.searchEngines.find(e => (e.searchUrl || e.id) === ev.originalTarget.name) === settings.searchEngines[settings.searchEngines.length - 1]) {
+				// Focus the first icon for the first time, as well as after the last one so as to keep looping them.
+				if (document.activeElement.nodeName !== "SSS-POPUP" || ev.originalTarget === lastIcon) {
 					firstIcon.focus()
 					ev.preventDefault();
 					return;
@@ -507,9 +508,9 @@ namespace ContentScript
 				engine = settings.searchEngines.find(e => e.type !== SSS.SearchEngineType.SSS);
 				clickType = "ctrlClick";
 			} else {
-				// if cycling the icons using 'tab', grab the focused engine and do the search or the
-				// desired action if it's an SSS engine (e.g. open link, copy to clipboard).
-				engine = settings.searchEngines.find(e => (e.searchUrl || e.id) === ev.originalTarget.name);
+				// if cycling the icons using 'tab', grab the focused icon
+				const engineIndex = [...popup.enginesContainer.children].indexOf(ev.originalTarget)
+				engine = settings.searchEngines[engineIndex]
 				clickType = "shortcutClick"
 			}
 			let message = createSearchMessage(engine, settings);
@@ -917,11 +918,6 @@ namespace PopupCreator
 			let engineShortcut: string = "";
 			let icon: HTMLImageElement = document.createElement("img");
 			icon.src = iconImgSource;
-
-			// We're making use of 'name' property of the img tag to store the searchUrl or id of the engine (if its an SSS engine)
-			// This will be used when focusing an engine (with 'tab') and hitting 'Enter'
-			// We have to use an unique characteristic of the engine.
-			icon.name = engine.searchUrl ? engine.searchUrl : engine.id;
 			icon.tabIndex = 0; // to allow cycling through the icons using 'tab'
 
 			if (engine.shortcut)
