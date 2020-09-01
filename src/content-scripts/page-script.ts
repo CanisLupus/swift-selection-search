@@ -614,15 +614,6 @@ namespace ContentScript
 	{
 		if (ev.button !== 1) return;
 
-		// If this setting is true we are already listening for selections
-		// so we skip the rest of this function to avoid overhead
-		if(activationSettings.useEngineShortcutWithoutPopup){
-			if (saveCurrentSelection()) {
-				showPopupForSelection(ev, false);
-			}
-			return;
-		}
-
 		let selection: Selection = window.getSelection();
 
 		// for selections inside editable elements
