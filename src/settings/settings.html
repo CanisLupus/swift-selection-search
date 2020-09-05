@@ -207,6 +207,16 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 	.engine-is-enabled,
 	.engine-is-enabled-in-context-menu,
 	.engine-icon-img,
+	.engine-shortcut {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 30px;
+	}
+	.engine-shortcut input {
+		text-transform: uppercase;
+		text-align: center;
+	}
 	.engine-delete {
 		display: flex;
 		align-items: center;
@@ -498,6 +508,7 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 							<div class="engine-name">Name</div>
 							<div class="engine-search-link">Search URL</div>
 							<div class="engine-icon-link">Icon URL</div>
+							<div class="engine-shortcut" title="Shortcut">S.</div>
 							<div class="engine-delete"></div>
 						</div>
 					</div>
@@ -669,6 +680,23 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 			</div>
 
 			<div class="setting">
+				<div class="setting-name">When using a shortcut</div>
+				<div class="setting-value">
+					<select class="setting-input" name="shortcutBehaviour">
+						<option value="this-tab">Open in this tab</option>
+						<option value="new-tab">Open in new tab</option>
+						<option value="new-bg-tab">Open in new background tab</option>
+						<option value="new-tab-next">Open in new tab (next to current tab)</option>
+						<option value="new-bg-tab-next">Open in new background tab (next to current tab)</option>
+						<option value="new-window">Open in new window</option>
+						<option value="new-bg-window">(unsupported in Firefox) Open in new background window</option>
+					</select>
+				</div>
+				<div class="setting-description">What to do when searching via shortcut. Also applies when selecting the engine with the TAB key.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
+			</div>
+
+			<div class="setting">
 				<div class="setting-name">Allow popup on editable fields</div>
 				<div class="setting-value">
 					<input class="setting-input" type="checkbox" name="allowPopupOnEditableFields" autocomplete="off">
@@ -700,7 +728,25 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 				<div class="setting-value">
 					<input class="setting-input" type="checkbox" name="hidePopupOnSearch" autocomplete="off" checked>
 				</div>
-				<div class="setting-description">Hides the popup when a search engine is clicked.</div>
+				<div class="setting-description">Hides the popup when a search engine is clicked. This also applies when using shortcuts.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
+			</div>
+
+			<div class="setting">
+				<div class="setting-name">Use shortcuts for the search engines</div>
+				<div class="setting-value">
+					<input class="setting-input" type="checkbox" name="useEngineShortcut" autocomplete="off" checked>
+				</div>
+				<div class="setting-description">Search using a shortcut assigned to an engine.</div>
+				<div class="setting-reset"><input type="button" value="Default"></div>
+			</div>
+
+			<div class="setting hidden indent">
+				<div class="setting-name">Always enable shortcuts</div>
+				<div class="setting-value">
+					<input class="setting-input" type="checkbox" name="useEngineShortcutWithoutPopup" autocomplete="off" checked>
+				</div>
+				<div class="setting-description">Shortcuts work whether the popup is visible or not.</div>
 				<div class="setting-reset"><input type="button" value="Default"></div>
 			</div>
 

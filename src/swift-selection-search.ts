@@ -93,11 +93,14 @@ namespace SSS
 		hidePopupOnPageScroll: boolean;
 		hidePopupOnRightClick: boolean;
 		hidePopupOnSearch: boolean;
+		useEngineShortcut: boolean;
+		useEngineShortcutWithoutPopup: boolean;
 		popupOpenCommand: string;
 		popupDisableCommand: string;
 		mouseLeftButtonBehaviour: OpenResultBehaviour;
 		mouseRightButtonBehaviour: OpenResultBehaviour;
 		mouseMiddleButtonBehaviour: OpenResultBehaviour;
+		shortcutBehaviour: OpenResultBehaviour;
 		popupAnimationDuration: number;
 		autoCopyToClipboard: AutoCopyToClipboard;
 		websiteBlocklist: string;
@@ -137,6 +140,8 @@ namespace SSS
 
 	export class ActivationSettings
 	{
+		useEngineShortcutWithoutPopup: boolean;
+		useEngineShortcut: boolean;
 		popupLocation: PopupLocation;
 		popupOpenBehaviour: PopupOpenBehaviour;
 		middleMouseSelectionClickMargin: number;
@@ -272,11 +277,14 @@ namespace SSS
 		hidePopupOnPageScroll: true,
 		hidePopupOnRightClick: true,
 		hidePopupOnSearch: true,
+		useEngineShortcut: false,
+		useEngineShortcutWithoutPopup: false,
 		popupOpenCommand: "Ctrl+Shift+Space",
 		popupDisableCommand: "Ctrl+Shift+U",
 		mouseLeftButtonBehaviour: OpenResultBehaviour.ThisTab,
 		mouseRightButtonBehaviour: OpenResultBehaviour.ThisTab,
 		mouseMiddleButtonBehaviour: OpenResultBehaviour.NewBgTabNextToThis,
+		shortcutBehaviour: OpenResultBehaviour.NewBgTabNextToThis,
 		popupAnimationDuration: 100,
 		autoCopyToClipboard: AutoCopyToClipboard.Off,
 		websiteBlocklist: "",
@@ -316,11 +324,13 @@ namespace SSS
 			createDefaultEngine({
 				type: SearchEngineType.SSS,
 				id: "copyToClipboard",
+				name: "Copy to Clipboard",
 				isPlainText: false,
 			}),
 			createDefaultEngine({
 				type: SearchEngineType.SSS,
 				id: "openAsLink",
+				name: "Open as Link",
 			}),
 			createDefaultEngine({
 				type: SearchEngineType.SSS,
@@ -513,6 +523,8 @@ namespace SSS
 	function getActivationSettingsForContentScript(settings: Settings): ActivationSettings
 	{
 		let activationSettings = new ActivationSettings();
+		activationSettings.useEngineShortcutWithoutPopup = settings.useEngineShortcutWithoutPopup;
+		activationSettings.useEngineShortcut = settings.useEngineShortcut;
 		activationSettings.popupLocation = settings.popupLocation;
 		activationSettings.popupOpenBehaviour = settings.popupOpenBehaviour;
 		activationSettings.middleMouseSelectionClickMargin = settings.middleMouseSelectionClickMargin;
@@ -622,6 +634,9 @@ namespace SSS
 		if (createSettingIfNonExistent(settings, "contextMenuItemRightButtonBehaviour"))  shouldSave = true; // 3.43.0
 		if (createSettingIfNonExistent(settings, "contextMenuItemMiddleButtonBehaviour")) shouldSave = true; // 3.43.0
 		if (createSettingIfNonExistent(settings, "searchEngineIconsSource"))              shouldSave = true; // 3.44.0
+		if (createSettingIfNonExistent(settings, "useEngineShortcut"))                    shouldSave = true; // ?
+		if (createSettingIfNonExistent(settings, "shortcutBehaviour"))                    shouldSave = true; // ?
+		if (createSettingIfNonExistent(settings, "useEngineShortcutWithoutPopup"))        shouldSave = true; // ?
 
 		// 3.7.0
 		// convert old unchangeable browser-imported engines to normal ones
@@ -1006,7 +1021,9 @@ namespace SSS
 		// remove eventual previous registrations
 		browser.webNavigation.onDOMContentLoaded.removeListener(onDOMContentLoaded);
 
-		if (sss.settings.popupOpenBehaviour !== PopupOpenBehaviour.Off) {
+		// If the user has set the option to always use the engine shortcuts, we inject the script
+		// even if the opening behaviour of the popup is set to Off (never).
+		if (sss.settings.popupOpenBehaviour !== PopupOpenBehaviour.Off || sss.settings.useEngineShortcutWithoutPopup) {
 			// register page load event and try to add the content script to all open pages
 			browser.webNavigation.onDOMContentLoaded.addListener(onDOMContentLoaded);
 			browser.tabs.query({}).then(installOnOpenTabs, getErrorHandler("Error querying tabs."));
@@ -1166,10 +1183,11 @@ namespace SSS
 
 	function getOpenResultBehaviour(clickType: string)
 	{
-		if (clickType === "leftClick")   return sss.settings.mouseLeftButtonBehaviour;
-		if (clickType === "middleClick") return sss.settings.mouseMiddleButtonBehaviour;
-		if (clickType === "rightClick")  return sss.settings.mouseRightButtonBehaviour;
-		if (clickType === "ctrlClick")   return OpenResultBehaviour.NewBgTab;
+		if (clickType === "leftClick")      return sss.settings.mouseLeftButtonBehaviour;
+		if (clickType === "middleClick")    return sss.settings.mouseMiddleButtonBehaviour;
+		if (clickType === "rightClick")     return sss.settings.mouseRightButtonBehaviour;
+		if (clickType === "shortcutClick")  return sss.settings.shortcutBehaviour;
+		if (clickType === "ctrlClick")      return OpenResultBehaviour.NewBgTab;
 		return OpenResultBehaviour.NewBgTab;	// shouldn't happen
 	}
 

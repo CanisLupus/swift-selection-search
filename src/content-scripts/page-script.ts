@@ -157,11 +157,16 @@ namespace ContentScript
 
 		if (!isPageBlocked)
 		{
-			if (activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.Auto || activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.HoldAlt) {
+			// If the user checks the setting 'Always use shortcuts', the popup will
+			// always be created regardless of the opening behaviour. In this case,
+			// the behaviour would only serve to control how it will show up.
+			if (activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.Auto ||
+				activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.HoldAlt ||
+				activationSettings.useEngineShortcutWithoutPopup) {
 				selectionchange.start();
 				document.addEventListener("customselectionchange", onSelectionChange);
 			}
-			else if (activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.MiddleMouse) {
+			if (activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.MiddleMouse) {
 				document.addEventListener("mousedown", onMouseDown);
 				document.addEventListener("mouseup", onMouseUp);
 			}
@@ -179,11 +184,13 @@ namespace ContentScript
 			document.removeEventListener("mouseenter", onMouseUpdate);
 		}
 
-		if (activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.Auto || activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.HoldAlt) {
+		if (activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.Auto ||
+			activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.HoldAlt ||
+			activationSettings.useEngineShortcutWithoutPopup) {
 			document.removeEventListener("customselectionchange", onSelectionChange);
 			selectionchange.stop();
 		}
-		else if (activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.MiddleMouse) {
+		if (activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.MiddleMouse) {
 			document.removeEventListener("mousedown", onMouseDown);
 			document.removeEventListener("mouseup", onMouseUp);
 		}
@@ -308,9 +315,15 @@ namespace ContentScript
 	// shows the popup if the conditions are proper, according to settings
 	function tryShowPopup(ev: Event, isForced: boolean)
 	{
-		// [TypeScript]: Usually we would check for the altKey only if "ev instanceof selectionchange.CustomSelectionChangeEvent",
-		// but ev has an undefined class type in pages outside the options page, so it doesn't match. We use ev["altKey"].
-		if (settings.popupOpenBehaviour === SSS.PopupOpenBehaviour.HoldAlt && !ev["altKey"]) return;
+		// Disable shortcuts temporarily when in an editable field
+		// This is to avoid a search from happening when the user highlights some text
+		// just to replace it with another one that starts with a character that is also a shortcut.
+		if (selection.isInEditableField ||
+			isInEditableField(selection.selection.anchorNode)) {
+				if (activationSettings.useEngineShortcut) {
+					settings.useEngineShortcut = false;
+				}
+			}
 
 		if (settings.popupOpenBehaviour === SSS.PopupOpenBehaviour.Auto)
 		{
@@ -361,7 +374,21 @@ namespace ContentScript
 			}
 		}
 
-		popup.show();	// call "show" first so that popup size calculations are correct in setPopupPosition
+		// These conditions are here so that the setting 'Always enable shortcuts' is possible.
+		// It needs to stay here before the call to show the popup and after it has been created.
+		// In case 'Always enable shortcuts' is checked, the opening behaviour will only be used to know
+		// how the popup will become visible.
+
+		// [TypeScript]: Usually we would check for the altKey only if "ev instanceof selectionchange.CustomSelectionChangeEvent",
+		// but ev has an undefined class type in pages outside the options page, so it doesn't match. We use ev["altKey"].
+		if (settings.popupOpenBehaviour === SSS.PopupOpenBehaviour.HoldAlt && !ev["altKey"]) return;
+		if (settings.popupOpenBehaviour === SSS.PopupOpenBehaviour.MiddleMouse && !(ev.type === "mousedown")) return;
+		if (settings.popupOpenBehaviour === SSS.PopupOpenBehaviour.Off ||
+		   (!isForced && settings.popupOpenBehaviour === SSS.PopupOpenBehaviour.Keyboard)) {
+			return;
+		}
+
+		popup.show();
 		popup.setPopupPosition(settings, selection, mousePositionX, mousePositionY);
 
 		if (settings.popupAnimationDuration > 0) {
@@ -383,6 +410,10 @@ namespace ContentScript
 		}
 
 		let popup = document.createElement("sss-popup") as PopupCreator.SSSPopup;
+
+		// Make sure the popup is not displayed when created.
+		// Useful when the behaviour is set to 'Off' and 'Always enable shortcuts' is checked.
+		popup.content.style.setProperty("display", "none");
 
 		document.documentElement.appendChild(popup);
 
@@ -423,16 +454,66 @@ namespace ContentScript
 		return false;
 	}
 
+	function isShortcut(key)
+	{
+		// Look through the search engines to find if one them has a shortcut that matches the pressed key
+		return settings.searchEngines.find(e => e.shortcut === key.toUpperCase());
+	}
+
 	function onKeyDown(ev)
 	{
 		if (popup === null) return;
 
-		// if pressing the enter key, grab the first user-defined engine and search using that
+		// Check if the user pressed a shortcut
+		if (settings.useEngineShortcut
+			&& (!ev.altKey && !ev.ctrlKey && !ev.metaKey && !ev.shiftKey) // modifiers are not supported right now
+			&& ev.originalTarget.className !== "sss-input-field") { // make sure we're not inside the popup's text field
+
+			// The popup must be visible, unless 'Always enable shortcuts' is checked and there's a selection
+			if (popup.content.style.display !== "inline-block"
+				&& (!activationSettings.useEngineShortcutWithoutPopup || selection.text.length == 0)) return;
+
+			let engine = isShortcut(ev.key);
+			if (engine) {
+				let message = createSearchMessage(engine, settings);
+				message.clickType = "shortcutClick";
+				browser.runtime.sendMessage(message);
+			}
+		}
+
+		// Loop the icons using 'Tab'
+		if(ev.key === "Tab") {
+			if(popup.content.style.display === "inline-block") {
+				const firstIcon = popup.enginesContainer.firstChild as HTMLImageElement;
+				const lastIcon = popup.enginesContainer.lastChild as HTMLImageElement;
+
+				// Focus the first icon for the first time, as well as after the last one so as to keep looping them.
+				if (document.activeElement.nodeName !== "SSS-POPUP" || ev.originalTarget === lastIcon) {
+					firstIcon.focus();
+					ev.preventDefault();
+					return;
+				}
+			}
+		}
+
+		// if pressing the enter key
 		if (ev.keyCode == 13 && popup.isReceiverOfEvent(ev))
 		{
-			let firstEngine = settings.searchEngines.find(e => e.type !== SSS.SearchEngineType.SSS);
-			let message = createSearchMessage(firstEngine, settings);
-			message.clickType = "ctrlClick";
+			let engine;
+			let clickType;
+
+			// if we're inside the popup's text field, grab the first user-defined engine and search using that
+			if (ev.originalTarget.nodeName === "INPUT") {
+				engine = settings.searchEngines.find(e => e.type !== SSS.SearchEngineType.SSS);
+				clickType = "ctrlClick";
+			} else {
+				// if cycling the icons using 'tab', grab the focused icon
+				const engineIndex = [...popup.enginesContainer.children].indexOf(ev.originalTarget);
+				engine = settings.searchEngines[engineIndex];
+				clickType = "shortcutClick";
+			}
+			let message = createSearchMessage(engine, settings);
+			message.clickType = clickType;
 			browser.runtime.sendMessage(message);
 		}
 		else
@@ -462,6 +543,13 @@ namespace ContentScript
 
 				// if event is a keydown on the text field, don't hide
 				if (popup.isReceiverOfEvent(ev)) return;
+
+				// Pressing a shortcut key should be treated as a click to an icon.
+				// So we should only hide the popup when the user presses a shortcut key if
+				// hidePopupOnSearch is true
+				if (!settings.hidePopupOnSearch) {
+					if (settings.searchEngines.find(e => e.shortcut === ev.key.toUpperCase())) return;
+				}
 			}
 
 			// if we pressed with right mouse button and that isn't supposed to hide the popup, don't hide
@@ -816,12 +904,14 @@ namespace PopupCreator
 
 		setupEngineIcon(engine: SSS.SearchEngine, iconImgSource: string, iconTitle: string, isInteractive: boolean, settings: SSS.Settings): HTMLImageElement
 		{
+			let engineShortcut: string = "";
 			let icon: HTMLImageElement = document.createElement("img");
 			icon.src = iconImgSource;
+			icon.tabIndex = 0; // to allow cycling through the icons using 'tab'
 
 			// if icon responds to mouse interaction
 			if (isInteractive) {
-				icon.title = iconTitle;	// tooltip
+				icon.title = engine.shortcut ? `${iconTitle} (${engine.shortcut})` : iconTitle;	// tooltip
 				icon.addEventListener("mouseup", ev => onSearchEngineClick(ev, engine, settings)); // "mouse up" instead of "click" to support middle click
 				// prevent context menu since icons have a right click behaviour
 				icon.addEventListener('contextmenu', ev => {

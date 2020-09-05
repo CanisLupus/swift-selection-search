@@ -39,6 +39,9 @@ namespace SSS_Settings
 		importBrowserEnginesButton: undefined,
 		resetSearchEnginesButton: undefined,
 
+		useEngineShortcut: undefined,
+		useEngineShortcutWithoutPopup: undefined,
+
 		minSelectedCharacters: undefined,
 		maxSelectedCharacters: undefined,
 		popupDelay: undefined,
@@ -793,6 +796,9 @@ namespace SSS_Settings
 			case "useCustomPopupCSS":
 				updateSetting_customPopupCSS(value);
 				break;
+			case "useEngineShortcut":
+				updateSetting_useEngineShortcut(value);
+				break;
 		}
 	}
 
@@ -914,8 +920,10 @@ namespace SSS_Settings
 			engineRow.appendChild(engineDescription);
 
 			if (engine.id === "separator") {
+				engineRow.appendChild(createEngineShortcutFieldDiv());
 				engineRow.appendChild(createDeleteButton(i));
 			} else {
+				engineRow.appendChild(createEngineShortcutField(engine));
 				engineRow.appendChild(createDeleteButtonDiv());
 			}
 		}
@@ -940,6 +948,7 @@ namespace SSS_Settings
 			}
 
 			engineRow.appendChild(createEngineIconLink(engine, icon, references));
+			engineRow.appendChild(createEngineShortcutField(engine));
 			engineRow.appendChild(createDeleteButton(i));
 		}
 
@@ -1225,6 +1234,78 @@ namespace SSS_Settings
 		}
 	}
 
+	function createEngineShortcutField(engine) {
+		const parent = createEngineShortcutFieldDiv();
+		const label = document.createElement("label");
+		label.title = "Type a single character to use as a shortcut for this engine. No modifiers are allowed."
+		const shortcutField = document.createElement("input") as any;
+		label.appendChild(shortcutField)
+        shortcutField.type = "text";
+
+        // The shortcut must be a single character.
+        shortcutField.maxLength = 1;
+
+        // If this engine already has a shortcut, populate the field with it's value.
+        if (engine.shortcut) {
+			shortcutField.value = shortcutField.originalValue = engine.shortcut;
+		}
+
+		// Disable modifiers when setting shortcuts
+        shortcutField.onkeydown = (e) => {
+			if (e.shiftKey || e.ctrlKey || e .altKey || e.metaKey) e.preventDefault();
+		}
+
+		// Setting the shortcut
+        shortcutField.oninput = (e) => {
+			const element = e.target as HTMLInputElement;
+			let newValue = element.value.toString().toUpperCase();
+			let duplicate;
+
+			// Only check for duplicate when the user types a new value.
+			// Otherwise, isDuplicate() would be called when pressing backspace.
+			if (newValue.length > 0 && newValue !== shortcutField.originalValue) {
+				duplicate = isDuplicate(newValue);
+				if (duplicate) {
+					const override = confirm(`This shortcut is already assigned to '${duplicate.name}'! Override?`)
+					if (override) {
+						engine.shortcut = newValue;
+
+						// Overwriting implies emptying the shortcut value of the engine to which it was assigned earlier.
+						// This way each engine has an unique shortcut.
+						duplicate.shortcut = undefined;
+						updateUIWithSettings();
+					} else {
+						// If the user decides not to override (cancel), nothing is set.
+						element.value = shortcutField.originalValue || "";
+						return;
+					}
+				}
+			}
+
+			engine.shortcut = newValue;
+			saveSettings({ searchEngines: settings.searchEngines });
+        }
+        parent.appendChild(label);
+        return parent;
+	}
+
+    /**
+     * Check if a shortcut was already assigned to another engine.
+     *
+     * @param {string} shortcut The character that will be assigned as a shortcut.
+     *
+     * @returns {(object|boolean)} The engine in which the duplicate was found or false if there's no duplicate.
+     */
+    function isDuplicate(shortcut) {
+		return settings.searchEngines.find(e => e.shortcut && e.shortcut === shortcut);
+	}
+
+	function createEngineShortcutFieldDiv() {
+        let parent = document.createElement("div");
+        parent.className = "engine-shortcut";
+        return parent;
+    }
+
 	// sets the delete button for a search engine in the engines table
 	function createDeleteButton(i)
 	{
@@ -1326,6 +1407,11 @@ namespace SSS_Settings
 		}
 	}
 
+	function updateSetting_useEngineShortcut(useEngineShortcut)
+	{
+		updateSetting_specific(page.useEngineShortcutWithoutPopup, useEngineShortcut === true);
+
+	}
 	function updateSetting_popupDelay(popupOpenBehaviour)
 	{
 		updateSetting_specific(page.popupDelay, popupOpenBehaviour === SSS.PopupOpenBehaviour.Auto);
