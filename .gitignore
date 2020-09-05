@@ -1,0 +1,7 @@
+Thumbs.db
+.vscode
+/node_modules
+*.js
+
+!/src/libs/*
+package-lock.json
