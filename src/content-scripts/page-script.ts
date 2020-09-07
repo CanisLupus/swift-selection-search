@@ -162,10 +162,12 @@ namespace ContentScript
 			// the behaviour would only serve to control how it will show up.
 			if (activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.Auto ||
 				activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.HoldAlt ||
-				activationSettings.useEngineShortcutWithoutPopup) {
+				activationSettings.useEngineShortcutWithoutPopup)
+			{
 				selectionchange.start();
 				document.addEventListener("customselectionchange", onSelectionChange);
 			}
+
 			if (activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.MiddleMouse) {
 				document.addEventListener("mousedown", onMouseDown);
 				document.addEventListener("mouseup", onMouseUp);
@@ -186,10 +188,12 @@ namespace ContentScript
 
 		if (activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.Auto ||
 			activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.HoldAlt ||
-			activationSettings.useEngineShortcutWithoutPopup) {
+			activationSettings.useEngineShortcutWithoutPopup)
+		{
 			document.removeEventListener("customselectionchange", onSelectionChange);
 			selectionchange.stop();
 		}
+
 		if (activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.MiddleMouse) {
 			document.removeEventListener("mousedown", onMouseDown);
 			document.removeEventListener("mouseup", onMouseUp);
@@ -315,7 +319,6 @@ namespace ContentScript
 	// shows the popup if the conditions are proper, according to settings
 	function tryShowPopup(ev: Event, isForced: boolean)
 	{
-
 		if (settings.popupOpenBehaviour === SSS.PopupOpenBehaviour.Auto)
 		{
 			if ((settings.minSelectedCharacters > 0 && selection.text.length < settings.minSelectedCharacters)
@@ -460,8 +463,8 @@ namespace ContentScript
 			&& (!ev.altKey && !ev.ctrlKey && !ev.metaKey && !ev.shiftKey) // modifiers are not supported right now
 			&& ev.originalTarget.className !== "sss-input-field" // make sure we're not inside the popup's text field
 			&& !selection.isInEditableField
-			&& !isInEditableField(selection.selection.anchorNode)) { // shortcuts are disabled in editable fields
-
+			&& !isInEditableField(selection.selection.anchorNode)) // shortcuts are disabled in editable fields
+		{
 			// The popup must be visible, unless 'Always enable shortcuts' is checked and there's a selection
 			if (popup.content.style.display !== "inline-block"
 				&& (!activationSettings.useEngineShortcutWithoutPopup || selection.text.length == 0)) return;
@@ -475,8 +478,8 @@ namespace ContentScript
 		}
 
 		// Loop the icons using 'Tab'
-		if(ev.key === "Tab") {
-			if(popup.content.style.display === "inline-block") {
+		if (ev.key === "Tab") {
+			if (popup.content.style.display === "inline-block") {
 				const firstIcon = popup.enginesContainer.firstChild as HTMLImageElement;
 				const lastIcon = popup.enginesContainer.lastChild as HTMLImageElement;
 
@@ -498,13 +501,14 @@ namespace ContentScript
 			// if we're inside the popup's text field, grab the first user-defined engine and search using that
 			if (ev.originalTarget.nodeName === "INPUT") {
 				engine = settings.searchEngines.find(e => e.type !== SSS.SearchEngineType.SSS);
-				clickType = "ctrlClick";
+				clickType = "ctrlClick";	// for now, using enter is the same as ctrl-clicking
 			} else {
 				// if cycling the icons using 'tab', grab the focused icon
 				const engineIndex = [...popup.enginesContainer.children].indexOf(ev.originalTarget);
 				engine = settings.searchEngines[engineIndex];
 				clickType = "shortcutClick";
 			}
+
 			let message = createSearchMessage(engine, settings);
 			message.clickType = clickType;
 			browser.runtime.sendMessage(message);

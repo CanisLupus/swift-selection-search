@@ -1,7 +1,9 @@
+# ignore these files
 Thumbs.db
 .vscode
 /node_modules
+package-lock.json
 *.js
 
+# but not these files
 !/src/libs/*
-package-lock.json

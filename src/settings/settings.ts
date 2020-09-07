@@ -28,6 +28,7 @@ var Sortable;	// avoid TS compilation errors but still get working JS code
 
 namespace SSS_Settings
 {
+	// NOTE: When adding new references, keep the same order used in the settings page, roughly divided by section.
 	const page = {
 		engines: undefined,
 		inputs: undefined,
@@ -771,7 +772,8 @@ namespace SSS_Settings
 
 	function updateSetting(name: string, value: any)
 	{
-		switch (name) {
+		switch (name)
+		{
 			// update color pickers from their hexadecimal text
 			case "popupBackgroundColor":
 				updatePickerColor(page.popupBackgroundColorPicker, value);
@@ -1234,29 +1236,30 @@ namespace SSS_Settings
 		}
 	}
 
-	function createEngineShortcutField(engine) {
+	function createEngineShortcutField(engine)
+	{
 		const parent = createEngineShortcutFieldDiv();
 		const label = document.createElement("label");
 		label.title = "Type a single character to use as a shortcut for this engine. No modifiers are allowed."
 		const shortcutField = document.createElement("input") as any;
 		label.appendChild(shortcutField)
-        shortcutField.type = "text";
+		shortcutField.type = "text";
 
-        // The shortcut must be a single character.
-        shortcutField.maxLength = 1;
+		// The shortcut must be a single character.
+		shortcutField.maxLength = 1;
 
-        // If this engine already has a shortcut, populate the field with it's value.
-        if (engine.shortcut) {
+		// If this engine already has a shortcut, populate the field with its value.
+		if (engine.shortcut) {
 			shortcutField.value = shortcutField.originalValue = engine.shortcut;
 		}
 
 		// Disable modifiers when setting shortcuts
-        shortcutField.onkeydown = (e) => {
-			if (e.shiftKey || e.ctrlKey || e .altKey || e.metaKey) e.preventDefault();
+		shortcutField.onkeydown = (e) => {
+			if (e.shiftKey || e.ctrlKey || e.altKey || e.metaKey) e.preventDefault();
 		}
 
 		// Setting the shortcut
-        shortcutField.oninput = (e) => {
+		shortcutField.oninput = (e) => {
 			const element = e.target as HTMLInputElement;
 			let newValue = element.value.toString().toUpperCase();
 			let duplicate;
@@ -1284,27 +1287,29 @@ namespace SSS_Settings
 
 			engine.shortcut = newValue;
 			saveSettings({ searchEngines: settings.searchEngines });
-        }
-        parent.appendChild(label);
-        return parent;
+		}
+		parent.appendChild(label);
+		return parent;
 	}
 
-    /**
-     * Check if a shortcut was already assigned to another engine.
-     *
-     * @param {string} shortcut The character that will be assigned as a shortcut.
-     *
-     * @returns {(object|boolean)} The engine in which the duplicate was found or false if there's no duplicate.
-     */
-    function isDuplicate(shortcut) {
+	/**
+	 * Check if a shortcut was already assigned to another engine.
+	 *
+	 * @param {string} shortcut The character that will be assigned as a shortcut.
+	 *
+	 * @returns {(object|boolean)} The engine in which the duplicate was found or false if there's no duplicate.
+	 */
+	function isDuplicate(shortcut)
+	{
 		return settings.searchEngines.find(e => e.shortcut && e.shortcut === shortcut);
 	}
 
-	function createEngineShortcutFieldDiv() {
-        let parent = document.createElement("div");
-        parent.className = "engine-shortcut";
-        return parent;
-    }
+	function createEngineShortcutFieldDiv()
+	{
+		let parent = document.createElement("div");
+		parent.className = "engine-shortcut";
+		return parent;
+	}
 
 	// sets the delete button for a search engine in the engines table
 	function createDeleteButton(i)
@@ -1410,8 +1415,8 @@ namespace SSS_Settings
 	function updateSetting_useEngineShortcut(useEngineShortcut)
 	{
 		updateSetting_specific(page.useEngineShortcutWithoutPopup, useEngineShortcut === true);
-
 	}
+
 	function updateSetting_popupDelay(popupOpenBehaviour)
 	{
 		updateSetting_specific(page.popupDelay, popupOpenBehaviour === SSS.PopupOpenBehaviour.Auto);

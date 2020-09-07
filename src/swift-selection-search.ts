@@ -1183,11 +1183,11 @@ namespace SSS
 
 	function getOpenResultBehaviour(clickType: string)
 	{
-		if (clickType === "leftClick")      return sss.settings.mouseLeftButtonBehaviour;
-		if (clickType === "middleClick")    return sss.settings.mouseMiddleButtonBehaviour;
-		if (clickType === "rightClick")     return sss.settings.mouseRightButtonBehaviour;
-		if (clickType === "shortcutClick")  return sss.settings.shortcutBehaviour;
-		if (clickType === "ctrlClick")      return OpenResultBehaviour.NewBgTab;
+		if (clickType === "leftClick")     return sss.settings.mouseLeftButtonBehaviour;
+		if (clickType === "middleClick")   return sss.settings.mouseMiddleButtonBehaviour;
+		if (clickType === "rightClick")    return sss.settings.mouseRightButtonBehaviour;
+		if (clickType === "shortcutClick") return sss.settings.shortcutBehaviour;
+		if (clickType === "ctrlClick")     return OpenResultBehaviour.NewBgTab;
 		return OpenResultBehaviour.NewBgTab;	// shouldn't happen
 	}
 
