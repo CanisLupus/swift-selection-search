@@ -315,15 +315,6 @@ namespace ContentScript
 	// shows the popup if the conditions are proper, according to settings
 	function tryShowPopup(ev: Event, isForced: boolean)
 	{
-		// Disable shortcuts temporarily when in an editable field
-		// This is to avoid a search from happening when the user highlights some text
-		// just to replace it with another one that starts with a character that is also a shortcut.
-		if (selection.isInEditableField ||
-			isInEditableField(selection.selection.anchorNode)) {
-				if (activationSettings.useEngineShortcut) {
-					settings.useEngineShortcut = false;
-				}
-			}
 
 		if (settings.popupOpenBehaviour === SSS.PopupOpenBehaviour.Auto)
 		{
@@ -467,7 +458,9 @@ namespace ContentScript
 		// Check if the user pressed a shortcut
 		if (settings.useEngineShortcut
 			&& (!ev.altKey && !ev.ctrlKey && !ev.metaKey && !ev.shiftKey) // modifiers are not supported right now
-			&& ev.originalTarget.className !== "sss-input-field") { // make sure we're not inside the popup's text field
+			&& ev.originalTarget.className !== "sss-input-field" // make sure we're not inside the popup's text field
+			&& !selection.isInEditableField
+			&& !isInEditableField(selection.selection.anchorNode)) { // shortcuts are disabled in editable fields
 
 			// The popup must be visible, unless 'Always enable shortcuts' is checked and there's a selection
 			if (popup.content.style.display !== "inline-block"
