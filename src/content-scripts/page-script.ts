@@ -382,7 +382,7 @@ namespace ContentScript
 			return;
 		}
 
-		popup.show();
+		popup.show();	// call "show" first so that popup size calculations are correct in setPopupPosition
 		popup.setPopupPosition(settings, selection, mousePositionX, mousePositionY);
 
 		if (settings.popupAnimationDuration > 0) {
@@ -407,7 +407,7 @@ namespace ContentScript
 
 		// Make sure the popup is not displayed when created.
 		// Useful when the behaviour is set to 'Off' and 'Always enable shortcuts' is checked.
-		popup.content.style.setProperty("display", "none");
+		popup.hide();
 
 		document.documentElement.appendChild(popup);
 
@@ -448,7 +448,7 @@ namespace ContentScript
 		return false;
 	}
 
-	function isShortcut(key)
+	function getEngineWithShortcut(key)
 	{
 		// Look through the search engines to find if one them has a shortcut that matches the pressed key
 		return settings.searchEngines.find(e => e.shortcut === key.toUpperCase());
@@ -466,10 +466,10 @@ namespace ContentScript
 			&& !isInEditableField(selection.selection.anchorNode)) // shortcuts are disabled in editable fields
 		{
 			// The popup must be visible, unless 'Always enable shortcuts' is checked and there's a selection
-			if (popup.content.style.display !== "inline-block"
+			if (!popup.isShown()
 				&& (!activationSettings.useEngineShortcutWithoutPopup || selection.text.length == 0)) return;
 
-			let engine = isShortcut(ev.key);
+			let engine = getEngineWithShortcut(ev.key);
 			if (engine) {
 				let message = createSearchMessage(engine, settings);
 				message.clickType = "shortcutClick";
@@ -479,7 +479,7 @@ namespace ContentScript
 
 		// Loop the icons using 'Tab'
 		if (ev.key === "Tab") {
-			if (popup.content.style.display === "inline-block") {
+			if (popup.isShown()) {
 				const firstIcon = popup.enginesContainer.firstChild as HTMLImageElement;
 				const lastIcon = popup.enginesContainer.lastChild as HTMLImageElement;
 
@@ -544,9 +544,7 @@ namespace ContentScript
 				// Pressing a shortcut key should be treated as a click to an icon.
 				// So we should only hide the popup when the user presses a shortcut key if
 				// hidePopupOnSearch is true
-				if (!settings.hidePopupOnSearch) {
-					if (settings.searchEngines.find(e => e.shortcut === ev.key.toUpperCase())) return;
-				}
+				if (!settings.hidePopupOnSearch && getEngineWithShortcut(ev.key)) return;
 			}
 
 			// if we pressed with right mouse button and that isn't supposed to hide the popup, don't hide
@@ -901,7 +899,6 @@ namespace PopupCreator
 
 		setupEngineIcon(engine: SSS.SearchEngine, iconImgSource: string, iconTitle: string, isInteractive: boolean, settings: SSS.Settings): HTMLImageElement
 		{
-			let engineShortcut: string = "";
 			let icon: HTMLImageElement = document.createElement("img");
 			icon.src = iconImgSource;
 			icon.tabIndex = 0; // to allow cycling through the icons using 'tab'
@@ -1015,6 +1012,11 @@ namespace PopupCreator
 		getInputFieldText(): string
 		{
 			return this.inputField.value;
+		}
+
+		isShown(): boolean
+		{
+			return this.content.style.display === "inline-block";
 		}
 
 		show()

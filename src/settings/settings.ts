@@ -1241,7 +1241,7 @@ namespace SSS_Settings
 		const parent = createEngineShortcutFieldDiv();
 		const label = document.createElement("label");
 		label.title = "Type a single character to use as a shortcut for this engine. No modifiers are allowed."
-		const shortcutField = document.createElement("input") as any;
+		const shortcutField = document.createElement("input");
 		label.appendChild(shortcutField)
 		shortcutField.type = "text";
 
@@ -1250,7 +1250,7 @@ namespace SSS_Settings
 
 		// If this engine already has a shortcut, populate the field with its value.
 		if (engine.shortcut) {
-			shortcutField.value = shortcutField.originalValue = engine.shortcut;
+			shortcutField.value = engine.shortcut;
 		}
 
 		// Disable modifiers when setting shortcuts
@@ -1261,25 +1261,26 @@ namespace SSS_Settings
 		// Setting the shortcut
 		shortcutField.oninput = (e) => {
 			const element = e.target as HTMLInputElement;
-			let newValue = element.value.toString().toUpperCase();
-			let duplicate;
+			let newValue = element.value.toUpperCase();
 
 			// Only check for duplicate when the user types a new value.
 			// Otherwise, isDuplicate() would be called when pressing backspace.
-			if (newValue.length > 0 && newValue !== shortcutField.originalValue) {
-				duplicate = isDuplicate(newValue);
-				if (duplicate) {
-					const override = confirm(`This shortcut is already assigned to '${duplicate.name}'! Override?`)
+			if (newValue.length > 0 && newValue !== engine.shortcut)
+			{
+				let engineWithShortcut = settings.searchEngines.find(e => e.shortcut === newValue);
+				if (engineWithShortcut)
+				{
+					const override = confirm(`This shortcut is already assigned to '${engineWithShortcut.name}'! Override?`)
 					if (override) {
 						engine.shortcut = newValue;
 
 						// Overwriting implies emptying the shortcut value of the engine to which it was assigned earlier.
 						// This way each engine has an unique shortcut.
-						duplicate.shortcut = undefined;
+						engineWithShortcut.shortcut = undefined;
 						updateUIWithSettings();
 					} else {
 						// If the user decides not to override (cancel), nothing is set.
-						element.value = shortcutField.originalValue || "";
+						element.value = engine.shortcut || "";
 						return;
 					}
 				}
@@ -1290,18 +1291,6 @@ namespace SSS_Settings
 		}
 		parent.appendChild(label);
 		return parent;
-	}
-
-	/**
-	 * Check if a shortcut was already assigned to another engine.
-	 *
-	 * @param {string} shortcut The character that will be assigned as a shortcut.
-	 *
-	 * @returns {(object|boolean)} The engine in which the duplicate was found or false if there's no duplicate.
-	 */
-	function isDuplicate(shortcut)
-	{
-		return settings.searchEngines.find(e => e.shortcut && e.shortcut === shortcut);
 	}
 
 	function createEngineShortcutFieldDiv()

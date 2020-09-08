@@ -319,25 +319,23 @@ namespace SSS
 
 		searchEngines: [
 
-			// special engines
+			// special engines (SearchEngine_SSS or a subclass)
 
 			createDefaultEngine({
 				type: SearchEngineType.SSS,
 				id: "copyToClipboard",
-				name: "Copy to Clipboard",
 				isPlainText: false,
 			}),
 			createDefaultEngine({
 				type: SearchEngineType.SSS,
 				id: "openAsLink",
-				name: "Open as Link",
 			}),
 			createDefaultEngine({
 				type: SearchEngineType.SSS,
 				id: "separator",
 			}),
 
-			// actual search engines
+			// actual search engines (SearchEngine_Custom)
 
 			createDefaultEngine({
 				name: "Google",
