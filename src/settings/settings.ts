@@ -1233,14 +1233,10 @@ namespace SSS_Settings
 	function createEngineShortcutField(engine)
 	{
 		const parent = createEngineShortcutFieldDiv();
-		const label = document.createElement("label");
-		label.title = "Type a single character to use as a shortcut for this engine. No modifiers are allowed."
-		const shortcutField = document.createElement("input");
-		label.appendChild(shortcutField)
-		shortcutField.type = "text";
 
-		// The shortcut must be a single character.
-		shortcutField.maxLength = 1;
+		const shortcutField = document.createElement("input");
+		shortcutField.type = "text";
+		shortcutField.title = "Type a single character to use as a shortcut for this engine. No modifiers are allowed."
 
 		// If this engine already has a shortcut, populate the field with its value.
 		if (engine.shortcut) {
@@ -1250,21 +1246,33 @@ namespace SSS_Settings
 		// Disable modifiers when setting shortcuts
 		shortcutField.onkeydown = (e) => {
 			if (e.shiftKey || e.ctrlKey || e.altKey || e.metaKey) e.preventDefault();
-		}
+		};
 
 		// Setting the shortcut
 		shortcutField.oninput = (e) => {
-			const element = e.target as HTMLInputElement;
-			let newValue = element.value.toUpperCase();
+			let newValue = shortcutField.value;
+
+			// The shortcut must be a single character.
+			if (newValue.length > 1) {
+				newValue = newValue[shortcutField.selectionStart-1];	// gets the last inserted char
+				shortcutField.value = newValue;
+			}
+
+			newValue = newValue.toUpperCase();
 
 			// Only check for duplicate when the user types a new value.
-			// Otherwise, isDuplicate() would be called when pressing backspace.
+			// Otherwise, this would be called when pressing backspace.
 			if (newValue.length > 0 && newValue !== engine.shortcut)
 			{
 				let engineWithShortcut = settings.searchEngines.find(e => e.shortcut === newValue);
 				if (engineWithShortcut)
 				{
-					const override = confirm(`This shortcut is already assigned to '${engineWithShortcut.name}'! Override?`)
+					let engineName = engineWithShortcut.type === SSS.SearchEngineType.SSS
+						? sssIcons[(engineWithShortcut as SSS.SearchEngine_SSS).id].name
+						: engineWithShortcut.name;
+
+					const override = confirm(`This shortcut is already assigned to '${engineName}'! Override?`);
+
 					if (override) {
 						engine.shortcut = newValue;
 
@@ -1274,7 +1282,7 @@ namespace SSS_Settings
 						updateUIWithSettings();
 					} else {
 						// If the user decides not to override (cancel), nothing is set.
-						element.value = engine.shortcut || "";
+						shortcutField.value = engine.shortcut || "";
 						return;
 					}
 				}
@@ -1282,8 +1290,9 @@ namespace SSS_Settings
 
 			engine.shortcut = newValue;
 			saveSettings({ searchEngines: settings.searchEngines });
-		}
-		parent.appendChild(label);
+		};
+
+		parent.appendChild(shortcutField);
 		return parent;
 	}
 
