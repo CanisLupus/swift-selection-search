@@ -155,20 +155,17 @@ namespace ContentScript
 			document.addEventListener("mouseenter", onMouseUpdate);
 		}
 
+		if (activationSettings.useEngineShortcutWithoutPopup) {
+			document.documentElement.addEventListener("keydown", onKeyDown);
+		}
+
 		if (!isPageBlocked)
 		{
-			// If the user checks the setting 'Always use shortcuts', the popup will
-			// always be created regardless of the opening behaviour. In this case,
-			// the behaviour would only serve to control how it will show up.
-			if (activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.Auto ||
-				activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.HoldAlt ||
-				activationSettings.useEngineShortcutWithoutPopup)
-			{
+			if (activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.Auto || activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.HoldAlt) {
 				selectionchange.start();
 				document.addEventListener("customselectionchange", onSelectionChange);
 			}
-
-			if (activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.MiddleMouse) {
+			else if (activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.MiddleMouse) {
 				document.addEventListener("mousedown", onMouseDown);
 				document.addEventListener("mouseup", onMouseUp);
 			}
@@ -186,24 +183,26 @@ namespace ContentScript
 			document.removeEventListener("mouseenter", onMouseUpdate);
 		}
 
-		if (activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.Auto ||
-			activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.HoldAlt ||
-			activationSettings.useEngineShortcutWithoutPopup)
-		{
+		if (activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.Auto || activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.HoldAlt) {
 			document.removeEventListener("customselectionchange", onSelectionChange);
 			selectionchange.stop();
 		}
-
-		if (activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.MiddleMouse) {
+		else if (activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.MiddleMouse) {
 			document.removeEventListener("mousedown", onMouseDown);
 			document.removeEventListener("mouseup", onMouseUp);
+		}
+
+		if (activationSettings.useEngineShortcutWithoutPopup) {
+			document.documentElement.removeEventListener("keydown", onKeyDown);
 		}
 
 		if (popup !== null)
 		{
 			// unregister popup events and remove the popup from the page
 
-			document.documentElement.removeEventListener("keydown", onKeyDown);
+			if (!activationSettings.useEngineShortcutWithoutPopup) {
+				document.documentElement.removeEventListener("keydown", onKeyDown);
+			}
 			document.documentElement.removeEventListener("mousedown", maybeHidePopup);
 			if (settings.hidePopupOnPageScroll) {
 				window.removeEventListener("scroll", maybeHidePopup);
@@ -252,15 +251,20 @@ namespace ContentScript
 			tryShowPopup(ev, isForced);
 		} else {
 			// ...otherwise ask the background script for all needed settings, store them, and THEN try to show the popup
-			browser.runtime.sendMessage(new GetPopupSettingsMessage()).then(
-				popupSettings => {
-					settings = popupSettings.settings;
-					sssIcons = popupSettings.sssIcons;
-					tryShowPopup(ev, isForced);
-				},
-				getErrorHandler("Error sending getPopupSettings message from content script.")
-			);
+			acquireSettings(() => tryShowPopup(ev, isForced));
 		}
+	}
+
+	function acquireSettings(onSettingsAcquired: () => void)
+	{
+		browser.runtime.sendMessage(new GetPopupSettingsMessage()).then(
+			popupSettings => {
+				settings = popupSettings.settings;
+				sssIcons = popupSettings.sssIcons;
+				onSettingsAcquired();
+			},
+			getErrorHandler("Error sending getPopupSettings message from content script.")
+		);
 	}
 
 	function clearPopupShowTimeout()
@@ -319,6 +323,10 @@ namespace ContentScript
 	// shows the popup if the conditions are proper, according to settings
 	function tryShowPopup(ev: Event, isForced: boolean)
 	{
+		// [TypeScript]: Usually we would check for the altKey only if "ev instanceof selectionchange.CustomSelectionChangeEvent",
+		// but ev has an undefined class type in pages outside the options page, so it doesn't match. We use ev["altKey"].
+		if (settings.popupOpenBehaviour === SSS.PopupOpenBehaviour.HoldAlt && !ev["altKey"]) return;
+
 		if (settings.popupOpenBehaviour === SSS.PopupOpenBehaviour.Auto)
 		{
 			if ((settings.minSelectedCharacters > 0 && selection.text.length < settings.minSelectedCharacters)
@@ -368,20 +376,6 @@ namespace ContentScript
 			}
 		}
 
-		// These conditions are here so that the setting 'Always enable shortcuts' is possible.
-		// It needs to stay here before the call to show the popup and after it has been created.
-		// In case 'Always enable shortcuts' is checked, the opening behaviour will only be used to know
-		// how the popup will become visible.
-
-		// [TypeScript]: Usually we would check for the altKey only if "ev instanceof selectionchange.CustomSelectionChangeEvent",
-		// but ev has an undefined class type in pages outside the options page, so it doesn't match. We use ev["altKey"].
-		if (settings.popupOpenBehaviour === SSS.PopupOpenBehaviour.HoldAlt && !ev["altKey"]) return;
-		if (settings.popupOpenBehaviour === SSS.PopupOpenBehaviour.MiddleMouse && !(ev.type === "mousedown")) return;
-		if (settings.popupOpenBehaviour === SSS.PopupOpenBehaviour.Off ||
-		   (!isForced && settings.popupOpenBehaviour === SSS.PopupOpenBehaviour.Keyboard)) {
-			return;
-		}
-
 		popup.show();	// call "show" first so that popup size calculations are correct in setPopupPosition
 		popup.setPopupPosition(settings, selection, mousePositionX, mousePositionY);
 
@@ -405,14 +399,12 @@ namespace ContentScript
 
 		let popup = document.createElement("sss-popup") as PopupCreator.SSSPopup;
 
-		// Make sure the popup is not displayed when created.
-		// Useful when the behaviour is set to 'Off' and 'Always enable shortcuts' is checked.
-		popup.hide();
-
 		document.documentElement.appendChild(popup);
 
 		// register popup events
-		document.documentElement.addEventListener("keydown", onKeyDown);
+		if (!settings.useEngineShortcutWithoutPopup) {	// if we didn't register the keydown listener before, do it now
+			document.documentElement.addEventListener("keydown", onKeyDown);
+		}
 		document.documentElement.addEventListener("mousedown", maybeHidePopup);	// hide popup from a press down anywhere...
 		popup.addEventListener("mousedown", ev => ev.stopPropagation());	// ...except on the popup itself
 
@@ -448,46 +440,54 @@ namespace ContentScript
 		return false;
 	}
 
+	function isAnyEditableFieldFocused()
+	{
+		let elem: Element = document.activeElement;
+		return elem instanceof HTMLTextAreaElement || (elem instanceof HTMLInputElement && elem.type !== "password") || isInEditableField(elem);
+	}
+
 	function getEngineWithShortcut(key)
 	{
 		// Look through the search engines to find if one them has a shortcut that matches the pressed key
-		return settings.searchEngines.find(e => e.shortcut === key.toUpperCase());
+		key = key.toUpperCase();
+		return settings.searchEngines.find(e => e.shortcut === key);
 	}
 
 	function onKeyDown(ev)
 	{
-		if (popup === null) return;
+		// Check if the user pressed a shortcut.
+		// The popup must be visible, unless 'Always enable shortcuts' is checked.
 
-		// Check if the user pressed a shortcut
-		if ((!ev.altKey && !ev.ctrlKey && !ev.metaKey && !ev.shiftKey) // modifiers are not supported right now
-			&& ev.originalTarget.className !== "sss-input-field" // make sure we're not inside the popup's text field
-			&& !selection.isInEditableField
-			&& !isInEditableField(selection.selection.anchorNode)) // shortcuts are disabled in editable fields
+		let isPopupVisible = popup !== null && popup.isShown();
+
+		if (!ev.altKey && !ev.ctrlKey && !ev.metaKey && !ev.shiftKey	// modifiers are not supported right now
+			&& !isAnyEditableFieldFocused())							// shortcuts are disabled in editable fields
 		{
-			// The popup must be visible, unless 'Always enable shortcuts' is checked and there's a selection
-			if (!popup.isShown()
-				&& (!activationSettings.useEngineShortcutWithoutPopup || selection.text.length == 0)) return;
-
-			let engine = getEngineWithShortcut(ev.key);
-			if (engine) {
-				let message = createSearchMessage(engine, settings);
-				message.clickType = "shortcutClick";
-				browser.runtime.sendMessage(message);
+			if ((isPopupVisible && ev.originalTarget.className !== "sss-input-field")				// if using popup, make sure we're not inside the popup's text field
+				|| (activationSettings.useEngineShortcutWithoutPopup && saveCurrentSelection()))	// if outside popup, ensure a selection exists, otherwise we crash later
+			{
+				if (settings !== null) {
+					searchWithEngineUsingShortcut(ev.key);
+				} else {
+					acquireSettings(() => searchWithEngineUsingShortcut(ev.key));
+				}
 			}
 		}
 
-		// Loop the icons using 'Tab'
-		if (ev.key === "Tab") {
-			if (popup.isShown()) {
-				const firstIcon = popup.enginesContainer.firstChild as HTMLImageElement;
-				const lastIcon = popup.enginesContainer.lastChild as HTMLImageElement;
+		// The code below should only work if the popup is showing.
+		if (!isPopupVisible) return;
 
-				// Focus the first icon for the first time, as well as after the last one so as to keep looping them.
-				if (document.activeElement.nodeName !== "SSS-POPUP" || ev.originalTarget === lastIcon) {
-					firstIcon.focus();
-					ev.preventDefault();
-					return;
-				}
+		// Loop the icons using 'Tab'
+		if (ev.key === "Tab")
+		{
+			const firstIcon = popup.enginesContainer.firstChild as HTMLImageElement;
+			const lastIcon = popup.enginesContainer.lastChild as HTMLImageElement;
+
+			// Focus the first icon for the first time, as well as after the last one so as to keep looping them.
+			if (document.activeElement.nodeName !== "SSS-POPUP" || ev.originalTarget === lastIcon) {
+				firstIcon.focus();
+				ev.preventDefault();
+				return;
 			}
 		}
 
@@ -518,6 +518,16 @@ namespace ContentScript
 		}
 	}
 
+	function searchWithEngineUsingShortcut(key: string)
+	{
+		let engine = getEngineWithShortcut(key);
+		if (engine) {
+			let message = createSearchMessage(engine, settings);
+			message.clickType = "shortcutClick";
+			browser.runtime.sendMessage(message);
+		}
+	}
+
 	function maybeHidePopup(ev?)
 	{
 		if (popup === null) return;
@@ -542,7 +552,7 @@ namespace ContentScript
 
 				// Pressing a shortcut key should be treated as a click to an icon.
 				// So we should only hide the popup when the user presses a shortcut key if
-				// hidePopupOnSearch is true
+				// hidePopupOnSearch is true.
 				if (!settings.hidePopupOnSearch && getEngineWithShortcut(ev.key)) return;
 			}
 
@@ -592,7 +602,8 @@ namespace ContentScript
 	function createSearchMessage(engine: SSS.SearchEngine, settings: SSS.Settings): EngineClickMessage
 	{
 		let message = new EngineClickMessage();
-		message.selection = settings.showSelectionTextField === true ? popup.getInputFieldText() : selection.text;
+		// Due to shortcuts, we can search without a popup, so we only get the input field contents if popup is not null.
+		message.selection = popup !== null && settings.showSelectionTextField === true ? popup.getInputFieldText() : selection.text;
 		message.engine = engine;
 
 		if (window.location) {
