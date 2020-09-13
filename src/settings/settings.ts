@@ -40,9 +40,6 @@ namespace SSS_Settings
 		importBrowserEnginesButton: undefined,
 		resetSearchEnginesButton: undefined,
 
-		useEngineShortcut: undefined,
-		useEngineShortcutWithoutPopup: undefined,
-
 		minSelectedCharacters: undefined,
 		maxSelectedCharacters: undefined,
 		popupDelay: undefined,
@@ -798,9 +795,6 @@ namespace SSS_Settings
 			case "useCustomPopupCSS":
 				updateSetting_customPopupCSS(value);
 				break;
-			case "useEngineShortcut":
-				updateSetting_useEngineShortcut(value);
-				break;
 		}
 	}
 
@@ -1399,11 +1393,6 @@ namespace SSS_Settings
 		if (picker.value !== value) {
 			picker.value = value;
 		}
-	}
-
-	function updateSetting_useEngineShortcut(useEngineShortcut)
-	{
-		updateSetting_specific(page.useEngineShortcutWithoutPopup, useEngineShortcut === true);
 	}
 
 	function updateSetting_popupDelay(popupOpenBehaviour)

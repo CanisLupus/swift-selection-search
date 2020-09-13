@@ -459,8 +459,7 @@ namespace ContentScript
 		if (popup === null) return;
 
 		// Check if the user pressed a shortcut
-		if (settings.useEngineShortcut
-			&& (!ev.altKey && !ev.ctrlKey && !ev.metaKey && !ev.shiftKey) // modifiers are not supported right now
+		if ((!ev.altKey && !ev.ctrlKey && !ev.metaKey && !ev.shiftKey) // modifiers are not supported right now
 			&& ev.originalTarget.className !== "sss-input-field" // make sure we're not inside the popup's text field
 			&& !selection.isInEditableField
 			&& !isInEditableField(selection.selection.anchorNode)) // shortcuts are disabled in editable fields

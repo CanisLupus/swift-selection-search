@@ -93,7 +93,6 @@ namespace SSS
 		hidePopupOnPageScroll: boolean;
 		hidePopupOnRightClick: boolean;
 		hidePopupOnSearch: boolean;
-		useEngineShortcut: boolean;
 		useEngineShortcutWithoutPopup: boolean;
 		popupOpenCommand: string;
 		popupDisableCommand: string;
@@ -141,7 +140,6 @@ namespace SSS
 	export class ActivationSettings
 	{
 		useEngineShortcutWithoutPopup: boolean;
-		useEngineShortcut: boolean;
 		popupLocation: PopupLocation;
 		popupOpenBehaviour: PopupOpenBehaviour;
 		middleMouseSelectionClickMargin: number;
@@ -277,7 +275,6 @@ namespace SSS
 		hidePopupOnPageScroll: true,
 		hidePopupOnRightClick: true,
 		hidePopupOnSearch: true,
-		useEngineShortcut: false,
 		useEngineShortcutWithoutPopup: false,
 		popupOpenCommand: "Ctrl+Shift+Space",
 		popupDisableCommand: "Ctrl+Shift+U",
@@ -522,7 +519,6 @@ namespace SSS
 	{
 		let activationSettings = new ActivationSettings();
 		activationSettings.useEngineShortcutWithoutPopup = settings.useEngineShortcutWithoutPopup;
-		activationSettings.useEngineShortcut = settings.useEngineShortcut;
 		activationSettings.popupLocation = settings.popupLocation;
 		activationSettings.popupOpenBehaviour = settings.popupOpenBehaviour;
 		activationSettings.middleMouseSelectionClickMargin = settings.middleMouseSelectionClickMargin;
@@ -632,7 +628,6 @@ namespace SSS
 		if (createSettingIfNonExistent(settings, "contextMenuItemRightButtonBehaviour"))  shouldSave = true; // 3.43.0
 		if (createSettingIfNonExistent(settings, "contextMenuItemMiddleButtonBehaviour")) shouldSave = true; // 3.43.0
 		if (createSettingIfNonExistent(settings, "searchEngineIconsSource"))              shouldSave = true; // 3.44.0
-		if (createSettingIfNonExistent(settings, "useEngineShortcut"))                    shouldSave = true; // ?
 		if (createSettingIfNonExistent(settings, "shortcutBehaviour"))                    shouldSave = true; // ?
 		if (createSettingIfNonExistent(settings, "useEngineShortcutWithoutPopup"))        shouldSave = true; // ?
 
