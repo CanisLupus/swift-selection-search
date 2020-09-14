@@ -257,6 +257,66 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 		width: 40%;
 	}
 
+	/* group popup */
+
+	.group-popup-container {
+		display: flex;
+		flex-direction: column;
+		border: 1px solid #ccc;
+		border-radius: 4px;
+		width: 35vw;
+		height: 50vh;
+		background: inherit;
+		position: fixed;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%,-50%);
+	}
+	.group-popup-header {
+		display: flex;
+		border-radius: 4px;
+		width: 100%;
+		padding: 0.6rem;
+	}
+	.group-popup-header > img {
+		background-color: #39f;
+	}
+	.group-popup-header > input {
+		margin-left: 0.2rem;
+	}
+	.group-popup-engines-container {
+		display: flex;
+		flex-direction: column;
+		text-align: center;
+		width: 100%;
+		height: 100%;
+		overflow: auto;
+	}
+	.group-popup-engines-container > span {
+		padding: 0.5rem;
+		font-size: 0.9rem;
+		font-style: italic;
+	}
+	.group-engines-list-row {
+		display: flex;
+		margin-left: 0.5rem;
+	}
+	.group-engines-list-row > * {
+		margin: 0.2rem;
+	}
+	.group-engines-list-row > img {
+		width: 22px;
+	}
+	.group-popup-footer {
+		display: flex;
+		border-radius: 4px;
+		width: 100%;
+		padding: 0.6rem;
+	}
+	.group-popup-footer > * {
+		margin: 0.2rem;
+	}
+
 	/* platform/version specific elements */
 
 	.os-windows, .os-mac, .os-linux {
@@ -522,6 +582,7 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 							<div class="engine-is-enabled-in-context-menu"></div>
 							<div class="engine-icon-img"></div>
 							<div class="engine-add-button"><input type="button" name="addEngineButton" value="Add engine"></div>
+							<div class="engine-add-button"><input type="button" name="addGroupButton" value="Add group"></div>
 							<div class="engine-add-button"><input type="button" name="addSeparatorButton" value="Add separator"></div>
 						</div>
 					</div>

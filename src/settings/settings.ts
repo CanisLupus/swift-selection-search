@@ -36,6 +36,7 @@ namespace SSS_Settings
 		toggleDarkMode: undefined,
 
 		addEngineButton: undefined,
+		addGroupButton: undefined,
 		addSeparatorButton: undefined,
 		importBrowserEnginesButton: undefined,
 		resetSearchEnginesButton: undefined,
@@ -473,6 +474,93 @@ namespace SSS_Settings
 
 			saveSettings({ searchEngines: settings.searchEngines });
 			updateUIWithSettings();
+		};
+
+		page.addGroupButton.onclick = () => {
+			const container = document.createElement("div");
+			container.className = "group-popup-container";
+
+			/* ---- Popup header ---- */
+			const groupPopupHeader = document.createElement("div");
+			groupPopupHeader.className = "group-popup-header";
+			container.appendChild(groupPopupHeader);
+
+			// Group icon
+			const groupDefaultIcon = document.createElement("img");
+			groupDefaultIcon.src = "../icons/folder48.png";
+			groupPopupHeader.appendChild(groupDefaultIcon);
+
+			// Group title
+			const groupTitleField = document.createElement("input");
+			groupTitleField.type = "text";
+			groupTitleField.placeholder = "New group";
+			groupPopupHeader.appendChild(groupTitleField);
+			setTimeout(() => groupTitleField.focus(),100);
+
+
+			/* ---- Engines list ---- */
+			const groupPopupEnginesContainer = document.createElement("div");
+			groupPopupEnginesContainer.className = "group-popup-engines-container";
+			container.appendChild(groupPopupEnginesContainer);
+
+			const chooseEnginesText = document.createElement("span");
+			chooseEnginesText.textContent = "Choose the engines/groups that will belong to this group:"
+			groupPopupEnginesContainer.appendChild(chooseEnginesText);
+
+			// Rows
+			settings.searchEngines.forEach((engine) => {
+				if (engine.id !== "separator") {
+					const groupEnginesListRow = document.createElement("div");
+					groupEnginesListRow.className = "group-engines-list-row";
+
+					const checkbox = document.createElement("input");
+					checkbox.type = "checkbox";
+
+					const engineIcon = document.createElement("img");
+					engineIcon.src = browser.extension.getURL(engine.iconUrl || sssIcons[engine.id].iconPath);
+
+					const engineName = document.createElement("span");
+					engineName.textContent = engine.name || sssIcons[engine.id].name;
+
+					groupEnginesListRow.appendChild(checkbox);
+					groupEnginesListRow.appendChild(engineIcon);
+					groupEnginesListRow.appendChild(engineName);
+
+					groupPopupEnginesContainer.appendChild(groupEnginesListRow);
+				}
+			});
+
+			/* ---- Popup footer ---- */
+			const groupPopupFooter = document.createElement("div");
+			groupPopupFooter.className = "group-popup-footer";
+			container.appendChild(groupPopupFooter);
+
+			const cancelButton = document.createElement("input");
+			cancelButton.type = "button";
+			cancelButton.value = "Cancel";
+			groupPopupFooter.appendChild(cancelButton);
+
+			const saveButton = document.createElement("input");
+			saveButton.type = "button";
+			saveButton.value = "Save";
+			groupPopupFooter.appendChild(saveButton);
+
+			container.appendChild(groupPopupFooter);
+
+			document.body.appendChild(container);
+
+			// let searchUrl = "https://www.google.com/search?q={searchTerms}";	// use google as an example
+			// let iconUrl = getIconUrlFromSearchUrl(searchUrl);	// by default try to get a favicon for the domain
+
+			// settings.searchEngines.push(createDefaultEngine({
+			// 	type: SSS.SearchEngineType.Custom,
+			// 	name: "New Search Engine",
+			// 	searchUrl: searchUrl,
+			// 	iconUrl: iconUrl
+			// }));
+
+			// saveSettings({ searchEngines: settings.searchEngines });
+			// updateUIWithSettings();
 		};
 
 		page.addSeparatorButton.onclick = () => {
