@@ -1236,7 +1236,7 @@ namespace SSS_Settings
 
 		const shortcutField = document.createElement("input");
 		shortcutField.type = "text";
-		shortcutField.title = "Type a single character to use as a shortcut for this engine. No modifiers are allowed."
+		shortcutField.title = "Type a single character to use as a shortcut for this engine. Shortcuts can then be used when the popup is visible."
 
 		// If this engine already has a shortcut, populate the field with its value.
 		if (engine.shortcut) {
