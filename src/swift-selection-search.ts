@@ -72,6 +72,13 @@ namespace SSS
 		iconUrl: string;
 	}
 
+	// (SearchEngineType: Group)
+	export class SearchEngine_Group extends SearchEngine_Custom
+	{
+		groupEngines: Array<any>;
+		color: string;
+	}
+
 	export class Settings
 	{
 		// NOTE: When adding new variables, keep the same order used in the settings page, roughly divided by section.
@@ -175,6 +182,7 @@ namespace SSS
 		Custom = "custom",
 		BrowserLegacy = "browser",
 		BrowserSearchApi = "browser-search-api",
+		Group = "group",
 	}
 
 	export const enum SearchEngineIconsSource {

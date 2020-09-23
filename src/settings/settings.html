@@ -65,6 +65,9 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 	select:hover {
 		border: 1px solid #3399FF !important;
 	}
+	input[type=button]:disabled {
+		opacity: 0.5;
+	}
 
 	/* sections */
 
@@ -264,13 +267,22 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 		flex-direction: column;
 		border: 1px solid #ccc;
 		border-radius: 4px;
-		width: 35vw;
-		height: 50vh;
+		width: 30vw;
+		height: 60vh;
 		background: inherit;
 		position: fixed;
 		top: 50%;
 		left: 50%;
 		transform: translate(-50%,-50%);
+	}
+	.group-background-div {
+		position: fixed;
+		top: 0px;
+		left: 0px;
+		background-color: black;
+		opacity: 0.8;
+		width: 100vw;
+		height: 100vh;
 	}
 	.group-popup-header {
 		display: flex;
@@ -278,11 +290,16 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 		width: 100%;
 		padding: 0.6rem;
 	}
-	.group-popup-header > img {
-		background-color: #39f;
+	.group-popup-header canvas {
+		cursor: pointer;
 	}
 	.group-popup-header > input {
 		margin-left: 0.2rem;
+	}
+	.group-popup-header > label {
+		display: flex;
+		align-items: center;
+		padding: 0.2rem;
 	}
 	.group-popup-engines-container {
 		display: flex;
@@ -290,15 +307,25 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 		text-align: center;
 		width: 100%;
 		height: 100%;
-		overflow: auto;
+		overflow-y: scroll;
+		overflow-x: hidden;
 	}
-	.group-popup-engines-container > span {
+	.group-selected-engines-container {
+		border-bottom: 1px solid #ccc;
+		text-align: center;
+		padding-bottom: 0.5rem;
+		margin-bottom: 0.5rem;
+	}
+	.group-selected-engines-container:empty::before {
+		content: "Choose the engines that will belong to this group:";
 		padding: 0.5rem;
 		font-size: 0.9rem;
 		font-style: italic;
 	}
 	.group-engines-list-row {
 		display: flex;
+		flex-direction: row;
+		cursor: pointer;
 		margin-left: 0.5rem;
 	}
 	.group-engines-list-row > * {
@@ -306,6 +333,7 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 	}
 	.group-engines-list-row > img {
 		width: 22px;
+		height: 22px;
 	}
 	.group-popup-footer {
 		display: flex;

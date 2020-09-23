@@ -265,6 +265,228 @@ namespace SSS_Settings
 		hasDOMContentLoaded = true;
 	}
 
+	function destroyGroupPopup()
+	{
+		// Remove popup and overlay div
+		[...document.querySelectorAll(".group-popup-container, .group-background-div")].map(node => node.remove())
+
+		// Make body scrollable again.
+		document.body.style.overflow = "auto";
+	}
+
+	// This will either create the popup when adding a new group or show it when editing an existing one.
+	// When editing we pass the group being edited as a parameter.
+	function showGroupPopup(editGroup = null)
+	{
+		// This div will overlay the whole page while the popup is showing
+		const backgroundDiv = document.createElement("div");
+		backgroundDiv.className = "group-background-div";
+		document.body.appendChild(backgroundDiv);
+
+		// Prevent body from scrolling on the background when scrolling inside the popup
+		document.body.style.overflow = "hidden";
+
+		// The engines that will belong to the group (or already belong)
+		let groupEngines = editGroup ? [...editGroup.groupEngines] : [];
+
+		// This array will store the row (node) of the selected engines.
+		// Useful when editing a group, to show the engines in the exact order
+		// the user selected them when creating it.
+		let engineRows = [];
+
+		const container = document.createElement("div");
+		container.className = "group-popup-container";
+
+		backgroundDiv.onclick = _ => {
+			destroyGroupPopup();
+		};
+
+		const groupPopupHeader = document.createElement("div");
+		groupPopupHeader.className = "group-popup-header";
+		container.appendChild(groupPopupHeader);
+
+		// Group icon
+		const groupIconLabel = document.createElement("label");
+
+		// Color picker
+		const groupColorPicker = document.createElement("input");
+		groupColorPicker.type = "color";
+		groupColorPicker.style.display = "none";
+
+		// Drawing the default icon
+		const groupDefaultIcon = document.createElement("canvas");
+		groupDefaultIcon.title = "Click to change color"
+		groupDefaultIcon.width = 24;
+		groupDefaultIcon.height = 24;
+		const ctx = groupDefaultIcon.getContext("2d");
+		ctx.beginPath();
+		ctx.arc(12, 12, 12, 0, 2 * Math.PI); // (centerX, centerY, radius, 0, 2 * Math.PI)
+
+		// Apply a random color to the icon whenever a group is created. If editing, apply the color of the group.
+		ctx.fillStyle = editGroup?.color || 'rgb(' + (Math.floor(Math.random() * 256)) + ','
+												   + (Math.floor(Math.random() * 256)) + ','
+												   + (Math.floor(Math.random() * 256)) + ')';
+		ctx.fill();
+
+		// Change the color of the group icon
+		groupColorPicker.oninput = e => {
+			const target = e.target as HTMLInputElement;
+			const rgbColor = target.value;
+			ctx.fillStyle = rgbColor;
+			ctx.fill();
+
+		};
+		groupIconLabel.append(groupDefaultIcon, groupColorPicker);
+		groupPopupHeader.appendChild(groupIconLabel);
+
+		// Group title
+		const groupTitleField = document.createElement("input");
+		groupTitleField.type = "text";
+		groupTitleField.placeholder = editGroup?.name || "New group";
+		groupPopupHeader.appendChild(groupTitleField);
+		setTimeout(() => groupTitleField.focus(),100);
+
+		// Container for the selected engines.
+		const selectedEnginesContainer = document.createElement("div");
+		selectedEnginesContainer.className = "group-selected-engines-container";
+		container.appendChild(selectedEnginesContainer);
+
+		/* ---- Engines list ---- */
+		const groupPopupEnginesContainer = document.createElement("div");
+		groupPopupEnginesContainer.className = "group-popup-engines-container";
+		container.appendChild(groupPopupEnginesContainer);
+
+		// Rows
+		const groupRowsContainer = document.createElement("div");
+		settings.searchEngines.forEach((engine) => {
+			if (engine.id !== "separator"
+				&& settings.searchEngines.indexOf(engine) !== settings.searchEngines.indexOf(editGroup)) { // Don't show the engine being edited
+
+				const groupEnginesListRow = document.createElement("div");
+				groupEnginesListRow.className = "group-engines-list-row engine-table-row";
+
+				// dragger element
+				const dragger = buildSearchEngineRow(engine, settings.searchEngines.indexOf(engine)).children[0] as HTMLDivElement;
+				dragger.style.display = "none";
+
+				const checkbox = document.createElement("input");
+				checkbox.type = "checkbox";
+				checkbox.style.display = 'none'
+
+				// When editing, check the engines that are already on the group.
+				checkbox.checked = editGroup?.groupEngines.includes(engine);
+
+				// Clicking on the row itself is the same as clicking on the checkbox.
+				groupEnginesListRow.onclick = _ => {
+					checkbox.checked = !checkbox.checked;
+					if (checkbox.checked) {
+						groupEngines.push(engine);
+						dragger.style.display = "block";
+
+						// The first selected engine will be the main engine and stay at the top of the list.
+						// All the others will be appended after the previously selected engine.
+						selectedEnginesContainer.insertBefore(groupEnginesListRow, selectedEnginesContainer.childNodes[groupEngines.indexOf(engine)]);
+					} else {
+						groupEngines.splice(groupEngines.indexOf(engine),1);
+						groupRowsContainer.prepend(groupEnginesListRow)
+						dragger.style.display = "none";
+					}
+
+					// Disable the save button if there is no selected engines.
+					groupEngines.length > 0 ? saveButton.disabled = false : saveButton.disabled = true;
+				};
+
+				const engineIcon = buildSearchEngineRow(engine, settings.searchEngines.indexOf(engine)).children[3]
+
+				const engineName = document.createElement("span");
+				engineName.textContent = engine.name || sssIcons[engine.id].name;
+
+				groupEnginesListRow.append(dragger, checkbox, engineIcon, engineName)
+
+				if (checkbox.checked) {
+					// engineRows stores the rows in the same order the engines were selected
+					// which is the order of the engines in groupEngines. This allows the user to
+					// change the position of the engines according to their needs.
+					engineRows[groupEngines.indexOf(engine)] = groupEnginesListRow;
+					dragger.style.display = "block"; // Show dragger only for the selected engines
+				} else {
+					groupRowsContainer.append(groupEnginesListRow)
+				}
+			}
+		});
+
+		// When editing, place the engines of the group at the top of the list.
+		selectedEnginesContainer.prepend(...engineRows);
+
+		groupPopupEnginesContainer.appendChild(groupRowsContainer);
+
+		/* ---- Popup footer ---- */
+		const groupPopupFooter = document.createElement("div");
+		groupPopupFooter.className = "group-popup-footer";
+		container.appendChild(groupPopupFooter);
+
+		const cancelButton = document.createElement("input");
+		cancelButton.type = "button";
+		cancelButton.value = "Cancel";
+		cancelButton.onclick = _ => destroyGroupPopup();
+		groupPopupFooter.appendChild(cancelButton);
+
+		const saveButton = document.createElement("input");
+		saveButton.className = "teste";
+		saveButton.type = "button";
+		// The save button is initially disabled. It's only enabled when editing a group
+		// or when at least one engine is selected.
+		saveButton.disabled = editGroup ? false : true;
+		saveButton.value = "Save";
+		saveButton.id = "save";
+		saveButton.onclick = _ => {
+			let searchUrl = "TODO";	// use google as an example
+			let iconUrl = groupDefaultIcon.toDataURL();	// by default try to get a favicon for the domain
+
+			if (editGroup)
+			{
+				editGroup.name = groupTitleField.value.length > 0 ? groupTitleField.value : editGroup.name;
+				editGroup.groupEngines = groupEngines;
+				editGroup.iconUrl = groupDefaultIcon.toDataURL(),
+				editGroup.color = ctx.fillStyle;
+			}
+			else
+			{
+				settings.searchEngines.push(createDefaultEngine({
+					type: SSS.SearchEngineType.Group,
+					name: groupTitleField.value.length > 0 ? groupTitleField.value : "New Group",
+					searchUrl: searchUrl,
+					iconUrl: iconUrl,
+					groupEngines: groupEngines,
+					color: ctx.fillStyle,
+				}));
+			}
+
+			saveSettings({ searchEngines: settings.searchEngines });
+			updateUIWithSettings();
+			destroyGroupPopup();
+		};
+		groupPopupFooter.appendChild(saveButton);
+		container.appendChild(groupPopupFooter);
+		document.body.appendChild(container);
+
+		// setup draggable elements to be able to sort engines
+		Sortable.create(selectedEnginesContainer, {
+			handle: ".engine-dragger",
+			onStart: ev => {
+				if (DEBUG) { log("start drag", ev.oldIndex); }
+			},
+			onUpdate: ev => {
+				var item = ev.item; // the current dragged HTMLElement
+				if (DEBUG) { log("onUpdate", item); }
+			},
+			onEnd: ev => {
+				if (DEBUG) { log("onEnd", settings); }
+				groupEngines.splice(ev.newIndex, 0, groupEngines.splice(ev.oldIndex, 1)[0]);
+			},
+		});
+	}
+
 	// main setup for settings page, called when page loads
 	function onPageLoaded()
 	{
@@ -477,90 +699,7 @@ namespace SSS_Settings
 		};
 
 		page.addGroupButton.onclick = () => {
-			const container = document.createElement("div");
-			container.className = "group-popup-container";
-
-			/* ---- Popup header ---- */
-			const groupPopupHeader = document.createElement("div");
-			groupPopupHeader.className = "group-popup-header";
-			container.appendChild(groupPopupHeader);
-
-			// Group icon
-			const groupDefaultIcon = document.createElement("img");
-			groupDefaultIcon.src = "../icons/folder48.png";
-			groupPopupHeader.appendChild(groupDefaultIcon);
-
-			// Group title
-			const groupTitleField = document.createElement("input");
-			groupTitleField.type = "text";
-			groupTitleField.placeholder = "New group";
-			groupPopupHeader.appendChild(groupTitleField);
-			setTimeout(() => groupTitleField.focus(),100);
-
-
-			/* ---- Engines list ---- */
-			const groupPopupEnginesContainer = document.createElement("div");
-			groupPopupEnginesContainer.className = "group-popup-engines-container";
-			container.appendChild(groupPopupEnginesContainer);
-
-			const chooseEnginesText = document.createElement("span");
-			chooseEnginesText.textContent = "Choose the engines/groups that will belong to this group:"
-			groupPopupEnginesContainer.appendChild(chooseEnginesText);
-
-			// Rows
-			settings.searchEngines.forEach((engine) => {
-				if (engine.id !== "separator") {
-					const groupEnginesListRow = document.createElement("div");
-					groupEnginesListRow.className = "group-engines-list-row";
-
-					const checkbox = document.createElement("input");
-					checkbox.type = "checkbox";
-
-					const engineIcon = document.createElement("img");
-					engineIcon.src = browser.extension.getURL(engine.iconUrl || sssIcons[engine.id].iconPath);
-
-					const engineName = document.createElement("span");
-					engineName.textContent = engine.name || sssIcons[engine.id].name;
-
-					groupEnginesListRow.appendChild(checkbox);
-					groupEnginesListRow.appendChild(engineIcon);
-					groupEnginesListRow.appendChild(engineName);
-
-					groupPopupEnginesContainer.appendChild(groupEnginesListRow);
-				}
-			});
-
-			/* ---- Popup footer ---- */
-			const groupPopupFooter = document.createElement("div");
-			groupPopupFooter.className = "group-popup-footer";
-			container.appendChild(groupPopupFooter);
-
-			const cancelButton = document.createElement("input");
-			cancelButton.type = "button";
-			cancelButton.value = "Cancel";
-			groupPopupFooter.appendChild(cancelButton);
-
-			const saveButton = document.createElement("input");
-			saveButton.type = "button";
-			saveButton.value = "Save";
-			groupPopupFooter.appendChild(saveButton);
-
-			container.appendChild(groupPopupFooter);
-
-			document.body.appendChild(container);
-
-			// let searchUrl = "https://www.google.com/search?q={searchTerms}";	// use google as an example
-			// let iconUrl = getIconUrlFromSearchUrl(searchUrl);	// by default try to get a favicon for the domain
-
-			// settings.searchEngines.push(createDefaultEngine({
-			// 	type: SSS.SearchEngineType.Custom,
-			// 	name: "New Search Engine",
-			// 	searchUrl: searchUrl,
-			// 	iconUrl: iconUrl
-			// }));
-
-			// saveSettings({ searchEngines: settings.searchEngines });
-			// updateUIWithSettings();
+			showGroupPopup();
 		};
 
 		page.addSeparatorButton.onclick = () => {
@@ -762,6 +901,20 @@ namespace SSS_Settings
 					// hide if neither itself or any parent has the "section" class
 					if ((ev.target as Element).closest(".section") === null) {
 						currentlyExpandedEngineOptions.style.display = "none";
+					}
+				}
+			};
+
+			document.onkeydown = ev => {
+				const groupPopup = document.querySelector('.group-popup-container');
+				if (groupPopup) {
+					switch (ev.key) {
+						case "Escape":
+							groupPopup.remove();
+							return;
+						case "Enter":
+							const saveButton = groupPopup.querySelector('#save') as HTMLButtonElement;
+							saveButton.click();
 					}
 				}
 			};
@@ -1027,6 +1180,26 @@ namespace SSS_Settings
 				engineDescription.className = "engine-sss engine-description-small";
 				engineDescription.textContent = "Engine managed by the browser.";
 				engineRow.appendChild(engineDescription);
+			} else if (engine.type === SSS.SearchEngineType.Group) {
+
+				// Get the names of the engines in the group.
+				const names = engine.groupEngines.map((engine => engine.name || sssIcons[engine.id].name));
+
+				// Create a comma-separated string containing the names of the engines.
+				const text = names.reduce((text, name) => {
+					return `${text} ${name}${name === names[names.length - 1] ? "." : ","}`
+				}, "");
+
+				// create columns for groups
+				let engineDescription = document.createElement("div");
+				engineDescription.onclick = _ => showGroupPopup(engine);
+				engineDescription.style.cursor = "pointer";
+				engineDescription.title = "Click to edit this group"
+				engineDescription.className = "engine-sss engine-description-small";
+
+				 // limit text to 70 characters to match the space of the 'searchUrl' input fields of other engines
+				engineDescription.textContent = text.length > 70 ? `${text.substring(0, 70)}...` : text;
+				engineRow.appendChild(engineDescription);
 			} else {
 				engineRow.appendChild(createEngineSearchLink(engine, references));
 			}
@@ -1091,6 +1264,15 @@ namespace SSS_Settings
 			discardOnOpenCheckboxParent.title = "Opens the search but discards the resulting page. Useful if this is a \"non-http\" search engine that opens outside the browser, because that would generate an empty tab/page.";
 			engineOptions.appendChild(discardOnOpenCheckboxParent);
 		}
+		// else if (engine.type === SSS.SearchEngineType.Group)
+		// {
+		// 	const editButton = document.createElement("input");
+		// 	editButton.type = "button";
+		// 	editButton.value = "Edit Group";
+		// 	editButton.className = "engine-add-button";
+		// 	editButton.onclick = _ => showGroupPopup(engine);
+		// 	engineOptions.appendChild(editButton);
+		// }
 
 		if (!engineOptions.hasChildNodes())
 		{
