@@ -13,7 +13,7 @@ namespace ContentScript
 {
 	export class SelectionData
 	{
-		isInEditableField: boolean;
+		isInInputField: boolean;	// doesn't include "content editable" fields (use isInContentEditableField() for that)
 		unprocessedText: string;
 		text: string;
 		element: HTMLElement;
@@ -176,42 +176,25 @@ namespace ContentScript
 
 	function deactivate()
 	{
-		// unregister with all events (use last activation settings to figure out what registrations were made)
+		// unregister with all events
 
-		if (activationSettings.popupLocation === SSS.PopupLocation.Cursor) {
-			document.removeEventListener("mousemove", onMouseUpdate);
-			document.removeEventListener("mouseenter", onMouseUpdate);
-		}
+		document.removeEventListener("mousemove", onMouseUpdate);
+		document.removeEventListener("mouseenter", onMouseUpdate);
+		document.removeEventListener("mousedown", onMouseDown);
+		document.removeEventListener("mouseup", onMouseUp);
 
-		if (activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.Auto || activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.HoldAlt) {
-			document.removeEventListener("customselectionchange", onSelectionChange);
-			selectionchange.stop();
-		}
-		else if (activationSettings.popupOpenBehaviour === SSS.PopupOpenBehaviour.MiddleMouse) {
-			document.removeEventListener("mousedown", onMouseDown);
-			document.removeEventListener("mouseup", onMouseUp);
-		}
+		document.removeEventListener("customselectionchange", onSelectionChange);
+		selectionchange.stop();
 
-		if (activationSettings.useEngineShortcutWithoutPopup) {
-			document.documentElement.removeEventListener("keydown", onKeyDown);
-		}
+		document.documentElement.removeEventListener("keydown", onKeyDown);
+		document.documentElement.removeEventListener("mousedown", maybeHidePopup);
 
-		if (popup !== null)
-		{
-			// unregister popup events and remove the popup from the page
+		window.removeEventListener("scroll", maybeHidePopup);
 
-			if (!activationSettings.useEngineShortcutWithoutPopup) {
-				document.documentElement.removeEventListener("keydown", onKeyDown);
-			}
-			document.documentElement.removeEventListener("mousedown", maybeHidePopup);
-			if (settings.hidePopupOnPageScroll) {
-				window.removeEventListener("scroll", maybeHidePopup);
-			}
-
+		// remove the popup from the page (other listeners in the popup are destroyed along with their objects)
+		if (popup !== null) {
 			document.documentElement.removeChild(popup);
 			popup = null;
-
-			// other listeners in the popup are destroyed along with their objects
 		}
 
 		// also clear any previously saved settings
@@ -281,7 +264,7 @@ namespace ContentScript
 
 		if (elem instanceof HTMLTextAreaElement || (elem instanceof HTMLInputElement && elem.type !== "password"))
 		{
-			selection.isInEditableField = true;
+			selection.isInInputField = true;
 
 			// for editable fields, getting the selected text is different
 			selection.unprocessedText = (elem as HTMLTextAreaElement).value.substring(elem.selectionStart, elem.selectionEnd);
@@ -289,7 +272,7 @@ namespace ContentScript
 		}
 		else
 		{
-			selection.isInEditableField = false;
+			selection.isInInputField = false;
 
 			// get selection, but exit if there's no text selected after all
 			let selectionObject = window.getSelection();
@@ -341,21 +324,21 @@ namespace ContentScript
 			// If showing popup for editable fields is not allowed, check if selection is in an editable field.
 			if (!settings.allowPopupOnEditableFields)
 			{
-				if (selection.isInEditableField) return;
+				if (selection.isInInputField) return;
 				// even if this is not an input field, don't show popup in contentEditable elements, such as Gmail's compose window
-				if (isInEditableField(selection.selection.anchorNode)) return;
+				if (isInContentEditableField(selection.selection.anchorNode)) return;
 			}
 			// If editable fields are allowed, they are still not allowed for keyboard selections
 			else
 			{
-				if (!ev["isMouse"] && isInEditableField(selection.selection.anchorNode)) return;
+				if (!ev["isMouse"] && isInContentEditableField(selection.selection.anchorNode)) return;
 			}
 		}
 
 		if (settings.autoCopyToClipboard === SSS.AutoCopyToClipboard.Always
 		|| (settings.autoCopyToClipboard === SSS.AutoCopyToClipboard.NonEditableOnly
-			&& !selection.isInEditableField
-			&& !isInEditableField(selection.selection.anchorNode)))
+			&& !selection.isInInputField
+			&& !isInContentEditableField(selection.selection.anchorNode)))
 		{
 			if (DEBUG) { log("auto copied to clipboard: " + selection.text); }
 			document.execCommand("copy");
@@ -425,7 +408,7 @@ namespace ContentScript
 		return sssIcons;
 	}
 
-	function isInEditableField(node): boolean
+	function isInContentEditableField(node): boolean
 	{
 		// to find if this element is editable, we go up the hierarchy until an element that specifies "isContentEditable" (or the root)
 		for (let elem = node; elem !== document; elem = elem.parentNode)
@@ -443,7 +426,7 @@ namespace ContentScript
 	function isAnyEditableFieldFocused()
 	{
 		let elem: Element = document.activeElement;
-		return elem instanceof HTMLTextAreaElement || (elem instanceof HTMLInputElement && elem.type !== "password") || isInEditableField(elem);
+		return elem instanceof HTMLTextAreaElement || (elem instanceof HTMLInputElement && elem.type !== "password") || isInContentEditableField(elem);
 	}
 
 	function getEngineWithShortcut(key)
@@ -946,7 +929,7 @@ namespace PopupCreator
 			// decide popup position based on settings
 			if (settings.popupLocation === SSS.PopupLocation.Selection) {
 				let rect;
-				if (selection.isInEditableField) {
+				if (selection.isInInputField) {
 					rect = selection.element.getBoundingClientRect();
 				} else {
 					let range = selection.selection.getRangeAt(0); // get the text range

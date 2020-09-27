@@ -628,8 +628,8 @@ namespace SSS
 		if (createSettingIfNonExistent(settings, "contextMenuItemRightButtonBehaviour"))  shouldSave = true; // 3.43.0
 		if (createSettingIfNonExistent(settings, "contextMenuItemMiddleButtonBehaviour")) shouldSave = true; // 3.43.0
 		if (createSettingIfNonExistent(settings, "searchEngineIconsSource"))              shouldSave = true; // 3.44.0
-		if (createSettingIfNonExistent(settings, "shortcutBehaviour"))                    shouldSave = true; // ?
-		if (createSettingIfNonExistent(settings, "useEngineShortcutWithoutPopup"))        shouldSave = true; // ?
+		if (createSettingIfNonExistent(settings, "shortcutBehaviour"))                    shouldSave = true; // 3.46.0
+		if (createSettingIfNonExistent(settings, "useEngineShortcutWithoutPopup"))        shouldSave = true; // 3.46.0
 
 		// 3.7.0
 		// convert old unchangeable browser-imported engines to normal ones
