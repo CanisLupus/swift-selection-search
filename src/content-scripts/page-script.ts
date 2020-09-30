@@ -37,8 +37,8 @@ namespace ContentScript
 	{
 		selection: string;
 		engine: SSS.SearchEngine;
-		clickType: string;
 		href: string;
+		openingBehaviour: SSS.OpenResultBehaviour;
 
 		constructor() { super(MessageType.EngineClick); }
 	}
@@ -478,21 +478,21 @@ namespace ContentScript
 		if (ev.keyCode == 13 && popup.isReceiverOfEvent(ev))
 		{
 			let engine;
-			let clickType;
+			let openingBehaviour;
 
 			// if we're inside the popup's text field, grab the first user-defined engine and search using that
 			if (ev.originalTarget.nodeName === "INPUT") {
 				engine = settings.searchEngines.find(e => e.type !== SSS.SearchEngineType.SSS);
-				clickType = "ctrlClick";	// for now, using enter is the same as ctrl-clicking
+				openingBehaviour = SSS.OpenResultBehaviour.NewBgTab;	// for now, using enter is the same as ctrl-clicking
 			} else {
 				// if cycling the icons using 'tab', grab the focused icon
 				const engineIndex = [...popup.enginesContainer.children].indexOf(ev.originalTarget);
 				engine = settings.searchEngines[engineIndex];
-				clickType = "shortcutClick";
+				openingBehaviour = settings.shortcutBehaviour;
 			}
 
 			let message = createSearchMessage(engine, settings);
-			message.clickType = clickType;
+			message.openingBehaviour = openingBehaviour;
 			browser.runtime.sendMessage(message);
 		}
 		else
@@ -506,7 +506,7 @@ namespace ContentScript
 		let engine = getEngineWithShortcut(key);
 		if (engine) {
 			let message = createSearchMessage(engine, settings);
-			message.clickType = "shortcutClick";
+			message.openingBehaviour = settings.shortcutBehaviour;
 			browser.runtime.sendMessage(message);
 		}
 	}
@@ -569,13 +569,13 @@ namespace ContentScript
 			let message: EngineClickMessage = createSearchMessage(engine, settings);
 
 			if (ev[selectionchange.modifierKey]) {
-				message.clickType = "ctrlClick";
+				message.openingBehaviour = SSS.OpenResultBehaviour.NewBgTab
 			} else if (ev.button === 0) {
-				message.clickType = "leftClick";
+				message.openingBehaviour = settings.mouseLeftButtonBehaviour;
 			} else if (ev.button === 1) {
-				message.clickType = "middleClick";
+				message.openingBehaviour = settings.mouseMiddleButtonBehaviour;
 			} else {
-				message.clickType = "rightClick";
+				message.openingBehaviour = settings.mouseRightButtonBehaviour;
 			}
 
 			browser.runtime.sendMessage(message);

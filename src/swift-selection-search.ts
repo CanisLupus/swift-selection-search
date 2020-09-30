@@ -763,7 +763,7 @@ namespace SSS
 				break;
 
 			case "engineClick":
-				onSearchEngineClick(msg.engine, msg.clickType, msg.selection, msg.href);
+				onSearchEngineClick(msg.engine, msg.openingBehaviour, msg.selection, msg.href);
 				break;
 
 			case "log":
@@ -900,50 +900,11 @@ namespace SSS
 		let selectedEngine: SearchEngine = engines[menuId];
 
 		let button = info?.button ?? 0;
-		let url: string = null;
-		let discardOnOpen: boolean;
 
-		// check if it's a special SSS engine
-		if (selectedEngine.type === SearchEngineType.SSS)
-		{
-			let engine_SSS = selectedEngine as SearchEngine_SSS;
+		let isLink = info.linkText ? true : false;
 
-			if (engine_SSS.id === "copyToClipboard")
-			{
-				if (info.selectionText) {
-					copyToClipboard(selectedEngine as SearchEngine_SSS_Copy);	// copy in the page script, to allow choice between HTML and plain text copy
-				} else if (info.linkText) {
-					navigator.clipboard.writeText(info.linkText);	// if copying a link, just always copy its text
-				}
-			}
-			else if (engine_SSS.id === "openAsLink")
-			{
-				url = getOpenAsLinkSearchUrl(info.selectionText || info.linkText);
-				discardOnOpen = false;
-			}
-		}
-		// check if it's a browser-managed engine (BrowserSearchApi)
-		else if (selectedEngine.type === SearchEngineType.BrowserSearchApi)
-		{
-			searchUsingSearchApi(
-				selectedEngine as SearchEngine_BrowserSearchApi,
-				info.selectionText || info.linkText,
-				getOpenResultBehaviourForContextMenu(button)
-			);
-		}
-		// otherwise it's a normal search engine (type Custom or BrowserLegacy), so run the search
-		else
-		{
-			// search using the engine
-			let engine_Custom = selectedEngine as SearchEngine_Custom;
-			url = getSearchQuery(engine_Custom, info.selectionText || info.linkText, new URL(info.pageUrl));
-			discardOnOpen = engine_Custom.discardOnOpen;
-		}
+		onSearchEngineClick(selectedEngine, getOpenResultBehaviourForContextMenu(button), info.selectionText || info.linkText, info.pageUrl, null, null, isLink);
 
-		if (url !== null)
-		{
-			openUrl(url, getOpenResultBehaviourForContextMenu(button), discardOnOpen);
-		}
 	}
 
 	function getOpenResultBehaviourForContextMenu(button: number)
@@ -1140,7 +1101,7 @@ namespace SSS
 	/* ---------- ENGINE CLICKS ----------- */
 	/* ------------------------------------ */
 
-	function onSearchEngineClick(selectedEngine: SearchEngine, clickType: string, searchText: string, href: string, fromGroup: Object = null, fromNewWindow: boolean = false)
+	function onSearchEngineClick(selectedEngine: SearchEngine, openingBehaviour: OpenResultBehaviour, searchText: string, href: string, fromGroup: object = null, fromNewWindow: boolean = false, isLink: boolean = false)
 	{
 		let url: string = null;
 		let discardOnOpen: boolean;
@@ -1151,67 +1112,75 @@ namespace SSS
 			let engine_SSS = selectedEngine as SearchEngine_SSS;
 
 			if (engine_SSS.id === "copyToClipboard") {
-				copyToClipboard(engine_SSS as SearchEngine_SSS_Copy);
+				if (isLink) {
+					navigator.clipboard.writeText(searchText);	// if copying a link, just always copy its text
+				} else {
+					copyToClipboard(selectedEngine as SearchEngine_SSS_Copy);	// copy in the page script, to allow choice between HTML and plain text copy
+				}
 			}
 			else if (engine_SSS.id === "openAsLink") {
 				url = getOpenAsLinkSearchUrl(searchText);
 				discardOnOpen = false;
+				search(engine_SSS as any, getOpenAsLinkSearchUrl(searchText),openingBehaviour, null, null, url, discardOnOpen);
 				if (DEBUG) { log("open as link: " + url); }
 			}
 		}
-		// check if it's a browser-managed engine (BrowserSearchApi)
-		else if (selectedEngine.type === SearchEngineType.BrowserSearchApi)
+		// check if it's a browser-managed engine (BrowserSearchApi) or a custom engine
+		else if (selectedEngine.type === SearchEngineType.BrowserSearchApi || selectedEngine.type === SearchEngineType.Custom)
 		{
-			searchUsingSearchApi(
-				selectedEngine as SearchEngine_BrowserSearchApi,
+			if (selectedEngine.type === SearchEngineType.Custom) {
+				let engine_Custom = selectedEngine as SearchEngine_Custom;
+				url = getSearchQuery(engine_Custom, searchText, new URL(href));
+				discardOnOpen = engine_Custom.discardOnOpen;
+			}
+			search(
+				selectedEngine as SearchEngine_BrowserSearchApi | SearchEngine_Custom,
 				cleanSearchText(searchText),
-                getOpenResultBehaviour(clickType),
+                openingBehaviour,
                 fromGroup,
-                fromNewWindow,
+				fromNewWindow,
+				url,
+				discardOnOpen
 			);
 		}
 		// check if it's a group
 		else if (selectedEngine.type === SearchEngineType.Group)
 		{
-			// Call the current function for each engine in the group as though they were being clicked individually
-			for (let i = 0; i < selectedEngine.groupEngines.length; i++) {
-                const obj = {
+			// Check if there are other groups inside this one
+			if (selectedEngine.groupEngines.some(engine => engine.type === SearchEngineType.Group)) {
+				// If true, we merge the engines of the child group to the parent so that we have one array with all the engines.
+				selectedEngine.groupEngines = selectedEngine.groupEngines.map(engine => engine.type === SearchEngineType.Group ? engine.groupEngines : engine).flat();
+			}
+			// Reverse the engines of the group except for the first one.
+			// There reason for this is to make sure the tabs open in the exact sequence (top to bottom) the user set the engines when adding/editing the group.
+			// This has to do with the way we're setting the index of the tabs that will open in the background - which are all but first one in the group.
+			// The first will always be the active one, so no need to change it's place in the array.
+			// This is only needed for the behaviours below because there may have other tabs to the right of the current one.
+			// Because the other behavious make the tabs go to the last place, there's no need to reverse in those cases.
+			// NOTE: See the comment on the search function about the 'jump' variable.
+			let groupEngines = selectedEngine.groupEngines;
+			if (openingBehaviour === OpenResultBehaviour.ThisTab ||
+				openingBehaviour === OpenResultBehaviour.NewTabNextToThis ||
+				openingBehaviour === OpenResultBehaviour.NewBgTabNextToThis) {
+					groupEngines = [selectedEngine.groupEngines[0], ...selectedEngine.groupEngines.slice(1).reverse()];
+				}
+
+			// Make a recursion on the current function for each engine in the group as though they were being clicked individually
+			for (let i = 0; i < groupEngines.length; i++) {
+                const info = {
                     "mainEngine": i === 0,
                     "group": selectedEngine,
-                    "clickType": clickType,
                     "href": href,
                 };
-				onSearchEngineClick(selectedEngine.groupEngines[i], clickType, searchText, href, obj, fromNewWindow);
+				onSearchEngineClick(groupEngines[i], openingBehaviour, searchText, href, info, fromNewWindow);
 
                 // If the behaviour is set to NewWindow, all searches from the group will take place in this new window.
-                // In this case, this loop has to be interrupted because onSearchEngineClick() will be called again from the new window.
+                // In this case, this loop has to be interrupted because it has to run again from the new window.
                 // When this happens, fromNewWindow is set to true and the 'break' bellow will not occur which means the loop will run normally in the new window.
-                // This process is handled by 'searchUsingSearchApi'. That's why we have to make this check after the first cycle of the loop.
-				if (getOpenResultBehaviour(clickType) === OpenResultBehaviour.NewWindow && !fromNewWindow) break;
+                // This process is handled by the 'search' function. That's why we have to make this check after the first cycle of the loop.
+				if (openingBehaviour === OpenResultBehaviour.NewWindow && !fromNewWindow) break;
 			}
 		}
-		// otherwise it's a normal search engine (type Custom or BrowserLegacy), so run the search
-		else
-		{
-			let engine_Custom = selectedEngine as SearchEngine_Custom;
-			url = getSearchQuery(engine_Custom, searchText, new URL(href));
-			discardOnOpen = engine_Custom.discardOnOpen;
-		}
-
-		if (url !== null)
-		{
-			openUrl(url, getOpenResultBehaviour(clickType), discardOnOpen);
-		}
-	}
-
-	function getOpenResultBehaviour(clickType: string)
-	{
-		if (clickType === "leftClick")     return sss.settings.mouseLeftButtonBehaviour;
-		if (clickType === "middleClick")   return sss.settings.mouseMiddleButtonBehaviour;
-		if (clickType === "rightClick")    return sss.settings.mouseRightButtonBehaviour;
-		if (clickType === "shortcutClick") return sss.settings.shortcutBehaviour;
-		if (clickType === "ctrlClick")     return OpenResultBehaviour.NewBgTab;
-		return OpenResultBehaviour.NewBgTab;	// shouldn't happen
 	}
 
 	function copyToClipboard(engine: SearchEngine_SSS_Copy)
@@ -1283,127 +1252,111 @@ namespace SSS
 		return query;
 	}
 
-	function openUrl(urlToOpen: string, openingBehaviour: OpenResultBehaviour, discardOnOpen: boolean)
+	function search(engine: SearchEngine_BrowserSearchApi | SearchEngine_Custom, searchText: string, openingBehaviour: OpenResultBehaviour, fromGroup: object = null, fromNewWindow: boolean = false, url: string = "", discardOnOpen: boolean = null)
 	{
-		getCurrentTab(tab => {
-			const lastTabIndex: number = 9999;	// "guarantees" tab opens as last for some behaviours
-			let options = { url: urlToOpen };
+		let jump: number;
+		const lastTabIndex: number = 9999;	// "guarantees" tab opens as last for some behaviours
 
-			if (openingBehaviour !== OpenResultBehaviour.NewWindow && openingBehaviour !== OpenResultBehaviour.NewBgWindow) {
-				options["openerTabId"] = tab.id;
+		if (discardOnOpen) {
+			// to be able to discard we need to open the URL in a new tab, regardless of opening behaviour choice
+			openingBehaviour = OpenResultBehaviour.NewTabNextToThis;
+		}
+
+		if (fromGroup){
+			// This is to make sure the tabs created by the group stay together. We're counting how many times we have to jump from the current tab
+			// to place the background tabs of the group. This value is going to be added to the current tab index on the 'switch' statement down below.
+			if (openingBehaviour === OpenResultBehaviour.ThisTab) {
+				jump = 1; // The main engine opens in this tab, so we place the other tabs always one index from this one
+			} else if (openingBehaviour === OpenResultBehaviour.NewTabNextToThis || openingBehaviour === OpenResultBehaviour.NewBgTabNextToThis) {
+				jump = 2; // Here, the main engine opens in a tab next to the current one, so we count two indexes from the current tab to place the others.
 			}
 
-			if (discardOnOpen) {
-				// to be able to discard we need to open the URL in a new tab, regardless of opening behaviour choice
-				openingBehaviour = OpenResultBehaviour.NewTabNextToThis;
+			// In a group, all the engines aside from the first one (which is the main engine) will open in background tabs.
+			if (!fromGroup["mainEngine"]) {
+				openingBehaviour = OpenResultBehaviour.NewBgTab;
+			}
+		}
+
+		function windowOnCreated(window) {
+			// The 'window' object above should have the property 'tabs'.
+			// Since it's not there (maybe a bug?) we have to get the current tab this way.
+			if (engine.type === SearchEngineType.BrowserSearchApi){
+				browser.tabs.query({active: true, windowId: window.id}).then(tabs => searchUsingSearchApi(tabs[0]));
 			}
 
-			switch (openingBehaviour)
-			{
+			if (fromGroup) {
+				// When calling from a new window we have to change the behaviour to 'ThisTab' to avoid recursion
+				onSearchEngineClick(fromGroup["group"], OpenResultBehaviour.ThisTab, searchText, fromGroup["href"], null, true);
+			}
+			browser.windows.onCreated.removeListener(windowOnCreated);
+		}
+
+		function searchUsingSearchApi(tab: browser.tabs.Tab = null) {
+			if (engine.type === SearchEngineType.BrowserSearchApi) {
+				browser.search.search({
+					engine: engine.name,
+					query: cleanSearchText(searchText),
+					tabId: openingBehaviour === OpenResultBehaviour.NewTab ? undefined : tab.id,
+				});
+			}
+			return tab;
+		}
+
+        getCurrentTab((tab: browser.tabs.Tab) => {
+			let options: object = {};
+			if (url) options["url"] = url; // only set for custom engines
+            switch (openingBehaviour)
+            {
 				case OpenResultBehaviour.ThisTab:
-					browser.tabs.update(undefined, options);
+					if (url) {
+						browser.tabs.update(undefined, options)
+						break;
+					}
+					searchUsingSearchApi(tab);
 					break;
 
-				case OpenResultBehaviour.NewTab:
-					options["index"] = lastTabIndex + 1;
-					browser.tabs.create(options);
+                case OpenResultBehaviour.NewTab:
+					if (url) {
+						options["index"] = lastTabIndex + 1;
+						browser.tabs.create(options)
+						break;
+					}
+					searchUsingSearchApi(tab);
 					break;
 
-				case OpenResultBehaviour.NewBgTab:
-					options["index"] = lastTabIndex + 1;
+                case OpenResultBehaviour.NewBgTab:
 					options["active"] = false;
-					browser.tabs.create(options);
-					break;
+					options["index"] = tab.index + jump || lastTabIndex + 1;
+                    browser.tabs.create(options).then(searchUsingSearchApi);
+                    break;
 
-				case OpenResultBehaviour.NewTabNextToThis:
+                case OpenResultBehaviour.NewTabNextToThis:
 					options["index"] = tab.index + 1;
-					let promise = browser.tabs.create(options);
+					let promise = browser.tabs.create(options).then(searchUsingSearchApi);
 					// NOTE: we actually wanted to do this in a new BACKGROUND tab, to avoid the flickering when opening a new tab and then deleting it.
 					// However, tabs opened in the background take time to actually process the URL, so we'd have to use a timer before
 					// removing the tab and we don't even know how much time this will take.
 					if (discardOnOpen) {
 						promise.then(tab => browser.tabs.remove(tab.id));
 					}
-					break;
-
-				case OpenResultBehaviour.NewBgTabNextToThis:
-					options["index"] = tab.index + 1;
-					options["active"] = false;
-					browser.tabs.create(options);
-					break;
-
-				case OpenResultBehaviour.NewWindow:
-					browser.windows.create(options);
-					break;
-
-				case OpenResultBehaviour.NewBgWindow:
-					// options["focused"] = false;	// fails because it's unsupported by Firefox
-					browser.windows.create(options);
-					break;
-			}
-		});
-	}
-
-	function searchUsingSearchApi(engine: SearchEngine_BrowserSearchApi, searchText: string, openingBehaviour: OpenResultBehaviour, fromGroup: Object = null, fromNewWindow)
-	{
-		// When calling from a new window we have to change the behaviour to 'ThisTab' to avoid recursion
-        if (fromNewWindow) {
-            openingBehaviour = OpenResultBehaviour.ThisTab;
-
-            // When clicking in a group, all the engines aside from the main one will open in background tabs.
-            if (fromGroup && !fromGroup["mainEngine"]){
-                openingBehaviour = OpenResultBehaviour.NewBgTab;
-            }
-        }
-		function windowOnCreated(window) {
-            // 'clickType' is set to 'leftClick' but it can be any other type, since we're overriding the behaviour when opening a new window anyway.
-			onSearchEngineClick(fromGroup?.["group"] || engine, "leftClick", searchText, "", null, true)
-			browser.windows.onCreated.removeListener(windowOnCreated);
-        }
-
-        getCurrentTab((tab: browser.tabs.Tab) => {
-            let options = {};
-
-            function search(tab) {
-                const tabId: number = openingBehaviour === OpenResultBehaviour.NewTab ? undefined : tab.id;
-                browser.search.search({
-                    engine: engine.name,
-                    query: cleanSearchText(searchText),
-                    tabId: tabId
-                });
-            }
-
-            switch (openingBehaviour)
-            {
-                case OpenResultBehaviour.NewBgTab:
-                    options["active"] = false;
-                    browser.tabs.create(options).then(search);
-                    break;
-
-                case OpenResultBehaviour.NewTabNextToThis:
-                    options["index"] = tab.index + 1;
-                    let promise = browser.tabs.create(options).then(search);
-                    // NOTE: we actually wanted to do this in a new BACKGROUND tab, to avoid the flickering when opening a new tab and then deleting it.
-                    // However, tabs opened in the background take time to actually process the URL, so we'd have to use a timer before
-                    // removing the tab and we don't even know how much time this will take.
-                    // if (discardOnOpen) {
-                    //     promise.then(tab => browser.tabs.remove(tab.id));
-                    // }
                     break;
 
                 case OpenResultBehaviour.NewBgTabNextToThis:
                     options["index"] = tab.index + 1;
                     options["active"] = false;
-                    browser.tabs.create(options).then(search);
+                    browser.tabs.create(options).then(searchUsingSearchApi);
                     break;
 
                 case OpenResultBehaviour.NewWindow:
                     browser.windows.onCreated.addListener(windowOnCreated);
-                    browser.windows.create();
-                    break;
+                    browser.windows.create(options);
+					break;
 
-                default:
-                	search(tab);
+				case OpenResultBehaviour.NewBgWindow:
+					browser.windows.onCreated.addListener(windowOnCreated);
+					// options["focused"] = false;	// fails because it's unsupported by Firefox
+					browser.windows.create(options);
+					break;
             }
         });
 	}
