@@ -308,37 +308,51 @@ namespace SSS_Settings
 
 		// Group icon
 		const groupIconLabel = document.createElement("label");
+		let groupIcon: HTMLImageElement | HTMLCanvasElement;
+		let color: string;
+		let iconUrl: string;
 
-		// Color picker
-		const groupColorPicker = document.createElement("input");
-		groupColorPicker.type = "color";
-		groupColorPicker.style.display = "none";
+		if (editGroup?.iconModified)
+		{
+			groupIcon = document.createElement("img") as HTMLImageElement;
+			groupIcon.src = iconUrl = editGroup.iconUrl;
+			groupIcon.className = "group-custom-icon";
+			groupIconLabel.append(groupIcon);
+		} else {
+			// Color picker
+			const groupColorPicker = document.createElement("input");
+			groupColorPicker.type = "color";
+			groupColorPicker.style.display = "none";
 
-		// Drawing the default icon
-		const groupDefaultIcon = document.createElement("canvas");
-		groupDefaultIcon.className = "group-icon";
-		// groupDefaultIcon.title = "Click to change color"
-		groupDefaultIcon.width = 24;
-		groupDefaultIcon.height = 24;
-		const ctx = groupDefaultIcon.getContext("2d");
-		ctx.beginPath();
-		ctx.arc(12, 12, 12, 0, 2 * Math.PI); // (centerX, centerY, radius, 0, 2 * Math.PI) The first three values are half of the width/height of the icon
+			// Drawing the default icon
+			groupIcon = document.createElement("canvas") as HTMLCanvasElement;
+			groupIcon.className = "group-default-icon";
 
-		// Apply a random color to the icon whenever a group is created. If editing, apply the color that was saved before.
-		ctx.fillStyle = editGroup?.color || 'rgb(' + (Math.floor(Math.random() * 256)) + ','
-												   + (Math.floor(Math.random() * 256)) + ','
-												   + (Math.floor(Math.random() * 256)) + ')';
-		ctx.fill();
+			// groupIcon.title = "Click to change color"
+			groupIcon.width = 24;
+			groupIcon.height = 24;
+			const ctx = groupIcon.getContext("2d");
+			ctx.beginPath();
+			ctx.arc(12, 12, 12, 0, 2 * Math.PI); // (centerX, centerY, radius, 0, 2 * Math.PI) The first three values are half of the width/height of the icon
 
-		// Change the color of the group icon
-		groupColorPicker.oninput = e => {
-			const target = e.target as HTMLInputElement;
-			const rgbColor = target.value;
-			ctx.fillStyle = rgbColor;
+			// Apply a random color to the icon whenever a group is created. If editing, apply the color that was saved before.
+			ctx.fillStyle = color = editGroup?.color || 'rgb(' + (Math.floor(Math.random() * 256)) + ','
+													+ (Math.floor(Math.random() * 256)) + ','
+													+ (Math.floor(Math.random() * 256)) + ')';
 			ctx.fill();
 
-		};
-		groupIconLabel.append(groupDefaultIcon, groupColorPicker);
+			// Change the color of the group icon
+			groupColorPicker.oninput = e => {
+				const target = e.target as HTMLInputElement;
+				color = target.value;
+				ctx.fillStyle = color;
+				ctx.fill();
+				groupIcon = groupIcon as HTMLCanvasElement;
+				iconUrl = groupIcon.toDataURL();
+			};
+			iconUrl = groupIcon.toDataURL();
+			groupIconLabel.append(groupIcon, groupColorPicker);
+		}
 		groupPopupHeader.appendChild(groupIconLabel);
 
 		// Group title
@@ -446,10 +460,7 @@ namespace SSS_Settings
 		saveButton.id = "save";
 		saveButton.onclick = _ => {
 
-			const iconUrl = groupDefaultIcon.toDataURL();	// by default try to get a favicon for the domain
-			const color = ctx.fillStyle;
 			const groupName = groupTitleField.value.length > 0 ? groupTitleField.value : editGroup?.name || "New Group";
-
 
 			if (editGroup)
 			{
@@ -1471,6 +1482,7 @@ namespace SSS_Settings
 				iconLinkInput.value = getIconUrlFromSearchUrl(references.searchLinkInput.value);
 				setIconUrlInput(engine, iconLinkInput, icon);
 			}
+			if (engine.type === SSS.SearchEngineType.Group) engine.iconModified = true;
 			trimSearchEnginesCache(settings);
 			saveSettings({ searchEngines: settings.searchEngines, searchEnginesCache: settings.searchEnginesCache });
 			calculateAndShowSettingsSize();

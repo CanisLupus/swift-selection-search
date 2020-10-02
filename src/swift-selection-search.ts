@@ -77,6 +77,7 @@ namespace SSS
 	{
 		groupEngines: Array<any>;
 		color: string;
+		iconModified: boolean;
 	}
 
 	export class Settings
