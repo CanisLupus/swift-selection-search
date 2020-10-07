@@ -274,6 +274,21 @@ namespace SSS_Settings
 		document.body.style.overflow = "auto";
 	}
 
+	function drawDefaultGroupIcon(canvas: HTMLCanvasElement, color: string) {
+		const ctx = canvas.getContext("2d");
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+		ctx.beginPath();
+		ctx.arc(12, 12, 12, 0, 2 * Math.PI); // (centerX, centerY, radius, 0, 2 * Math.PI) The first three values are half of the width/height of the icon
+
+		// Apply a random color to the icon whenever a group is created. If editing, apply the color that was saved before.
+		ctx.fillStyle = color || 'rgb(' + (Math.floor(Math.random() * 256)) + ','
+												+ (Math.floor(Math.random() * 256)) + ','
+												+ (Math.floor(Math.random() * 256)) + ')';
+		ctx.fill();
+
+		return ctx.fillStyle;
+	}
+
 	// This is called to either create or edit a group.
 	// When editing, we pass the group as a parameter.
 	function showGroupPopup(editGroup = null)
@@ -331,22 +346,13 @@ namespace SSS_Settings
 			// groupIcon.title = "Click to change color"
 			groupIcon.width = 24;
 			groupIcon.height = 24;
-			const ctx = groupIcon.getContext("2d");
-			ctx.beginPath();
-			ctx.arc(12, 12, 12, 0, 2 * Math.PI); // (centerX, centerY, radius, 0, 2 * Math.PI) The first three values are half of the width/height of the icon
-
-			// Apply a random color to the icon whenever a group is created. If editing, apply the color that was saved before.
-			ctx.fillStyle = color = editGroup?.color || 'rgb(' + (Math.floor(Math.random() * 256)) + ','
-													+ (Math.floor(Math.random() * 256)) + ','
-													+ (Math.floor(Math.random() * 256)) + ')';
-			ctx.fill();
+			color = drawDefaultGroupIcon(groupIcon, editGroup?.color);
+			groupColorPicker.value = color;
 
 			// Change the color of the group icon
 			groupColorPicker.oninput = e => {
 				const target = e.target as HTMLInputElement;
-				color = target.value;
-				ctx.fillStyle = color;
-				ctx.fill();
+				color = drawDefaultGroupIcon(groupIcon as HTMLCanvasElement, target.value);
 				groupIcon = groupIcon as HTMLCanvasElement;
 				iconUrl = groupIcon.toDataURL();
 			};
@@ -358,7 +364,7 @@ namespace SSS_Settings
 		// Group title
 		const groupTitleField = document.createElement("input");
 		groupTitleField.type = "text";
-		groupTitleField.placeholder = editGroup?.name || "New group";
+		groupTitleField.value = editGroup?.name || "New group";
 		groupPopupHeader.appendChild(groupTitleField);
 		setTimeout(() => groupTitleField.focus(),100);
 
