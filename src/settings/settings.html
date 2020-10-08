@@ -267,7 +267,7 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 		flex-direction: column;
 		border: 1px solid #ccc;
 		border-radius: 4px;
-		width: 30vw;
+		width: 25vw;
 		height: 60vh;
 		background: inherit;
 		position: fixed;
@@ -326,11 +326,22 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 		padding-bottom: 0.5rem;
 		margin-bottom: 0.5rem;
 	}
+	.group-selected-engines-container > div {
+		cursor: default;
+	}
+	.group-selected-engines-container > div:hover > div:last-child {
+		visibility: visible;
+	}
 	.group-selected-engines-container:empty::before {
 		content: "Choose the engines that will belong to this group:";
 		padding: 0.5rem;
 		font-size: 0.9rem;
 		font-style: italic;
+	}
+	.group-remove-engine-button {
+		margin-left: auto !important;
+		margin-right: 1rem !important;
+		visibility: hidden;
 	}
 	.group-engines-list-row {
 		display: flex;
@@ -338,6 +349,7 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 		cursor: pointer;
 		margin-left: 0.5rem;
 		user-select: none;
+		align-items: center;
 	}
 	.group-engines-list-row > * {
 		margin: 0.2rem;

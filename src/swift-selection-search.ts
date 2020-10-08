@@ -1152,12 +1152,15 @@ namespace SSS
 				// If true, we merge the engines of the child group to the parent so that we have one array with all the engines.
 				selectedEngine.groupEngines = selectedEngine.groupEngines.map(engine => engine.type === SearchEngineType.Group ? engine.groupEngines : engine).flat();
 			}
+
 			// Reverse the engines of the group except for the first one.
+			//
 			// There reason for this is to make sure the tabs open in the exact sequence (top to bottom) the user set the engines when adding/editing the group.
 			// This has to do with the way we're setting the index of the tabs that will open in the background - which are all but first one in the group.
 			// The first will always be the active one, so no need to change it's place in the array.
 			// This is only needed for the behaviours below because there may have other tabs to the right of the current one.
 			// Because the other behavious make the tabs go to the last place, there's no need to reverse in those cases.
+			//
 			// NOTE: See the comment on the search function about the 'jump' variable.
 			let groupEngines = selectedEngine.groupEngines;
 			if (openingBehaviour === OpenResultBehaviour.ThisTab ||

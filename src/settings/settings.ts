@@ -388,7 +388,6 @@ namespace SSS_Settings
 				const groupEnginesListRow = document.createElement("div");
 				groupEnginesListRow.className = "group-engines-list-row engine-table-row";
 
-				// dragger element
 				// For the dragger and the icons we're using the function below, just to avoid having duplicate code.
 				const dragger = buildSearchEngineRow(engine, settings.searchEngines.indexOf(engine)).children[0] as HTMLDivElement;
 				dragger.style.display = "none"; // The dragger will only show for the selected engines.
@@ -410,13 +409,7 @@ namespace SSS_Settings
 						// The first selected engine will be the main one and stays at the top of the list.
 						// All the others will be appended after the last selected.
 						selectedEnginesContainer.insertBefore(groupEnginesListRow, selectedEnginesContainer.childNodes[groupEngines.indexOf(engine)]);
-					} else {
-						// Clicking again on the row removes it from the group area.
-						groupEngines.splice(groupEngines.indexOf(engine),1);
-						groupRowsContainer.prepend(groupEnginesListRow)
-						dragger.style.display = "none";
 					}
-
 					// Disable the save button if there is no selected engines.
 					groupEngines.length > 0 ? saveButton.disabled = false : saveButton.disabled = true;
 				};
@@ -426,7 +419,18 @@ namespace SSS_Settings
 				const engineName = document.createElement("span");
 				engineName.textContent = engine.name;
 
-				groupEnginesListRow.append(dragger, checkbox, engineIcon, engineName)
+				const removeSelectedDiv = buildSearchEngineRow(engine, settings.searchEngines.indexOf(engine)).lastChild as HTMLDivElement;
+				removeSelectedDiv.className = "group-remove-engine-button";
+				const removeSelectedButton = removeSelectedDiv.firstChild as HTMLInputElement;
+				removeSelectedButton.title = "Remove this engine from the group";
+				removeSelectedButton.onclick = (ev) => {
+					ev.preventDefault(); // to override the default onclick listener of the delete button
+					groupEngines.splice(groupEngines.indexOf(engine),1);
+					groupRowsContainer.insertBefore(groupEnginesListRow, groupRowsContainer.children[rowIndex]);
+					dragger.style.display = "none";
+				}
+
+				groupEnginesListRow.append(dragger, checkbox, engineIcon, engineName, removeSelectedDiv)
 
 				if (checkbox.checked) {
 					// engineRows stores the rows in the same order the engines were selected
@@ -434,9 +438,11 @@ namespace SSS_Settings
 					// change the position of the engines according to their needs.
 					engineRows[groupEngines.indexOf(engine)] = groupEnginesListRow;
 					dragger.style.display = "block"; // Show dragger only for the selected engines
-				} else {
-					groupRowsContainer.append(groupEnginesListRow)
 				}
+				groupRowsContainer.append(groupEnginesListRow);
+
+				// grab the index of the row to restore it to the old position when removing it from the group
+				const rowIndex: number = [...groupRowsContainer.children].indexOf(groupEnginesListRow);
 			}
 		});
 
