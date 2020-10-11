@@ -274,19 +274,33 @@ namespace SSS_Settings
 		document.body.style.overflow = "auto";
 	}
 
-	function drawDefaultGroupIcon(canvas: HTMLCanvasElement, color: string) {
-		const ctx = canvas.getContext("2d");
-		ctx.clearRect(0, 0, canvas.width, canvas.height);
+	function drawDefaultGroupIcon(currentColor: string = null): [HTMLCanvasElement, string] {
+			const groupIcon = document.createElement("canvas");
+			groupIcon.width = 24;
+			groupIcon.height = 24;
+			const color = setGroupIconColor(groupIcon, currentColor);
+		return [groupIcon, color];
+	}
+
+	function setGroupIconColor(icon: HTMLCanvasElement, currentColor: string = null): string {
+		const ctx = icon.getContext("2d");
+		ctx.clearRect(0, 0, icon.width, icon.height);
 		ctx.beginPath();
 		ctx.arc(12, 12, 12, 0, 2 * Math.PI); // (centerX, centerY, radius, 0, 2 * Math.PI) The first three values are half of the width/height of the icon
 
 		// Apply a random color to the icon whenever a group is created. If editing, apply the color that was saved before.
-		ctx.fillStyle = color || 'rgb(' + (Math.floor(Math.random() * 256)) + ','
+		ctx.fillStyle = currentColor || 'rgb(' + (Math.floor(Math.random() * 256)) + ','
 												+ (Math.floor(Math.random() * 256)) + ','
 												+ (Math.floor(Math.random() * 256)) + ')';
 		ctx.fill();
-
 		return ctx.fillStyle;
+	}
+
+	function rgbToHex(rgb): string {
+		const canvas = document.createElement("canvas");
+		const ctx = canvas.getContext('2d');
+		ctx.fillStyle = rgb;
+		return String(ctx.fillStyle);
 	}
 
 	// This is called to either create or edit a group.
@@ -327,38 +341,53 @@ namespace SSS_Settings
 		let color: string;
 		let iconUrl: string;
 
+		// Color picker
+		const groupColorPicker = document.createElement("input");
+		groupColorPicker.type = "color";
+		groupColorPicker.style.display = "none";
+		let replacedIcon: HTMLImageElement;
+
 		if (editGroup?.iconModified)
 		{
 			groupIcon = document.createElement("img") as HTMLImageElement;
 			groupIcon.src = iconUrl = editGroup.iconUrl;
-			groupIcon.className = "group-custom-icon";
-			groupIconLabel.append(groupIcon);
-		} else {
-			// Color picker
-			const groupColorPicker = document.createElement("input");
-			groupColorPicker.type = "color";
-			groupColorPicker.style.display = "none";
-
-			// Drawing the default icon
-			groupIcon = document.createElement("canvas") as HTMLCanvasElement;
-			groupIcon.className = "group-default-icon";
-
-			// groupIcon.title = "Click to change color"
-			groupIcon.width = 24;
-			groupIcon.height = 24;
-			color = drawDefaultGroupIcon(groupIcon, editGroup?.color);
-			groupColorPicker.value = color;
-
-			// Change the color of the group icon
-			groupColorPicker.oninput = e => {
-				const target = e.target as HTMLInputElement;
-				color = drawDefaultGroupIcon(groupIcon as HTMLCanvasElement, target.value);
-				groupIcon = groupIcon as HTMLCanvasElement;
-				iconUrl = groupIcon.toDataURL();
+			let backgroundColor: string;
+			groupColorPicker.onclick = ev => {
+				if (!replacedIcon) {
+					// Replace the current custom icon with the default circle
+					[groupIcon, color] = drawDefaultGroupIcon();
+					backgroundColor = rgbToHex(window.getComputedStyle(document.body).backgroundColor);
+					groupColorPicker.value = backgroundColor;
+					setTimeout(() => {
+						// This doesn't actually change the value, but serves to make the 'change' event fire when closing the color picker.
+						groupColorPicker.value = "#ffffff";
+					},100);
+					replacedIcon = groupIconLabel.firstChild as HTMLImageElement;
+					groupIconLabel.firstChild.replaceWith(groupIcon);
+				}
 			};
+			groupColorPicker.onchange = e => {
+				const newValue = (e.target as HTMLInputElement).value;
+				if (newValue === backgroundColor) {
+					groupIconLabel.firstChild.replaceWith(replacedIcon);
+					replacedIcon = null;
+				}
+			};
+		} else {
+			[groupIcon, color] = drawDefaultGroupIcon(editGroup?.color);
+			groupColorPicker.value = color;
 			iconUrl = groupIcon.toDataURL();
-			groupIconLabel.append(groupIcon, groupColorPicker);
 		}
+
+		// Change the color of the group icon
+		groupColorPicker.oninput = ev => {
+			const target = ev.target as HTMLInputElement;
+			groupIcon = groupIcon as HTMLCanvasElement;
+			color = setGroupIconColor(groupIcon, target.value);
+			iconUrl = groupIcon.toDataURL();
+		};
+		groupIcon.className = "group-default-icon";
+		groupIconLabel.append(groupIcon, groupColorPicker);
 		groupPopupHeader.appendChild(groupIconLabel);
 
 		// Group title
@@ -414,7 +443,7 @@ namespace SSS_Settings
 					groupEngines.length > 0 ? saveButton.disabled = false : saveButton.disabled = true;
 				};
 
-				const engineIcon = buildSearchEngineRow(engine, settings.searchEngines.indexOf(engine)).children[3]
+				const engineIcon = buildSearchEngineRow(engine, settings.searchEngines.indexOf(engine)).children[3] as HTMLImageElement;
 
 				const engineName = document.createElement("span");
 				engineName.textContent = engine.name;
@@ -424,7 +453,6 @@ namespace SSS_Settings
 				const removeSelectedButton = removeSelectedDiv.firstChild as HTMLInputElement;
 				removeSelectedButton.title = "Remove this engine from the group";
 				removeSelectedButton.onclick = (ev) => {
-					ev.preventDefault(); // to override the default onclick listener of the delete button
 					groupEngines.splice(groupEngines.indexOf(engine),1);
 					groupRowsContainer.insertBefore(groupEnginesListRow, groupRowsContainer.children[rowIndex]);
 					dragger.style.display = "none";
@@ -471,11 +499,12 @@ namespace SSS_Settings
 		saveButton.value = "Save";
 		saveButton.id = "save";
 		saveButton.onclick = _ => {
-
 			const groupName = groupTitleField.value.length > 0 ? groupTitleField.value : editGroup?.name || "New Group";
 
 			if (editGroup)
 			{
+				// If replacedIcon is 'true' it means the user chose to revert the group icon back to the default circle.
+				if (replacedIcon) editGroup.iconModified = false;
 				editGroup.name = groupName;
 				editGroup.groupEngines = groupEngines;
 				editGroup.iconUrl = iconUrl,
@@ -1223,12 +1252,9 @@ namespace SSS_Settings
 				// create columns for groups
 				let engineDescription = document.createElement("div");
 				engineDescription.onclick = _ => showGroupPopup(engine);
-				engineDescription.style.cursor = "pointer";
 				engineDescription.title = "Click to edit this group"
-				engineDescription.className = "engine-sss engine-description-small";
-
-				 // limit text to 70 characters to match the space of the 'searchUrl' input fields of other engines
-				engineDescription.textContent = text.length > 70 ? `${text.substring(0, 70)}...` : text;
+				engineDescription.className = "engine-sss engine-description-small group-engine-description";
+				engineDescription.textContent = text
 				engineRow.appendChild(engineDescription);
 			} else {
 				engineRow.appendChild(createEngineSearchLink(engine, references));

@@ -292,10 +292,6 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 		padding: 0.6rem;
 		align-items: center;
 	}
-	.group-custom-icon {
-		width: 24px;
-		height: 24px;
-	}
 	.group-default-icon {
 		cursor: pointer;
 		transition: all 0.2s;
@@ -366,6 +362,12 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 	}
 	.group-popup-footer > * {
 		margin: 0.2rem;
+	}
+	.group-engine-description {
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		cursor: pointer;
 	}
 
 	/* platform/version specific elements */
