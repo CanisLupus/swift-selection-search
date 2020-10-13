@@ -296,11 +296,12 @@ namespace SSS_Settings
 		return ctx.fillStyle;
 	}
 
-	function rgbToHex(rgb): string {
-		const canvas = document.createElement("canvas");
-		const ctx = canvas.getContext('2d');
-		ctx.fillStyle = rgb;
-		return String(ctx.fillStyle);
+	// Revert the custom group icon to the default one
+	function revertToDefaultIcon(group: SSS.SearchEngine_Group): [HTMLCanvasElement, string] {
+		const [defaultIcon, color] = drawDefaultGroupIcon(group.color);
+		const customIcon = document.querySelector("#group_icon");
+		customIcon.replaceWith(defaultIcon);
+		return [defaultIcon, color];
 	}
 
 	// This is called to either create or edit a group.
@@ -345,38 +346,22 @@ namespace SSS_Settings
 		const groupColorPicker = document.createElement("input");
 		groupColorPicker.type = "color";
 		groupColorPicker.style.display = "none";
-		let replacedIcon: HTMLImageElement;
 
 		if (editGroup?.iconModified)
 		{
 			groupIcon = document.createElement("img") as HTMLImageElement;
-			groupIcon.src = iconUrl = editGroup.iconUrl;
-			let backgroundColor: string;
+			groupIcon.id = "group_icon";
+			groupIcon.src = editGroup.iconUrl;
 			groupColorPicker.onclick = ev => {
-				if (!replacedIcon) {
-					// Replace the current custom icon with the default circle
-					[groupIcon, color] = drawDefaultGroupIcon();
-					backgroundColor = rgbToHex(window.getComputedStyle(document.body).backgroundColor);
-					groupColorPicker.value = backgroundColor;
-					setTimeout(() => {
-						// This doesn't actually change the value, but serves to make the 'change' event fire when closing the color picker.
-						groupColorPicker.value = "#ffffff";
-					},100);
-					replacedIcon = groupIconLabel.firstChild as HTMLImageElement;
-					groupIconLabel.firstChild.replaceWith(groupIcon);
-				}
-			};
-			groupColorPicker.onchange = e => {
-				const newValue = (e.target as HTMLInputElement).value;
-				if (newValue === backgroundColor) {
-					groupIconLabel.firstChild.replaceWith(replacedIcon);
-					replacedIcon = null;
+				ev.preventDefault();
+				const revertToDefault = confirm("Revert to the default icon?");
+				if (revertToDefault){
+					[groupIcon, color] = revertToDefaultIcon(editGroup);
 				}
 			};
 		} else {
 			[groupIcon, color] = drawDefaultGroupIcon(editGroup?.color);
 			groupColorPicker.value = color;
-			iconUrl = groupIcon.toDataURL();
 		}
 
 		// Change the color of the group icon
@@ -384,7 +369,6 @@ namespace SSS_Settings
 			const target = ev.target as HTMLInputElement;
 			groupIcon = groupIcon as HTMLCanvasElement;
 			color = setGroupIconColor(groupIcon, target.value);
-			iconUrl = groupIcon.toDataURL();
 		};
 		groupIcon.className = "group-default-icon";
 		groupIconLabel.append(groupIcon, groupColorPicker);
@@ -500,25 +484,23 @@ namespace SSS_Settings
 		saveButton.id = "save";
 		saveButton.onclick = _ => {
 			const groupName = groupTitleField.value.length > 0 ? groupTitleField.value : editGroup?.name || "New Group";
-
+			const iconUrl: string = (groupIcon as HTMLImageElement).src || (groupIcon as HTMLCanvasElement).toDataURL();
+			const groupData = {
+				name: groupName,
+				groupEngines: groupEngines,
+				iconUrl: iconUrl,
+				color: color,
+				type: SSS.SearchEngineType.Group,
+			}
 			if (editGroup)
 			{
-				// If replacedIcon is 'true' it means the user chose to revert the group icon back to the default circle.
-				if (replacedIcon) editGroup.iconModified = false;
-				editGroup.name = groupName;
-				editGroup.groupEngines = groupEngines;
-				editGroup.iconUrl = iconUrl,
-				editGroup.color = color;
+				// If the icon was modified groupIcon is an IMG element
+				editGroup.iconModified = groupIcon.nodeName === "IMG";
+				Object.assign(editGroup, groupData)
 			}
 			else
 			{
-				settings.searchEngines.push(createDefaultEngine({
-					type: SSS.SearchEngineType.Group,
-					name: groupName,
-					iconUrl: iconUrl,
-					groupEngines: groupEngines,
-					color: color,
-				}));
+				settings.searchEngines.push(createDefaultEngine({ ...groupData }));
 			}
 
 			saveSettings({ searchEngines: settings.searchEngines });
