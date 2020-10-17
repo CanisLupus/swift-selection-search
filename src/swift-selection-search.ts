@@ -72,6 +72,7 @@ namespace SSS
 		iconUrl: string;
 	}
 
+	// Group of search engines (or other groups).
 	// (SearchEngineType: Group)
 	export class SearchEngine_Group extends SearchEngine_Custom
 	{
@@ -901,11 +902,9 @@ namespace SSS
 		let selectedEngine: SearchEngine = engines[menuId];
 
 		let button = info?.button ?? 0;
-
 		let isLink = info.linkText ? true : false;
 
 		onSearchEngineClick(selectedEngine, getOpenResultBehaviourForContextMenu(button), info.selectionText || info.linkText, info.pageUrl, null, null, isLink);
-
 	}
 
 	function getOpenResultBehaviourForContextMenu(button: number)
@@ -1102,7 +1101,14 @@ namespace SSS
 	/* ---------- ENGINE CLICKS ----------- */
 	/* ------------------------------------ */
 
-	function onSearchEngineClick(selectedEngine: SearchEngine, openingBehaviour: OpenResultBehaviour, searchText: string, href: string, fromGroup: object = null, fromNewWindow: boolean = false, isLink: boolean = false)
+	function onSearchEngineClick(
+		selectedEngine: SearchEngine,
+		openingBehaviour: OpenResultBehaviour,
+		searchText: string,
+		href: string,
+		fromGroup: object = null,
+		fromNewWindow: boolean = false,
+		isLink: boolean = false)
 	{
 		let url: string = null;
 		let discardOnOpen: boolean;
@@ -1122,7 +1128,7 @@ namespace SSS
 			else if (engine_SSS.id === "openAsLink") {
 				url = getOpenAsLinkSearchUrl(searchText);
 				discardOnOpen = false;
-				search(engine_SSS as any, getOpenAsLinkSearchUrl(searchText),openingBehaviour, null, null, url, discardOnOpen);
+				search(engine_SSS as any, getOpenAsLinkSearchUrl(searchText), openingBehaviour, null, null, url, discardOnOpen);
 				if (DEBUG) { log("open as link: " + url); }
 			}
 		}
@@ -1134,6 +1140,7 @@ namespace SSS
 				url = getSearchQuery(engine_Custom, searchText, new URL(href));
 				discardOnOpen = engine_Custom.discardOnOpen;
 			}
+
 			search(
 				selectedEngine as SearchEngine_BrowserSearchApi | SearchEngine_Custom,
 				cleanSearchText(searchText),
@@ -1163,14 +1170,16 @@ namespace SSS
 			//
 			// NOTE: See the comment on the search function about the 'jump' variable.
 			let groupEngines = selectedEngine.groupEngines;
-			if (openingBehaviour === OpenResultBehaviour.ThisTab ||
-				openingBehaviour === OpenResultBehaviour.NewTabNextToThis ||
-				openingBehaviour === OpenResultBehaviour.NewBgTabNextToThis) {
-					groupEngines = [selectedEngine.groupEngines[0], ...selectedEngine.groupEngines.slice(1).reverse()];
-				}
+			if (openingBehaviour === OpenResultBehaviour.ThisTab
+				|| openingBehaviour === OpenResultBehaviour.NewTabNextToThis
+				|| openingBehaviour === OpenResultBehaviour.NewBgTabNextToThis)
+			{
+				groupEngines = [selectedEngine.groupEngines[0], ...selectedEngine.groupEngines.slice(1).reverse()];
+			}
 
 			// Make a recursion on the current function for each engine in the group as though they were being clicked individually
-			for (let i = 0; i < groupEngines.length; i++) {
+			for (let i = 0; i < groupEngines.length; i++)
+			{
 				const info = {
 					"mainEngine": i === 0,
 					"group": selectedEngine,
@@ -1266,7 +1275,7 @@ namespace SSS
 			openingBehaviour = OpenResultBehaviour.NewTabNextToThis;
 		}
 
-		if (fromGroup){
+		if (fromGroup) {
 			// This is to make sure the tabs created by the group stay together. We're counting how many times we have to jump from the current tab
 			// to place the background tabs of the group. This value is going to be added to the current tab index on the 'switch' statement down below.
 			if (openingBehaviour === OpenResultBehaviour.ThisTab) {
@@ -1284,7 +1293,7 @@ namespace SSS
 		function windowOnCreated(window) {
 			// The 'window' object above should have the property 'tabs'.
 			// Since it's not there (maybe a bug?) we have to get the current tab this way.
-			if (engine.type === SearchEngineType.BrowserSearchApi){
+			if (engine.type === SearchEngineType.BrowserSearchApi) {
 				browser.tabs.query({active: true, windowId: window.id}).then(tabs => searchUsingSearchApi(tabs[0]));
 			}
 
@@ -1309,6 +1318,7 @@ namespace SSS
 		getCurrentTab((tab: browser.tabs.Tab) => {
 			let options: object = {};
 			if (url) options["url"] = url; // only set for custom engines
+
 			switch (openingBehaviour)
 			{
 				case OpenResultBehaviour.ThisTab:

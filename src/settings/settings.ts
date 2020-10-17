@@ -274,15 +274,17 @@ namespace SSS_Settings
 		document.body.style.overflow = "auto";
 	}
 
-	function drawDefaultGroupIcon(currentColor: string = null): [HTMLCanvasElement, string] {
-			const groupIcon = document.createElement("canvas");
-			groupIcon.width = 24;
-			groupIcon.height = 24;
-			const color = setGroupIconColor(groupIcon, currentColor);
+	function drawDefaultGroupIcon(currentColor: string = null): [HTMLCanvasElement, string]
+	{
+		const groupIcon = document.createElement("canvas");
+		groupIcon.width = 24;
+		groupIcon.height = 24;
+		const color = setGroupIconColor(groupIcon, currentColor);
 		return [groupIcon, color];
 	}
 
-	function setGroupIconColor(icon: HTMLCanvasElement, currentColor: string = null): string {
+	function setGroupIconColor(icon: HTMLCanvasElement, currentColor: string = null): string
+	{
 		const ctx = icon.getContext("2d");
 		ctx.clearRect(0, 0, icon.width, icon.height);
 		ctx.beginPath();
@@ -290,14 +292,15 @@ namespace SSS_Settings
 
 		// Apply a random color to the icon whenever a group is created. If editing, apply the color that was saved before.
 		ctx.fillStyle = currentColor || 'rgb(' + (Math.floor(Math.random() * 256)) + ','
-												+ (Math.floor(Math.random() * 256)) + ','
-												+ (Math.floor(Math.random() * 256)) + ')';
+											   + (Math.floor(Math.random() * 256)) + ','
+											   + (Math.floor(Math.random() * 256)) + ')';
 		ctx.fill();
 		return ctx.fillStyle;
 	}
 
 	// Revert the custom group icon to the default one
-	function revertToDefaultIcon(group: SSS.SearchEngine_Group): [HTMLCanvasElement, string] {
+	function revertToDefaultIcon(group: SSS.SearchEngine_Group): [HTMLCanvasElement, string]
+	{
 		const [defaultIcon, color] = drawDefaultGroupIcon(group.color);
 		const customIcon = document.querySelector("#group_icon");
 		customIcon.replaceWith(defaultIcon);
@@ -379,7 +382,7 @@ namespace SSS_Settings
 		groupTitleField.type = "text";
 		groupTitleField.value = editGroup?.name || "New group";
 		groupPopupHeader.appendChild(groupTitleField);
-		setTimeout(() => groupTitleField.focus(),100);
+		setTimeout(() => groupTitleField.focus(), 100);
 
 		// Container for the selected engines.
 		const selectedEnginesContainer = document.createElement("div");
@@ -393,11 +396,11 @@ namespace SSS_Settings
 
 		// Rows
 		const groupRowsContainer = document.createElement("div");
-		settings.searchEngines.forEach((engine) => {
+		settings.searchEngines.forEach(engine => {
 			if (engine.id !== "separator"
 				&& settings.searchEngines.indexOf(engine) !== settings.searchEngines.indexOf(editGroup) // Don't show the group being edited...
-				&& engine.type !== SSS.SearchEngineType.SSS) { // ...nor SSS engines
-
+				&& engine.type !== SSS.SearchEngineType.SSS) // ...nor SSS engines
+			{
 				const groupEnginesListRow = document.createElement("div");
 				groupEnginesListRow.className = "group-engines-list-row engine-table-row";
 
@@ -507,6 +510,7 @@ namespace SSS_Settings
 			updateUIWithSettings();
 			destroyGroupPopup();
 		};
+
 		groupPopupFooter.appendChild(saveButton);
 		container.appendChild(groupPopupFooter);
 		document.body.appendChild(container);
@@ -1216,13 +1220,15 @@ namespace SSS_Settings
 			// Only the anonymous callbacks inside the following functions will use values inside this object.
 			let references = {};
 
-			if (engine.type === SSS.SearchEngineType.BrowserSearchApi) {
+			if (engine.type === SSS.SearchEngineType.BrowserSearchApi)
+			{
 				let engineDescription = document.createElement("div");
 				engineDescription.className = "engine-sss engine-description-small";
 				engineDescription.textContent = "Engine managed by the browser.";
 				engineRow.appendChild(engineDescription);
-			} else if (engine.type === SSS.SearchEngineType.Group) {
-
+			}
+			else if (engine.type === SSS.SearchEngineType.Group)
+			{
 				// Get the names of the engines in the group.
 				const names = engine.groupEngines.map((engine => engine.name || sssIcons[engine.id].name));
 
@@ -1238,7 +1244,9 @@ namespace SSS_Settings
 				engineDescription.className = "engine-sss engine-description-small group-engine-description";
 				engineDescription.textContent = text
 				engineRow.appendChild(engineDescription);
-			} else {
+			}
+			else
+			{
 				engineRow.appendChild(createEngineSearchLink(engine, references));
 			}
 

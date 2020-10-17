@@ -569,7 +569,7 @@ namespace ContentScript
 			let message: EngineClickMessage = createSearchMessage(engine, settings);
 
 			if (ev[selectionchange.modifierKey]) {
-				message.openingBehaviour = SSS.OpenResultBehaviour.NewBgTab
+				message.openingBehaviour = SSS.OpenResultBehaviour.NewBgTab;
 			} else if (ev.button === 0) {
 				message.openingBehaviour = settings.mouseLeftButtonBehaviour;
 			} else if (ev.button === 1) {
