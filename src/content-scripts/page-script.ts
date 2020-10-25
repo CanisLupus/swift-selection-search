@@ -759,6 +759,9 @@ namespace PopupCreator
 					border-radius: ${settings.popupBorderRadius}px;
 					padding: 4px 7px;
 					margin: 4px 0px 2px 0px;
+					background: transparent;
+					color:white;
+					mix-blend-mode: exclusion;
 				}
 
 				.sss-input-field:hover {
