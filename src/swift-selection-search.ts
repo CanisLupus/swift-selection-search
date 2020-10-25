@@ -765,7 +765,7 @@ namespace SSS
 				break;
 
 			case "engineClick":
-				onSearchEngineClick(msg.engine, msg.openingBehaviour, msg.selection, msg.href, false);
+				onSearchEngineClick(msg.engine, msg.openingBehaviour, msg.selection, msg.href, null);
 				break;
 
 			case "log":
@@ -825,7 +825,7 @@ namespace SSS
 		browser.contextMenus.create({
 			id: "sss",
 			title: sss.settings.contextMenuString,
-			contexts: ["selection"], // "link"],
+			contexts: ["selection"/* , "link" */],
 			// The code in onContextMenuItemClicked already allows SSS to search by a link's text by right clicking it,
 			// so uncommenting the above "link" context would magically add this feature. However, by default, SSS's
 			// contextMenuString uses %s, which Firefox replaces ONLY with the currently selected text, MEANING that if you just
@@ -900,8 +900,7 @@ namespace SSS
 		let menuId: number = parseInt(info.menuItemId as string);
 		let selectedEngine: SearchEngine = sss.settings.searchEngines[menuId];
 		let button = info?.button ?? 0;
-		let isLink = info.linkText ? true : false;
-		onSearchEngineClick(selectedEngine, getOpenResultBehaviourForContextMenu(button), info.selectionText || info.linkText, info.pageUrl, isLink);
+		onSearchEngineClick(selectedEngine, getOpenResultBehaviourForContextMenu(button), info.selectionText ?? info.linkText, info.pageUrl, info.linkText);
 	}
 
 	function getOpenResultBehaviourForContextMenu(button: number)
@@ -1103,7 +1102,7 @@ namespace SSS
 		openingBehaviour: OpenResultBehaviour,
 		searchText: string,
 		href: string,
-		isLink: boolean)
+		linkText: string)
 	{
 		// Check if it's a special SSS engine (engine groups never contain these).
 
@@ -1112,8 +1111,10 @@ namespace SSS
 			let engine_SSS = selectedEngine as SearchEngine_SSS;
 
 			if (engine_SSS.id === "copyToClipboard") {
-				if (isLink) {
-					navigator.clipboard.writeText(searchText);	// if copying a link, just always copy its text
+				// Only assume link if the searchText is the link text.
+				// This prioritizes selection over link (since it shows on the "%s" part of the SSS context menu and causes confusion).
+				if (searchText === linkText) {
+					navigator.clipboard.writeText(linkText);	// if copying a link, just always copy its text
 				} else {
 					copyToClipboard(selectedEngine as SearchEngine_SSS_Copy);	// copy in the page script, to allow choice between HTML and plain text copy
 				}
