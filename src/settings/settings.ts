@@ -268,7 +268,9 @@ namespace SSS_Settings
 	function destroyGroupPopup()
 	{
 		// Remove the popup and the background overlay div
-		[...document.querySelectorAll(".group-popup-container, .group-background-div")].map(node => node.remove())
+		for (const node of document.querySelectorAll(".group-popup-container, .group-background-div")) {
+			node.remove();
+		}
 
 		// Make body scrollable again.
 		document.body.style.overflow = "auto";
@@ -302,25 +304,30 @@ namespace SSS_Settings
 	function revertToDefaultIcon(group: SSS.SearchEngine_Group): [HTMLCanvasElement, string]
 	{
 		const [defaultIcon, color] = drawDefaultGroupIcon(group.color);
-		const customIcon = document.querySelector("#group_icon");
+		const customIcon = document.querySelector("#group-icon");
 		customIcon.replaceWith(defaultIcon);
 		return [defaultIcon, color];
 	}
 
 	// This is called to either create or edit a group.
 	// When editing, we pass the group as a parameter.
-	function showGroupPopup(editGroup = null)
+	function showGroupPopup(groupEngineToEdit: SSS.SearchEngine_Group = null)
 	{
 		// This div will overlay the whole page while the popup is showing
 		const backgroundDiv = document.createElement("div");
 		backgroundDiv.className = "group-background-div";
 		document.body.appendChild(backgroundDiv);
 
+		// Clicking outside the popup closes it
+		backgroundDiv.onclick = _ => {
+			destroyGroupPopup();
+		};
+
 		// Prevent body from scrolling on the background when reaching the end or the top of the list inside the popup
 		document.body.style.overflow = "hidden";
 
 		// This array stores the engines that will belong to the group (or already belong if we're editing)
-		let groupEngines = editGroup ? [...editGroup.groupEngines] : [];
+		let groupEngines: SSS.SearchEngine[] = groupEngineToEdit ? groupEngineToEdit.groupEngines : [];
 
 		// This stores the rows (node) of the selected engines.
 		// Useful when editing a group, to show the engines in the exact order
@@ -330,40 +337,35 @@ namespace SSS_Settings
 		const container = document.createElement("div");
 		container.className = "group-popup-container";
 
-		// Clicking outside the popup closes it
-		backgroundDiv.onclick = _ => {
-			destroyGroupPopup();
-		};
-
 		const groupPopupHeader = document.createElement("div");
 		groupPopupHeader.className = "group-popup-header";
 		container.appendChild(groupPopupHeader);
 
 		// Group icon
-		const groupIconLabel = document.createElement("label");
 		let groupIcon: HTMLImageElement | HTMLCanvasElement;
 		let color: string;
-		let iconUrl: string;
 
 		// Color picker
 		const groupColorPicker = document.createElement("input");
 		groupColorPicker.type = "color";
 		groupColorPicker.style.display = "none";
 
-		if (editGroup?.iconModified)
+		if (groupEngineToEdit?.iconModified)
 		{
-			groupIcon = document.createElement("img") as HTMLImageElement;
-			groupIcon.id = "group_icon";
-			groupIcon.src = editGroup.iconUrl;
+			groupIcon = document.createElement("img");
+			groupIcon.id = "group-icon";
+			groupIcon.src = groupEngineToEdit.iconUrl;
 			groupColorPicker.onclick = ev => {
 				ev.preventDefault();
-				const revertToDefault = confirm("Revert to the default icon?");
-				if (revertToDefault){
-					[groupIcon, color] = revertToDefaultIcon(editGroup);
+
+				if (confirm("Revert to the default icon?")) {
+					[groupIcon, color] = revertToDefaultIcon(groupEngineToEdit);
 				}
 			};
-		} else {
-			[groupIcon, color] = drawDefaultGroupIcon(editGroup?.color);
+		}
+		else
+		{
+			[groupIcon, color] = drawDefaultGroupIcon(groupEngineToEdit?.color);
 			groupColorPicker.value = color;
 		}
 
@@ -373,14 +375,16 @@ namespace SSS_Settings
 			groupIcon = groupIcon as HTMLCanvasElement;
 			color = setGroupIconColor(groupIcon, target.value);
 		};
+
 		groupIcon.className = "group-default-icon";
+		const groupIconLabel = document.createElement("label");
 		groupIconLabel.append(groupIcon, groupColorPicker);
 		groupPopupHeader.appendChild(groupIconLabel);
 
 		// Group title
 		const groupTitleField = document.createElement("input");
 		groupTitleField.type = "text";
-		groupTitleField.value = editGroup?.name || "New group";
+		groupTitleField.value = groupEngineToEdit?.name || "New group";
 		groupPopupHeader.appendChild(groupTitleField);
 		setTimeout(() => groupTitleField.focus(), 100);
 
@@ -396,70 +400,74 @@ namespace SSS_Settings
 
 		// Rows
 		const groupRowsContainer = document.createElement("div");
-		settings.searchEngines.forEach(engine => {
-			if (engine.id !== "separator"
-				&& settings.searchEngines.indexOf(engine) !== settings.searchEngines.indexOf(editGroup) // Don't show the group being edited...
-				&& engine.type !== SSS.SearchEngineType.SSS) // ...nor SSS engines
+
+		for (const engine of settings.searchEngines)
+		{
+			if (engine.id === "separator"
+				|| settings.searchEngines.indexOf(engine) === settings.searchEngines.indexOf(groupEngineToEdit) // Don't show the group being edited...
+				|| engine.type === SSS.SearchEngineType.SSS) // ...nor SSS engines
 			{
-				const groupEnginesListRow = document.createElement("div");
-				groupEnginesListRow.className = "group-engines-list-row engine-table-row";
-
-				// For the dragger and the icons we're using the function below, just to avoid having duplicate code.
-				const dragger = buildSearchEngineRow(engine, settings.searchEngines.indexOf(engine)).children[0] as HTMLDivElement;
-				dragger.style.display = "none"; // The dragger will only show for the selected engines.
-
-				const checkbox = document.createElement("input");
-				checkbox.type = "checkbox";
-				checkbox.style.display = 'none';
-
-				// When editing, check the engines that are already on the group.
-				checkbox.checked = editGroup?.groupEngines.includes(engine);
-
-				// Clicking on the row itself selects the engine.
-				groupEnginesListRow.onclick = _ => {
-					checkbox.checked = !checkbox.checked;
-					if (checkbox.checked) {
-						groupEngines.push(engine);
-						dragger.style.display = "block";
-
-						// The first selected engine will be the main one and stays at the top of the list.
-						// All the others will be appended after the last selected.
-						selectedEnginesContainer.insertBefore(groupEnginesListRow, selectedEnginesContainer.childNodes[groupEngines.indexOf(engine)]);
-					}
-					// Disable the save button if there is no selected engines.
-					groupEngines.length > 0 ? saveButton.disabled = false : saveButton.disabled = true;
-				};
-
-				const engineIcon = buildSearchEngineRow(engine, settings.searchEngines.indexOf(engine)).children[3] as HTMLImageElement;
-
-				const engineName = document.createElement("span");
-				engineName.textContent = engine.name;
-
-				const removeSelectedDiv = buildSearchEngineRow(engine, settings.searchEngines.indexOf(engine)).lastChild as HTMLDivElement;
-				removeSelectedDiv.className = "group-remove-engine-button";
-				const removeSelectedButton = removeSelectedDiv.firstChild as HTMLInputElement;
-				removeSelectedButton.title = "Remove this engine from the group";
-				removeSelectedButton.onclick = (ev) => {
-					groupEngines.splice(groupEngines.indexOf(engine),1);
-					groupRowsContainer.insertBefore(groupEnginesListRow, groupRowsContainer.children[rowIndex]);
-					dragger.style.display = "none";
-				}
-
-				groupEnginesListRow.append(dragger, checkbox, engineIcon, engineName, removeSelectedDiv)
-
-				if (checkbox.checked) {
-					// engineRows stores the rows in the same order the engines were selected
-					// which is the same order in groupEngines. This allows the user to
-					// change the position of the engines according to their needs.
-					engineRows[groupEngines.indexOf(engine)] = groupEnginesListRow;
-					dragger.style.display = "block"; // Show dragger only for the selected engines
-				}
-				groupRowsContainer.append(groupEnginesListRow);
-
-				// grab the index of the row to restore it to the old position when removing it from the group
-				const rowIndex: number = [...groupRowsContainer.children].indexOf(groupEnginesListRow);
+				continue;
 			}
-		});
+
+			const groupEnginesListRow = document.createElement("div");
+			groupEnginesListRow.className = "group-engines-list-row engine-table-row";
+
+			// For the dragger and the icons we're using the function below, just to avoid having duplicate code.
+			const dragger = buildSearchEngineRow(engine, settings.searchEngines.indexOf(engine)).children[0] as HTMLDivElement;
+			dragger.style.display = "none"; // The dragger will only show for the selected engines.
+
+			const checkbox = document.createElement("input");
+			checkbox.type = "checkbox";
+			checkbox.style.display = 'none';
+
+			// When editing, check the engines that are already on the group.
+			checkbox.checked = groupEngineToEdit?.groupEngines.indexOf(engine) > -1;
+
+			// Clicking on the row itself selects the engine.
+			groupEnginesListRow.onclick = _ => {
+				checkbox.checked = !checkbox.checked;
+				if (checkbox.checked) {
+					groupEngines.push(engine);
+					dragger.style.display = "block";
+
+					// The first selected engine will be the main one and stays at the top of the list.
+					// All the others will be appended after the last selected.
+					selectedEnginesContainer.insertBefore(groupEnginesListRow, selectedEnginesContainer.childNodes[groupEngines.indexOf(engine)]);
+				}
+
+				saveButton.disabled = groupEngines.length === 0;
+			};
+
+			const engineIcon = buildSearchEngineRow(engine, settings.searchEngines.indexOf(engine)).children[3] as HTMLImageElement;
+
+			const engineName = document.createElement("span");
+			engineName.textContent = engine.name;
+
+			const removeSelectedDiv = buildSearchEngineRow(engine, settings.searchEngines.indexOf(engine)).lastChild as HTMLDivElement;
+			removeSelectedDiv.className = "group-remove-engine-button";
+			const removeSelectedButton = removeSelectedDiv.firstChild as HTMLInputElement;
+			removeSelectedButton.title = "Remove this engine from the group";
+			removeSelectedButton.onclick = _ => {
+				groupEngines.splice(groupEngines.indexOf(engine),1);
+				groupRowsContainer.insertBefore(groupEnginesListRow, groupRowsContainer.children[rowIndex]);
+				dragger.style.display = "none";
+			}
+
+			groupEnginesListRow.append(dragger, checkbox, engineIcon, engineName, removeSelectedDiv)
+
+			if (checkbox.checked) {
+				// engineRows stores the rows in the same order the engines were selected
+				// which is the same order in groupEngines. This allows the user to
+				// change the position of the engines according to their needs.
+				engineRows[groupEngines.indexOf(engine)] = groupEnginesListRow;
+				dragger.style.display = "block"; // Show dragger only for the selected engines
+			}
+			groupRowsContainer.append(groupEnginesListRow);
+
+			// grab the index of the row to restore it to the old position when removing it from the group
+			const rowIndex: number = [...groupRowsContainer.children].indexOf(groupEnginesListRow);
+		}
 
 		// When editing, place the engines of the group at the top of the list.
 		selectedEnginesContainer.prepend(...engineRows);
@@ -478,15 +486,14 @@ namespace SSS_Settings
 		groupPopupFooter.appendChild(cancelButton);
 
 		const saveButton = document.createElement("input");
-		saveButton.className = "teste";
 		saveButton.type = "button";
 		// The save button is initially disabled. It's only enabled when editing a group
 		// or when at least one engine is selected.
-		saveButton.disabled = editGroup ? false : true;
+		saveButton.disabled = groupEngineToEdit ? false : true;
 		saveButton.value = "Save";
 		saveButton.id = "save";
 		saveButton.onclick = _ => {
-			const groupName = groupTitleField.value.length > 0 ? groupTitleField.value : editGroup?.name || "New Group";
+			const groupName = groupTitleField.value.length > 0 ? groupTitleField.value : groupEngineToEdit?.name || "New Group";
 			const iconUrl: string = (groupIcon as HTMLImageElement).src || (groupIcon as HTMLCanvasElement).toDataURL();
 			const groupData = {
 				name: groupName,
@@ -495,11 +502,12 @@ namespace SSS_Settings
 				color: color,
 				type: SSS.SearchEngineType.Group,
 			}
-			if (editGroup)
+
+			if (groupEngineToEdit)
 			{
 				// If the icon was modified groupIcon is an IMG element
-				editGroup.iconModified = groupIcon.nodeName === "IMG";
-				Object.assign(editGroup, groupData)
+				groupEngineToEdit.iconModified = groupIcon.nodeName === "IMG";
+				Object.assign(groupEngineToEdit, groupData)
 			}
 			else
 			{
@@ -518,15 +526,7 @@ namespace SSS_Settings
 		// setup draggable elements to be able to sort engines
 		Sortable.create(selectedEnginesContainer, {
 			handle: ".engine-dragger",
-			onStart: ev => {
-				if (DEBUG) { log("start drag", ev.oldIndex); }
-			},
-			onUpdate: ev => {
-				var item = ev.item; // the current dragged HTMLElement
-				if (DEBUG) { log("onUpdate", item); }
-			},
 			onEnd: ev => {
-				if (DEBUG) { log("onEnd", settings); }
 				groupEngines.splice(ev.newIndex, 0, groupEngines.splice(ev.oldIndex, 1)[0]);
 			},
 		});

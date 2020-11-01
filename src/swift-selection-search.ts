@@ -74,9 +74,11 @@ namespace SSS
 
 	// Group of search engines (or other groups).
 	// (SearchEngineType: Group)
-	export class SearchEngine_Group extends SearchEngine_Custom
+	export class SearchEngine_Group extends SearchEngine
 	{
-		groupEngines: Array<any>;
+		name: string;
+		iconUrl: string;
+		groupEngines: SearchEngine[];
 		color: string;
 		iconModified: boolean;
 	}
