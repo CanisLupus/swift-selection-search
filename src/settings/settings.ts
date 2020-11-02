@@ -265,12 +265,22 @@ namespace SSS_Settings
 		hasDOMContentLoaded = true;
 	}
 
-	function destroyGroupPopup()
+	function hideGroupPopup()
 	{
-		// Remove the popup and the background overlay div
-		for (const node of document.querySelectorAll(".group-popup-container, .group-background-div")) {
-			node.remove();
-		}
+		// Hide the popup
+		const groupEnginePopup = document.getElementById("group-popup") as HTMLDivElement;
+		groupEnginePopup.classList.add("hidden");
+
+		const selectedEnginesContainer = document.getElementById("group-selected-engines-container") as HTMLDivElement;
+		selectedEnginesContainer.innerHTML = "";
+
+		const groupPopupEnginesContainer = document.getElementById("group-popup-engines-container") as HTMLDivElement;
+		groupPopupEnginesContainer.innerHTML = "";
+
+		const groupIconImg = document.getElementById("group-icon-img") as HTMLImageElement;
+		groupIconImg.classList.add("hidden");
+		const groupIconCanvas = document.getElementById("group-icon-canvas") as HTMLCanvasElement;
+		groupIconCanvas.classList.add("hidden");
 
 		// Make body scrollable again.
 		document.body.style.overflow = "auto";
@@ -278,9 +288,8 @@ namespace SSS_Settings
 
 	function drawDefaultGroupIcon(currentColor: string = null): [HTMLCanvasElement, string]
 	{
-		const groupIcon = document.createElement("canvas");
-		groupIcon.width = 24;
-		groupIcon.height = 24;
+		const groupIcon = document.getElementById("group-icon-canvas") as HTMLCanvasElement;
+		groupIcon.classList.remove("hidden");
 		const color = setGroupIconColor(groupIcon, currentColor);
 		return [groupIcon, color];
 	}
@@ -300,74 +309,54 @@ namespace SSS_Settings
 		return ctx.fillStyle;
 	}
 
-	// Revert the custom group icon to the default one
-	function revertToDefaultIcon(group: SSS.SearchEngine_Group): [HTMLCanvasElement, string]
-	{
-		const [defaultIcon, color] = drawDefaultGroupIcon(group.color);
-		const customIcon = document.querySelector("#group-icon");
-		customIcon.replaceWith(defaultIcon);
-		return [defaultIcon, color];
-	}
-
 	// This is called to either create or edit a group.
 	// When editing, we pass the group as a parameter.
 	function showGroupPopup(groupEngineToEdit: SSS.SearchEngine_Group = null)
 	{
-		// This div will overlay the whole page while the popup is showing
-		const backgroundDiv = document.createElement("div");
-		backgroundDiv.className = "group-background-div";
-		document.body.appendChild(backgroundDiv);
+		const groupEnginePopup = document.getElementById("group-popup") as HTMLDivElement;
+		groupEnginePopup.classList.remove("hidden");
 
-		// Clicking outside the popup closes it
+		// This div overlays the whole page while the popup is showing. Clicking it hides the popup.
+		const backgroundDiv = document.getElementById("group-background-div") as HTMLDivElement;
 		backgroundDiv.onclick = _ => {
-			destroyGroupPopup();
+			hideGroupPopup();
 		};
 
 		// Prevent body from scrolling on the background when reaching the end or the top of the list inside the popup
 		document.body.style.overflow = "hidden";
 
 		// This array stores the engines that will belong to the group (or already belong if we're editing)
-		let groupEngines: SSS.SearchEngine[] = groupEngineToEdit ? groupEngineToEdit.groupEngines : [];
-
-		// This stores the rows (node) of the selected engines.
-		// Useful when editing a group, to show the engines in the exact order
-		// the user selected them when creating it.
-		let engineRows = [];
-
-		const container = document.createElement("div");
-		container.className = "group-popup-container";
-
-		const groupPopupHeader = document.createElement("div");
-		groupPopupHeader.className = "group-popup-header";
-		container.appendChild(groupPopupHeader);
+		let groupEngines: SSS.SearchEngine[] = groupEngineToEdit?.groupEngines ?? [];
 
 		// Group icon
 		let groupIcon: HTMLImageElement | HTMLCanvasElement;
 		let color: string;
 
 		// Color picker
-		const groupColorPicker = document.createElement("input");
-		groupColorPicker.type = "color";
-		groupColorPicker.style.display = "none";
+		const groupColorPicker = document.getElementById("group-color-picker") as HTMLInputElement;
 
 		if (groupEngineToEdit?.iconModified)
 		{
-			groupIcon = document.createElement("img");
-			groupIcon.id = "group-icon";
+			groupIcon = document.getElementById("group-icon-img") as HTMLImageElement;
+			groupIcon.classList.remove("hidden");
 			groupIcon.src = groupEngineToEdit.iconUrl;
-			groupColorPicker.onclick = ev => {
-				ev.preventDefault();
-
-				if (confirm("Revert to the default icon?")) {
-					[groupIcon, color] = revertToDefaultIcon(groupEngineToEdit);
-				}
-			};
 		}
 		else
 		{
 			[groupIcon, color] = drawDefaultGroupIcon(groupEngineToEdit?.color);
 			groupColorPicker.value = color;
 		}
+
+		groupColorPicker.onclick = ev => {
+			if (!groupEngineToEdit?.iconModified) return;
+
+			ev.preventDefault();
+
+			if (confirm("Revert to the default icon?")) {
+				groupIcon.classList.add("hidden");
+				[groupIcon, color] = drawDefaultGroupIcon(groupEngineToEdit.color);
+			}
+		};
 
 		// Change the color of the group icon
 		groupColorPicker.oninput = ev => {
@@ -376,31 +365,23 @@ namespace SSS_Settings
 			color = setGroupIconColor(groupIcon, target.value);
 		};
 
-		groupIcon.className = "group-default-icon";
-		const groupIconLabel = document.createElement("label");
-		groupIconLabel.append(groupIcon, groupColorPicker);
-		groupPopupHeader.appendChild(groupIconLabel);
-
 		// Group title
-		const groupTitleField = document.createElement("input");
-		groupTitleField.type = "text";
+		const groupTitleField = document.getElementById("group-title-field") as HTMLInputElement;
 		groupTitleField.value = groupEngineToEdit?.name || "New group";
-		groupPopupHeader.appendChild(groupTitleField);
 		setTimeout(() => groupTitleField.focus(), 100);
 
+		// This stores the rows (node) of the selected engines.
+		// Useful when editing a group, to show the engines in the exact order
+		// the user selected them when creating it.
+		let engineRows = [];
+
 		// Container for the selected engines.
-		const selectedEnginesContainer = document.createElement("div");
-		selectedEnginesContainer.className = "group-selected-engines-container";
-		container.appendChild(selectedEnginesContainer);
+		const selectedEnginesContainer = document.getElementById("group-selected-engines-container") as HTMLDivElement;
 
 		/* ---- Engines list ---- */
-		const groupPopupEnginesContainer = document.createElement("div");
-		groupPopupEnginesContainer.className = "group-popup-engines-container";
-		container.appendChild(groupPopupEnginesContainer);
+		const groupPopupEnginesContainer = document.getElementById("group-popup-engines-container") as HTMLDivElement;
 
 		// Rows
-		const groupRowsContainer = document.createElement("div");
-
 		for (const engine of settings.searchEngines)
 		{
 			if (engine.id === "separator"
@@ -450,7 +431,7 @@ namespace SSS_Settings
 			removeSelectedButton.title = "Remove this engine from the group";
 			removeSelectedButton.onclick = _ => {
 				groupEngines.splice(groupEngines.indexOf(engine),1);
-				groupRowsContainer.insertBefore(groupEnginesListRow, groupRowsContainer.children[rowIndex]);
+				groupPopupEnginesContainer.insertBefore(groupEnginesListRow, groupPopupEnginesContainer.children[rowIndex]);
 				dragger.style.display = "none";
 			}
 
@@ -463,35 +444,23 @@ namespace SSS_Settings
 				engineRows[groupEngines.indexOf(engine)] = groupEnginesListRow;
 				dragger.style.display = "block"; // Show dragger only for the selected engines
 			}
-			groupRowsContainer.append(groupEnginesListRow);
+			groupPopupEnginesContainer.append(groupEnginesListRow);
 
 			// grab the index of the row to restore it to the old position when removing it from the group
-			const rowIndex: number = [...groupRowsContainer.children].indexOf(groupEnginesListRow);
+			const rowIndex: number = [...groupPopupEnginesContainer.children].indexOf(groupEnginesListRow);
 		}
 
 		// When editing, place the engines of the group at the top of the list.
 		selectedEnginesContainer.prepend(...engineRows);
 
-		groupPopupEnginesContainer.appendChild(groupRowsContainer);
-
 		/* ---- Popup footer ---- */
-		const groupPopupFooter = document.createElement("div");
-		groupPopupFooter.className = "group-popup-footer";
-		container.appendChild(groupPopupFooter);
+		const cancelButton = document.getElementById("group-popup-cancel-button") as HTMLInputElement;
+		cancelButton.onclick = _ => hideGroupPopup();
 
-		const cancelButton = document.createElement("input");
-		cancelButton.type = "button";
-		cancelButton.value = "Cancel";
-		cancelButton.onclick = _ => destroyGroupPopup();
-		groupPopupFooter.appendChild(cancelButton);
-
-		const saveButton = document.createElement("input");
-		saveButton.type = "button";
+		const saveButton = document.getElementById("group-popup-save-button") as HTMLInputElement;
 		// The save button is initially disabled. It's only enabled when editing a group
 		// or when at least one engine is selected.
 		saveButton.disabled = groupEngineToEdit ? false : true;
-		saveButton.value = "Save";
-		saveButton.id = "save";
 		saveButton.onclick = _ => {
 			const groupName = groupTitleField.value.length > 0 ? groupTitleField.value : groupEngineToEdit?.name || "New Group";
 			const iconUrl: string = (groupIcon as HTMLImageElement).src || (groupIcon as HTMLCanvasElement).toDataURL();
@@ -503,25 +472,18 @@ namespace SSS_Settings
 				type: SSS.SearchEngineType.Group,
 			}
 
-			if (groupEngineToEdit)
-			{
-				// If the icon was modified groupIcon is an IMG element
-				groupEngineToEdit.iconModified = groupIcon.nodeName === "IMG";
+			if (groupEngineToEdit) {
+				// If this is an IMG element, then the icon was modified
+				groupEngineToEdit.iconModified = groupIcon instanceof HTMLImageElement;
 				Object.assign(groupEngineToEdit, groupData)
-			}
-			else
-			{
-				settings.searchEngines.push(createDefaultEngine({ ...groupData }));
+			} else {
+				settings.searchEngines.push(createDefaultEngine(groupData));
 			}
 
 			saveSettings({ searchEngines: settings.searchEngines });
 			updateUIWithSettings();
-			destroyGroupPopup();
+			hideGroupPopup();
 		};
-
-		groupPopupFooter.appendChild(saveButton);
-		container.appendChild(groupPopupFooter);
-		document.body.appendChild(container);
 
 		// setup draggable elements to be able to sort engines
 		Sortable.create(selectedEnginesContainer, {
@@ -530,6 +492,16 @@ namespace SSS_Settings
 				groupEngines.splice(ev.newIndex, 0, groupEngines.splice(ev.oldIndex, 1)[0]);
 			},
 		});
+
+		groupEnginePopup.onkeydown = ev => {
+			switch (ev.key) {
+				case "Escape":
+					hideGroupPopup();
+					return;
+				case "Enter":
+					saveButton.click();
+			}
+		};
 	}
 
 	// main setup for settings page, called when page loads
@@ -946,20 +918,6 @@ namespace SSS_Settings
 					// hide if neither itself or any parent has the "section" class
 					if ((ev.target as Element).closest(".section") === null) {
 						currentlyExpandedEngineOptions.style.display = "none";
-					}
-				}
-			};
-
-			document.onkeydown = ev => {
-				const groupPopup = document.querySelector('.group-popup-container');
-				if (groupPopup) {
-					switch (ev.key) {
-						case "Escape":
-							destroyGroupPopup();
-							return;
-						case "Enter":
-							const saveButton = groupPopup.querySelector('#save') as HTMLButtonElement;
-							saveButton.click();
 					}
 				}
 			};

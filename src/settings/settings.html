@@ -69,6 +69,10 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 		opacity: 0.5;
 	}
 
+	.hidden {
+		display: none !important;
+	}
+
 	/* sections */
 
 	.section {
@@ -168,9 +172,6 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 	.setting.disabled:hover {
 		background-color: #0000;
 	}
-	.setting.hidden {
-		display: none;
-	}
 	.setting.indent .setting-name::before {
 		content: "└\00a0\00a0";
 	}
@@ -262,21 +263,21 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 
 	/* group popup */
 
-	.group-popup-container {
+	#group-popup-container {
 		display: flex;
 		flex-direction: column;
 		border: 1px solid #ccc;
 		border-radius: 4px;
 		width: 25vw;
 		height: 60vh;
-		background: inherit;
+		background-color: #F9F9FA;
 		position: fixed;
 		top: 50%;
 		left: 50%;
 		transform: translate(-50%, -50%);
 		overflow: hidden;
 	}
-	.group-background-div {
+	#group-background-div {
 		position: fixed;
 		top: 0px;
 		left: 0px;
@@ -285,31 +286,33 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 		width: 100vw;
 		height: 100vh;
 	}
-	.group-popup-header {
+	#group-popup-header {
 		display: flex;
 		border-radius: 4px;
 		width: 100%;
 		padding: 0.6rem;
 		align-items: center;
 	}
-	.group-default-icon {
+	#group-icon-img,
+	#group-icon-canvas {
 		cursor: pointer;
 		transition: all 0.2s;
 		width: 24px;
 		height: 24px;
 	}
-	.group-default-icon:hover {
-		transform: scale(1.2, 1.2)
+	#group-icon-img:hover,
+	#group-icon-canvas:hover {
+		transform: scale(1.2, 1.2);
 	}
-	.group-popup-header > input {
+	#group-popup-header > input {
 		margin-left: 0.3rem;
 	}
-	.group-popup-header > label {
+	#group-popup-header > label {
 		display: flex;
 		align-items: center;
 		padding: 0.2rem;
 	}
-	.group-popup-engines-container {
+	#group-popup-engines-container {
 		display: flex;
 		flex-direction: column;
 		text-align: center;
@@ -318,19 +321,19 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 		overflow-y: scroll;
 		overflow-x: hidden;
 	}
-	.group-selected-engines-container {
+	#group-selected-engines-container {
 		border-bottom: 1px solid #ccc;
 		text-align: center;
 		padding-bottom: 0.5rem;
 		margin-bottom: 0.5rem;
 	}
-	.group-selected-engines-container > div {
+	#group-selected-engines-container > div {
 		cursor: default;
 	}
-	.group-selected-engines-container > div:hover > div:last-child {
+	#group-selected-engines-container > div:hover > div:last-child {
 		visibility: visible;
 	}
-	.group-selected-engines-container:empty::before {
+	#group-selected-engines-container:empty::before {
 		content: "Choose the engines that will belong to this group:";
 		padding: 0.5rem;
 		font-size: 0.9rem;
@@ -356,13 +359,13 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 		width: 22px;
 		height: 22px;
 	}
-	.group-popup-footer {
+	#group-popup-footer {
 		display: flex;
 		border-radius: 4px;
 		width: 100%;
 		padding: 0.6rem;
 	}
-	.group-popup-footer > * {
+	#group-popup-footer > * {
 		margin: 0.2rem;
 	}
 	.group-engine-description {
@@ -459,6 +462,9 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 	body.dark pop,
 	body.dark popm {
 		background: #2a2a31;
+	}
+	body.dark #group-popup-container {
+		background-color: #181A1B;
 	}
 </style>
 <title>SSS Options</title>
@@ -1294,6 +1300,27 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 				<div class="setting-description">Resets all options except search engines to their defaults (as if running SSS for the first time).</div>
 				<div class="setting-reset"></div>
 			</div>
+		</div>
+	</div>
+</div>
+
+<!-- NOTE: tabindex is needed to receive keydown events -->
+<div id="group-popup" class="hidden" tabindex="-1">
+	<div id="group-background-div"></div>
+	<div id="group-popup-container">
+		<div id="group-popup-header">
+			<label>
+				<img class="hidden" id="group-icon-img">
+				<canvas width="24" height="24" class="hidden" id="group-icon-canvas"></canvas>
+				<input type="color" style="display: none;" id="group-color-picker">
+			</label>
+			<input type="text" id="group-title-field">
+		</div>
+		<div id="group-selected-engines-container"></div>
+		<div id="group-popup-engines-container"></div>
+		<div id="group-popup-footer">
+			<input type="button" value="Cancel" id="group-popup-cancel-button">
+			<input type="button" value="Save" id="group-popup-save-button">
 		</div>
 	</div>
 </div>
