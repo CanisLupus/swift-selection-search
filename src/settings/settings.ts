@@ -274,8 +274,8 @@ namespace SSS_Settings
 		const selectedEnginesContainer = document.getElementById("group-selected-engines-container") as HTMLDivElement;
 		selectedEnginesContainer.innerHTML = "";
 
-		const groupPopupEnginesContainer = document.getElementById("group-popup-engines-container") as HTMLDivElement;
-		groupPopupEnginesContainer.innerHTML = "";
+		const availableEnginesContainer = document.getElementById("group-available-engines-container") as HTMLDivElement;
+		availableEnginesContainer.innerHTML = "";
 
 		const groupIconImg = document.getElementById("group-icon-img") as HTMLImageElement;
 		groupIconImg.classList.add("hidden");
@@ -367,7 +367,7 @@ namespace SSS_Settings
 
 		// Group title
 		const groupTitleField = document.getElementById("group-title-field") as HTMLInputElement;
-		groupTitleField.value = groupEngineToEdit?.name || "New group";
+		groupTitleField.value = groupEngineToEdit?.name ?? "New group";
 		setTimeout(() => groupTitleField.focus(), 100);
 
 		// This stores the rows (node) of the selected engines.
@@ -379,75 +379,86 @@ namespace SSS_Settings
 		const selectedEnginesContainer = document.getElementById("group-selected-engines-container") as HTMLDivElement;
 
 		/* ---- Engines list ---- */
-		const groupPopupEnginesContainer = document.getElementById("group-popup-engines-container") as HTMLDivElement;
+		const availableEnginesContainer = document.getElementById("group-available-engines-container") as HTMLDivElement;
 
 		// Rows
-		for (const engine of settings.searchEngines)
+		let availableEngines = settings.searchEngines.filter(e => e !== groupEngineToEdit && e.type !== SSS.SearchEngineType.SSS);
+
+		for (let i = 0; i < availableEngines.length; i++)
 		{
-			if (engine.id === "separator"
-				|| settings.searchEngines.indexOf(engine) === settings.searchEngines.indexOf(groupEngineToEdit) // Don't show the group being edited...
-				|| engine.type === SSS.SearchEngineType.SSS) // ...nor SSS engines
-			{
-				continue;
-			}
+			const engine = availableEngines[i];
 
 			const groupEnginesListRow = document.createElement("div");
 			groupEnginesListRow.className = "group-engines-list-row engine-table-row";
 
-			// For the dragger and the icons we're using the function below, just to avoid having duplicate code.
-			const dragger = buildSearchEngineRow(engine, settings.searchEngines.indexOf(engine)).children[0] as HTMLDivElement;
+			// HACK-ish. Saves the index to use later when removing the engine from the group and adding it to the available engines again.
+			groupEnginesListRow["engineIndex"] = i;
+
+			const dragger = createElement_EngineDragger();
 			dragger.style.display = "none"; // The dragger will only show for the selected engines.
 
-			const checkbox = document.createElement("input");
-			checkbox.type = "checkbox";
-			checkbox.style.display = 'none';
-
 			// When editing, check the engines that are already on the group.
-			checkbox.checked = groupEngineToEdit?.groupEngines.indexOf(engine) > -1;
+			let isSelected: boolean = groupEngineToEdit?.groupEngines.indexOf(engine) > -1;
 
 			// Clicking on the row itself selects the engine.
 			groupEnginesListRow.onclick = _ => {
-				checkbox.checked = !checkbox.checked;
-				if (checkbox.checked) {
-					groupEngines.push(engine);
-					dragger.style.display = "block";
+				isSelected = !isSelected;
+				if (!isSelected) return;
 
-					// The first selected engine will be the main one and stays at the top of the list.
-					// All the others will be appended after the last selected.
-					selectedEnginesContainer.insertBefore(groupEnginesListRow, selectedEnginesContainer.childNodes[groupEngines.indexOf(engine)]);
-				}
+				groupEngines.push(engine);
+				dragger.style.display = "block";
 
-				saveButton.disabled = groupEngines.length === 0;
+				// The first selected engine will be the main one and stays at the top of the list.
+				// All the others will be appended after the last selected.
+				selectedEnginesContainer.appendChild(groupEnginesListRow);
+				saveButton.disabled = false;
 			};
 
-			const engineIcon = buildSearchEngineRow(engine, settings.searchEngines.indexOf(engine)).children[3] as HTMLImageElement;
+			const engineIcon = createElement_EngineIcon(engine).iconElem;
 
 			const engineName = document.createElement("span");
 			engineName.textContent = engine.name;
 
-			const removeSelectedDiv = buildSearchEngineRow(engine, settings.searchEngines.indexOf(engine)).lastChild as HTMLDivElement;
+			const removeSelectedDiv = createElement_DeleteButton(i);
 			removeSelectedDiv.className = "group-remove-engine-button";
 			const removeSelectedButton = removeSelectedDiv.firstChild as HTMLInputElement;
 			removeSelectedButton.title = "Remove this engine from the group";
 			removeSelectedButton.onclick = _ => {
-				groupEngines.splice(groupEngines.indexOf(engine),1);
-				groupPopupEnginesContainer.insertBefore(groupEnginesListRow, groupPopupEnginesContainer.children[rowIndex]);
+				const index = groupEngines.indexOf(engine);
+				groupEngines.splice(index, 1);
+
+				// Find the correct place to insert the engine back in the available engines list,
+				// even if other engines were removed from there in the meantime.
+				const engineIndex = groupEnginesListRow["engineIndex"];
+				let wasInserted = false;
+
+				for (const child of availableEnginesContainer.children)
+				{
+					if (child["engineIndex"] > engineIndex) {
+						availableEnginesContainer.insertBefore(groupEnginesListRow, child);
+						wasInserted = true;
+						break;
+					}
+				}
+
+				if (!wasInserted) {
+					availableEnginesContainer.appendChild(groupEnginesListRow);
+				}
+
 				dragger.style.display = "none";
-			}
+			};
 
-			groupEnginesListRow.append(dragger, checkbox, engineIcon, engineName, removeSelectedDiv)
+			groupEnginesListRow.append(dragger, engineIcon, engineName, removeSelectedDiv)
 
-			if (checkbox.checked) {
+			if (isSelected) {
 				// engineRows stores the rows in the same order the engines were selected
 				// which is the same order in groupEngines. This allows the user to
 				// change the position of the engines according to their needs.
 				engineRows[groupEngines.indexOf(engine)] = groupEnginesListRow;
 				dragger.style.display = "block"; // Show dragger only for the selected engines
 			}
-			groupPopupEnginesContainer.append(groupEnginesListRow);
 
-			// grab the index of the row to restore it to the old position when removing it from the group
-			const rowIndex: number = [...groupPopupEnginesContainer.children].indexOf(groupEnginesListRow);
+			availableEnginesContainer.appendChild(groupEnginesListRow);
 		}
 
 		// When editing, place the engines of the group at the top of the list.
@@ -1076,10 +1087,7 @@ namespace SSS_Settings
 
 		// dragger element
 
-		let dragger = document.createElement("div");
-		dragger.className = "engine-dragger";
-		dragger.textContent = "☰";
-		dragger.style.cursor = "move";
+		let dragger = createElement_EngineDragger();
 		engineRow.appendChild(dragger);
 
 		// "is enabled" element
@@ -1118,25 +1126,7 @@ namespace SSS_Settings
 
 		// icon
 
-		let iconElem = document.createElement("div");
-		iconElem.className = "engine-icon-img";
-
-		let icon;
-
-		if (engine.type === SSS.SearchEngineType.SSS)
-		{
-			// special SSS icons have data that never changes, so just get it from constants
-			let sssIcon = sssIcons[engine.id];
-
-			if (sssIcon.iconPath !== undefined) {
-				let iconImgSource = browser.extension.getURL(sssIcon.iconPath);
-				icon = setupEngineIcon(iconImgSource, iconElem, settings);
-			}
-		}
-		else {
-			icon = setupEngineIcon(engine.iconUrl, iconElem, settings);
-		}
-
+		let { iconElem, icon } = createElement_EngineIcon(engine);
 		engineRow.appendChild(iconElem);
 
 		if (engine.type === SSS.SearchEngineType.SSS)
@@ -1160,11 +1150,11 @@ namespace SSS_Settings
 			engineRow.appendChild(engineDescription);
 
 			if (engine.id === "separator") {
-				engineRow.appendChild(createEngineShortcutFieldDiv());
-				engineRow.appendChild(createDeleteButton(i));
+				engineRow.appendChild(createElement_EngineShortcutFieldDiv());
+				engineRow.appendChild(createElement_DeleteButton(i));
 			} else {
-				engineRow.appendChild(createEngineShortcutField(engine));
-				engineRow.appendChild(createDeleteButtonDiv());
+				engineRow.appendChild(createElement_EngineShortcutField(engine));
+				engineRow.appendChild(createElement_DeleteButtonDiv());
 			}
 		}
 		else
@@ -1208,12 +1198,43 @@ namespace SSS_Settings
 				engineRow.appendChild(createEngineSearchLink(engine, references));
 			}
 
-			engineRow.appendChild(createEngineIconLink(engine, icon, references));
-			engineRow.appendChild(createEngineShortcutField(engine));
-			engineRow.appendChild(createDeleteButton(i));
+			engineRow.appendChild(createElement_EngineIconLink(engine, icon, references));
+			engineRow.appendChild(createElement_EngineShortcutField(engine));
+			engineRow.appendChild(createElement_DeleteButton(i));
 		}
 
 		return engineRow;
+	}
+
+	function createElement_EngineDragger(): HTMLDivElement
+	{
+		let dragger = document.createElement("div");
+		dragger.className = "engine-dragger";
+		dragger.textContent = "☰";
+		dragger.style.cursor = "move";
+		return dragger;
+	}
+
+	function createElement_EngineIcon(engine: SSS.SearchEngine): { iconElem: HTMLDivElement, icon: HTMLImageElement }
+	{
+		let iconElem = document.createElement("div");
+		iconElem.className = "engine-icon-img";
+
+		let icon;
+
+		if (engine.type === SSS.SearchEngineType.SSS) {
+			// special SSS icons have data that never changes, so just get it from constants
+			let sssIcon = sssIcons[engine.id];
+
+			if (sssIcon.iconPath !== undefined) {
+				let iconImgSource = browser.extension.getURL(sssIcon.iconPath);
+				icon = setupEngineIcon(iconImgSource, iconElem, settings);
+			}
+		} else {
+			icon = setupEngineIcon(engine.iconUrl, iconElem, settings);
+		}
+
+		return { iconElem, icon };
 	}
 
 	// creates and adds a row with options for a certain search engine to the engines table
@@ -1365,7 +1386,7 @@ namespace SSS_Settings
 
 	// Sets the icon for a search engine in the engines table.
 	// "data:" links are data, URLs are cached as data too.
-	function setupEngineIcon(iconImgSource, parent, settings)
+	function setupEngineIcon(iconImgSource, parent, settings): HTMLImageElement
 	{
 		let icon = document.createElement("img");
 
@@ -1450,7 +1471,7 @@ namespace SSS_Settings
 	}
 
 	// sets the icon URL field for a search engine in the engines table
-	function createEngineIconLink(engine, icon, references)
+	function createElement_EngineIconLink(engine, icon, references)
 	{
 		let parent = document.createElement("div");
 		parent.className = "engine-icon-link";
@@ -1496,9 +1517,9 @@ namespace SSS_Settings
 		}
 	}
 
-	function createEngineShortcutField(engine)
+	function createElement_EngineShortcutField(engine)
 	{
-		const parent = createEngineShortcutFieldDiv();
+		const parent = createElement_EngineShortcutFieldDiv();
 
 		const shortcutField = document.createElement("input");
 		shortcutField.type = "text";
@@ -1562,7 +1583,7 @@ namespace SSS_Settings
 		return parent;
 	}
 
-	function createEngineShortcutFieldDiv()
+	function createElement_EngineShortcutFieldDiv()
 	{
 		let parent = document.createElement("div");
 		parent.className = "engine-shortcut";
@@ -1570,9 +1591,9 @@ namespace SSS_Settings
 	}
 
 	// sets the delete button for a search engine in the engines table
-	function createDeleteButton(i)
+	function createElement_DeleteButton(i)
 	{
-		let parent = createDeleteButtonDiv();
+		let parent = createElement_DeleteButtonDiv();
 
 		let deleteButton = document.createElement("input");
 		deleteButton.type = "button";
@@ -1610,7 +1631,7 @@ namespace SSS_Settings
 		return parent;
 	}
 
-	function createDeleteButtonDiv()
+	function createElement_DeleteButtonDiv()
 	{
 		let parent = document.createElement("div");
 		parent.className = "engine-delete";
