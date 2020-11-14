@@ -1177,20 +1177,17 @@ namespace SSS_Settings
 			}
 			else if (engine.type === SSS.SearchEngineType.Group)
 			{
-				// Get the names of the engines in the group.
-				const names = engine.groupEngines.map((engine => engine.name || sssIcons[engine.id].name));
-
 				// Create a comma-separated string containing the names of the engines.
-				const text = names.reduce((text, name) => {
-					return `${text} ${name}${name === names[names.length - 1] ? "." : ","}`
-				}, "");
+				const text = engine.groupEngines
+					.map(engine => engine.type !== SSS.SearchEngineType.SSS ? engine.name : sssIcons[engine.id].name)
+					.join(", ");
 
 				// create columns for groups
 				let engineDescription = document.createElement("div");
-				engineDescription.onclick = _ => showGroupPopup(engine);
-				engineDescription.title = "Click to edit this group"
+				engineDescription.title = "Click to edit this group";
 				engineDescription.className = "engine-sss engine-description-small group-engine-description";
-				engineDescription.textContent = text
+				engineDescription.textContent = text;
+				engineDescription.onclick = _ => showGroupPopup(engine);
 				engineRow.appendChild(engineDescription);
 			}
 			else
