@@ -1600,22 +1600,19 @@ namespace SSS_Settings
 		deleteButton.value = "✖";
 		deleteButton.title = "Delete";
 		deleteButton.onclick = () => {
-			// Check if the engine belongs to a group
-			// This array holds the groups this engine may belong to
-			let parentGroup = settings.searchEngines.filter(engine => engine.type === SSS.SearchEngineType.Group && engine.groupEngines.includes(settings.searchEngines[i]));
+			// Deleting an engine that belongs to one or more groups must also remove it from the groups, so we ask the user for confirmation.
+			const engineToDelete = settings.searchEngines[i];
+			let groupsContainingEngine = settings.searchEngines.filter(engine => engine.type === SSS.SearchEngineType.Group && engine.groupEngines.includes(engineToDelete));
 
-			if (parentGroup.length > 0) {
+			if (groupsContainingEngine.length > 0)
+			{
 				// Create a formatted list with the names of the groups
-				const groupNames = parentGroup.reduce((name, group) => name += `\u2022 ${group.name}\n`, "");
+				const groupNames = groupsContainingEngine.map(group => `\u2022 ${group.name}`).join("\n");
 
-				// Deleting an item that belongs to a group will also remove it in the group so we ask the user for confirmation
-				const confirmDelete = confirm(`This engine will also be removed from the following group(s): \n\n${groupNames}\nAre you sure?`);
-				if (confirmDelete) {
-					parentGroup.map(group => {
+				if (confirm(`This engine will also be removed from the following group(s): \n\n${groupNames}\n\nAre you sure?`)) {
+					for (const group of groupsContainingEngine) {
 						group.groupEngines.splice(group.groupEngines.indexOf(settings.searchEngines[i]), 1);
-						// If the group becomes empty, we also remove it
-						if (group.groupEngines.length === 0) settings.searchEngines.splice(settings.searchEngines.indexOf(group), 1);
-					});
+					}
 				} else {
 					return;
 				}
