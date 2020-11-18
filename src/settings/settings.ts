@@ -290,23 +290,30 @@ namespace SSS_Settings
 	{
 		const groupIcon = document.getElementById("group-icon-canvas") as HTMLCanvasElement;
 		groupIcon.classList.remove("hidden");
-		const color = setGroupIconColor(groupIcon, currentColor);
+		const color = currentColor ?? generateRandomColorAsString();
+		setGroupIconColor(groupIcon, color);
 		return [groupIcon, color];
 	}
 
-	function setGroupIconColor(icon: HTMLCanvasElement, currentColor: string = null): string
+	function setGroupIconColor(iconCanvas: HTMLCanvasElement, colorAsString: string)
 	{
-		const ctx = icon.getContext("2d");
-		ctx.clearRect(0, 0, icon.width, icon.height);
+		const iconSize: number = iconCanvas.width;	// same as height
+
+		const ctx = iconCanvas.getContext("2d");
+		ctx.clearRect(0, 0, iconSize, iconSize);
 		ctx.beginPath();
-		ctx.arc(12, 12, 12, 0, 2 * Math.PI); // (centerX, centerY, radius, 0, 2 * Math.PI) The first three values are half of the width/height of the icon
+		ctx.arc(iconSize/2, iconSize/2, iconSize/2, 0, 2 * Math.PI); // (centerX, centerY, radius, startAngle, endAngle)
 
 		// Apply a random color to the icon whenever a group is created. If editing, apply the color that was saved before.
-		ctx.fillStyle = currentColor || 'rgb(' + (Math.floor(Math.random() * 256)) + ','
-											   + (Math.floor(Math.random() * 256)) + ','
-											   + (Math.floor(Math.random() * 256)) + ')';
+		ctx.fillStyle = colorAsString;
 		ctx.fill();
-		return ctx.fillStyle;
+	}
+
+	function generateRandomColorAsString(): string
+	{
+		return 'rgb(' + Math.floor(Math.random() * 256) + ','
+					  + Math.floor(Math.random() * 256) + ','
+					  + Math.floor(Math.random() * 256) + ')';
 	}
 
 	// This is called to either create or edit a group.
@@ -361,8 +368,9 @@ namespace SSS_Settings
 		// Change the color of the group icon
 		groupColorPicker.oninput = ev => {
 			const target = ev.target as HTMLInputElement;
+			color = target.value;
 			groupIcon = groupIcon as HTMLCanvasElement;
-			color = setGroupIconColor(groupIcon, target.value);
+			setGroupIconColor(groupIcon, color);
 		};
 
 		// Group title
