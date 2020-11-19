@@ -286,13 +286,11 @@ namespace SSS_Settings
 		document.body.style.overflow = "auto";
 	}
 
-	function drawDefaultGroupIcon(currentColor: string = null): [HTMLCanvasElement, string]
+	function drawDefaultGroupIcon(groupIconAsCanvas: HTMLCanvasElement, groupColorPicker: HTMLInputElement, color: string)
 	{
-		const groupIcon = document.getElementById("group-icon-canvas") as HTMLCanvasElement;
-		groupIcon.classList.remove("hidden");
-		const color = currentColor ?? generateRandomColorAsString();
-		setGroupIconColor(groupIcon, color);
-		return [groupIcon, color];
+		groupIconAsCanvas.classList.remove("hidden");
+		setGroupIconColor(groupIconAsCanvas, color);
+		groupColorPicker.value = color;
 	}
 
 	function setGroupIconColor(iconCanvas: HTMLCanvasElement, colorAsString: string)
@@ -309,11 +307,17 @@ namespace SSS_Settings
 		ctx.fill();
 	}
 
+	// generates a random color string like #f6592b
 	function generateRandomColorAsString(): string
 	{
-		return 'rgb(' + Math.floor(Math.random() * 256) + ','
-					  + Math.floor(Math.random() * 256) + ','
-					  + Math.floor(Math.random() * 256) + ')';
+		function channelToHex(channel) {
+			let hex = channel.toString(16);
+			return hex.length == 2 ? hex : "0" + hex;	// pad with zero if needed
+		}
+
+		return '#' + channelToHex(Math.floor(Math.random() * 256))
+				   + channelToHex(Math.floor(Math.random() * 256))
+				   + channelToHex(Math.floor(Math.random() * 256));
 	}
 
 	// This is called to either create or edit a group.
@@ -336,41 +340,40 @@ namespace SSS_Settings
 		let groupEngines: SSS.SearchEngine[] = groupEngineToEdit?.groupEngines ?? [];
 
 		// Group icon
-		let groupIcon: HTMLImageElement | HTMLCanvasElement;
-		let color: string;
+		let groupIconAsImage: HTMLImageElement = document.getElementById("group-icon-img") as HTMLImageElement;
+		let groupIconAsCanvas: HTMLCanvasElement = document.getElementById("group-icon-canvas") as HTMLCanvasElement;
+
+		let wasIconModified: boolean = groupEngineToEdit !== null && !groupEngineToEdit.iconUrl.startsWith("data:image/png");
 
 		// Color picker
 		const groupColorPicker = document.getElementById("group-color-picker") as HTMLInputElement;
+		let color: string;
 
-		if (groupEngineToEdit?.iconModified)
-		{
-			groupIcon = document.getElementById("group-icon-img") as HTMLImageElement;
-			groupIcon.classList.remove("hidden");
-			groupIcon.src = groupEngineToEdit.iconUrl;
-		}
-		else
-		{
-			[groupIcon, color] = drawDefaultGroupIcon(groupEngineToEdit?.color);
-			groupColorPicker.value = color;
+		if (wasIconModified) {
+			groupIconAsImage.classList.remove("hidden");
+			groupIconAsImage.src = groupEngineToEdit.iconUrl;
+		} else {
+			color = groupEngineToEdit?.color ?? generateRandomColorAsString();
+			drawDefaultGroupIcon(groupIconAsCanvas, groupColorPicker, color);
 		}
 
 		groupColorPicker.onclick = ev => {
-			if (!groupEngineToEdit?.iconModified) return;
+			if (!wasIconModified) return;
 
 			ev.preventDefault();
 
 			if (confirm("Revert to the default icon?")) {
-				groupIcon.classList.add("hidden");
-				[groupIcon, color] = drawDefaultGroupIcon(groupEngineToEdit.color);
+				groupIconAsImage.classList.add("hidden");
+				color = groupEngineToEdit?.color ?? generateRandomColorAsString();
+				drawDefaultGroupIcon(groupIconAsCanvas, groupColorPicker, color);
+				wasIconModified = false;
 			}
 		};
 
 		// Change the color of the group icon
 		groupColorPicker.oninput = ev => {
-			const target = ev.target as HTMLInputElement;
-			color = target.value;
-			groupIcon = groupIcon as HTMLCanvasElement;
-			setGroupIconColor(groupIcon, color);
+			color = groupColorPicker.value;
+			setGroupIconColor(groupIconAsCanvas, color);
 		};
 
 		// Group title
@@ -482,19 +485,17 @@ namespace SSS_Settings
 		saveButton.disabled = groupEngineToEdit ? false : true;
 		saveButton.onclick = _ => {
 			const groupName = groupTitleField.value.length > 0 ? groupTitleField.value : groupEngineToEdit?.name || "New Group";
-			const iconUrl: string = (groupIcon as HTMLImageElement).src || (groupIcon as HTMLCanvasElement).toDataURL();
+			const iconUrl: string = wasIconModified ? groupIconAsImage.src : groupIconAsCanvas.toDataURL();
 			const groupData = {
 				name: groupName,
 				groupEngines: groupEngines,
 				iconUrl: iconUrl,
 				color: color,
 				type: SSS.SearchEngineType.Group,
-			}
+			};
 
 			if (groupEngineToEdit) {
-				// If this is an IMG element, then the icon was modified
-				groupEngineToEdit.iconModified = groupIcon instanceof HTMLImageElement;
-				Object.assign(groupEngineToEdit, groupData)
+				Object.assign(groupEngineToEdit, groupData);
 			} else {
 				settings.searchEngines.push(createDefaultEngine(groupData));
 			}
@@ -1494,7 +1495,6 @@ namespace SSS_Settings
 				iconLinkInput.value = getIconUrlFromSearchUrl(references.searchLinkInput.value);
 				setIconUrlInput(engine, iconLinkInput, icon);
 			}
-			if (engine.type === SSS.SearchEngineType.Group) engine.iconModified = true;
 			trimSearchEnginesCache(settings);
 			saveSettings({ searchEngines: settings.searchEngines, searchEnginesCache: settings.searchEnginesCache });
 			calculateAndShowSettingsSize();

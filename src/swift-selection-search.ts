@@ -80,7 +80,6 @@ namespace SSS
 		iconUrl: string;
 		groupEngines: SearchEngine[];
 		color: string;
-		iconModified: boolean;
 	}
 
 	export class Settings
