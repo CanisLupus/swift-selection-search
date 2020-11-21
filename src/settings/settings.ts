@@ -400,7 +400,7 @@ namespace SSS_Settings
 			const engine = availableEngines[i];
 
 			const groupEnginesListRow = document.createElement("div");
-			groupEnginesListRow.className = "group-engines-list-row engine-table-row";
+			groupEnginesListRow.className = "group-engines-list-row";
 
 			// HACK-ish. Saves the index to use later when removing the engine from the group and adding it to the available engines again.
 			groupEnginesListRow["engineIndex"] = i;
@@ -430,11 +430,13 @@ namespace SSS_Settings
 			const engineName = document.createElement("span");
 			engineName.textContent = engine.name;
 
-			const removeSelectedDiv = createElement_DeleteButton(i);
+			const removeSelectedDiv = createElement_DeleteButtonDiv();
 			removeSelectedDiv.className = "group-remove-engine-button";
-			const removeSelectedButton = removeSelectedDiv.firstChild as HTMLInputElement;
-			removeSelectedButton.title = "Remove this engine from the group";
-			removeSelectedButton.onclick = _ => {
+			let deleteButton = document.createElement("input");
+			deleteButton.type = "button";
+			deleteButton.value = "✖";
+			deleteButton.title = "Remove this engine from the group";
+			deleteButton.onclick = _ => {
 				const index = groupEngines.indexOf(engine);
 				groupEngines.splice(index, 1);
 
@@ -458,6 +460,8 @@ namespace SSS_Settings
 
 				dragger.style.display = "none";
 			};
+
+			removeSelectedDiv.appendChild(deleteButton);
 
 			groupEnginesListRow.append(dragger, engineIcon, engineName, removeSelectedDiv)
 
@@ -1596,7 +1600,7 @@ namespace SSS_Settings
 	}
 
 	// sets the delete button for a search engine in the engines table
-	function createElement_DeleteButton(i)
+	function createElement_DeleteButton(i: number): HTMLDivElement
 	{
 		let parent = createElement_DeleteButtonDiv();
 
@@ -1633,7 +1637,7 @@ namespace SSS_Settings
 		return parent;
 	}
 
-	function createElement_DeleteButtonDiv()
+	function createElement_DeleteButtonDiv(): HTMLDivElement
 	{
 		let parent = document.createElement("div");
 		parent.className = "engine-delete";
