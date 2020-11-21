@@ -413,8 +413,8 @@ namespace SSS_Settings
 
 			// Clicking on the row itself selects the engine.
 			groupEnginesListRow.onclick = _ => {
-				isSelected = !isSelected;
-				if (!isSelected) return;
+				if (isSelected) return;
+				isSelected = true;
 
 				groupEngines.push(engine);
 				dragger.style.display = "block";
@@ -436,7 +436,7 @@ namespace SSS_Settings
 			deleteButton.type = "button";
 			deleteButton.value = "✖";
 			deleteButton.title = "Remove this engine from the group";
-			deleteButton.onclick = _ => {
+			deleteButton.onclick = ev => {
 				const index = groupEngines.indexOf(engine);
 				groupEngines.splice(index, 1);
 
@@ -459,6 +459,9 @@ namespace SSS_Settings
 				}
 
 				dragger.style.display = "none";
+				isSelected = false;
+
+				ev.stopPropagation();	// block parent from also receiving click and selecting the engine again
 			};
 
 			removeSelectedDiv.appendChild(deleteButton);
