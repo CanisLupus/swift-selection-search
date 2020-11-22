@@ -399,13 +399,13 @@ namespace SSS_Settings
 		{
 			const engine = availableEngines[i];
 
-			const groupEnginesListRow = document.createElement("div");
-			groupEnginesListRow.className = "group-engines-list-row";
+			let template = document.getElementById('group-engines-list-row-template') as HTMLTemplateElement;
+			let groupEnginesListRow = template.content.firstElementChild.cloneNode(true) as HTMLDivElement;
 
 			// HACK-ish. Saves the index to use later when removing the engine from the group and adding it to the available engines again.
 			groupEnginesListRow["engineIndex"] = i;
 
-			const dragger = createElement_EngineDragger();
+			let dragger = groupEnginesListRow.getElementsByClassName("engine-dragger")[0] as HTMLDivElement;
 			dragger.style.display = "none"; // The dragger will only show for the selected engines.
 
 			// When editing, check the engines that are already on the group.
@@ -425,20 +425,13 @@ namespace SSS_Settings
 				saveButton.disabled = false;
 			};
 
-			let engineIcon = document.createElement("div");
-			engineIcon.className = "engine-icon-img";
-			let engineIconImg = createElement_EngineIconImg(engine);
-			engineIcon.appendChild(engineIconImg);
+			const engineIconImg = groupEnginesListRow.querySelector(".engine-icon-img > img") as HTMLImageElement;
+			setupEngineIconImg(engine, engineIconImg);
 
-			const engineName = document.createElement("span");
+			const engineName = groupEnginesListRow.getElementsByClassName("engine-in-group-name")[0] as HTMLSpanElement;
 			engineName.textContent = engine.name;
 
-			const removeSelectedDiv = createElement_DeleteButtonDiv();
-			removeSelectedDiv.className = "group-remove-engine-button";
-			let deleteButton = document.createElement("input");
-			deleteButton.type = "button";
-			deleteButton.value = "✖";
-			deleteButton.title = "Remove this engine from the group";
+			const deleteButton = groupEnginesListRow.querySelector(".group-remove-engine-button > input") as HTMLInputElement;
 			deleteButton.onclick = ev => {
 				const index = groupEngines.indexOf(engine);
 				groupEngines.splice(index, 1);
@@ -466,10 +459,6 @@ namespace SSS_Settings
 
 				ev.stopPropagation();	// block parent from also receiving click and selecting the engine again
 			};
-
-			removeSelectedDiv.appendChild(deleteButton);
-
-			groupEnginesListRow.append(dragger, engineIcon, engineName, removeSelectedDiv)
 
 			if (isSelected) {
 				// engineRows stores the rows in the same order the engines were selected
@@ -1147,8 +1136,9 @@ namespace SSS_Settings
 
 		let engineIcon = document.createElement("div");
 		engineIcon.className = "engine-icon-img";
-		let iconImg = createElement_EngineIconImg(engine);
+		let iconImg = document.createElement("img");
 		engineIcon.appendChild(iconImg);
+		setupEngineIconImg(engine, iconImg);
 
 		engineRow.appendChild(engineIcon);
 
@@ -1234,7 +1224,7 @@ namespace SSS_Settings
 		return dragger;
 	}
 
-	function createElement_EngineIconImg(engine: SSS.SearchEngine): HTMLImageElement
+	function setupEngineIconImg(engine: SSS.SearchEngine, iconImg: HTMLImageElement)
 	{
 		let iconImgSource;
 
@@ -1248,23 +1238,19 @@ namespace SSS_Settings
 
 		// Sets the icon for a search engine.
 		// "data:" links are data, URLs are cached as data too.
-		let icon = document.createElement("img");
-
 		if (iconImgSource.startsWith("data:") || iconImgSource.startsWith("moz-extension:")) {
-			icon.src = iconImgSource;
+			iconImg.src = iconImgSource;
 		} else if (settings.searchEnginesCache[iconImgSource] === undefined && iconImgSource) {
-			icon.src = iconImgSource;
+			iconImg.src = iconImgSource;
 			getDataUriFromImgUrl(iconImgSource, base64Img => {
-				icon.src = base64Img;
+				iconImg.src = base64Img;
 				settings.searchEnginesCache[iconImgSource] = base64Img;
 				// console.log("\"" + iconImgSource + "\": \"" + base64Img + "\",");
 				saveSettings({ searchEnginesCache: settings.searchEnginesCache });
 			});
 		} else {
-			icon.src = settings.searchEnginesCache[iconImgSource];
+			iconImg.src = settings.searchEnginesCache[iconImgSource];
 		}
-
-		return icon;
 	}
 
 	// creates and adds a row with options for a certain search engine to the engines table

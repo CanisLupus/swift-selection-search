@@ -206,6 +206,9 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 	.engine-options > div {
 		margin: 1px;
 	}
+	.engine-dragger {
+		cursor: move;
+	}
 	.engine-dragger,
 	.engine-is-enabled,
 	.engine-is-enabled-in-context-menu,
@@ -1340,6 +1343,19 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 		</div>
 	</div>
 </div>
+
+<template id="group-engines-list-row-template">
+	<div class="group-engines-list-row">
+		<div class="engine-dragger">☰</div>
+		<div class="engine-icon-img">
+			<img>
+		</div>
+		<span class="engine-in-group-name">Engine name</span>
+		<div class="group-remove-engine-button">
+			<input type="button" value="✖" title="Remove this engine from the group">
+		</div>
+	</div>
+</template>
 
 <script src="../libs/Sortable.js"></script>
 <script src="settings.js"></script>
