@@ -425,7 +425,10 @@ namespace SSS_Settings
 				saveButton.disabled = false;
 			};
 
-			const engineIcon = createElement_EngineIcon(engine).iconElem;
+			let engineIcon = document.createElement("div");
+			engineIcon.className = "engine-icon-img";
+			let engineIconImg = createElement_EngineIconImg(engine);
+			engineIcon.appendChild(engineIconImg);
 
 			const engineName = document.createElement("span");
 			engineName.textContent = engine.name;
@@ -1142,8 +1145,12 @@ namespace SSS_Settings
 
 		// icon
 
-		let { iconElem, icon } = createElement_EngineIcon(engine);
-		engineRow.appendChild(iconElem);
+		let engineIcon = document.createElement("div");
+		engineIcon.className = "engine-icon-img";
+		let iconImg = createElement_EngineIconImg(engine);
+		engineIcon.appendChild(iconImg);
+
+		engineRow.appendChild(engineIcon);
 
 		if (engine.type === SSS.SearchEngineType.SSS)
 		{
@@ -1211,7 +1218,7 @@ namespace SSS_Settings
 				engineRow.appendChild(createEngineSearchLink(engine, references));
 			}
 
-			engineRow.appendChild(createElement_EngineIconLink(engine, icon, references));
+			engineRow.appendChild(createElement_EngineIconLink(engine, iconImg, references));
 			engineRow.appendChild(createElement_EngineShortcutField(engine));
 			engineRow.appendChild(createElement_DeleteButton(i));
 		}
@@ -1224,30 +1231,40 @@ namespace SSS_Settings
 		let dragger = document.createElement("div");
 		dragger.className = "engine-dragger";
 		dragger.textContent = "☰";
-		dragger.style.cursor = "move";
 		return dragger;
 	}
 
-	function createElement_EngineIcon(engine: SSS.SearchEngine): { iconElem: HTMLDivElement, icon: HTMLImageElement }
+	function createElement_EngineIconImg(engine: SSS.SearchEngine): HTMLImageElement
 	{
-		let iconElem = document.createElement("div");
-		iconElem.className = "engine-icon-img";
-
-		let icon;
+		let iconImgSource;
 
 		if (engine.type === SSS.SearchEngineType.SSS) {
 			// special SSS icons have data that never changes, so just get it from constants
 			let sssIcon = sssIcons[engine.id];
-
-			if (sssIcon.iconPath !== undefined) {
-				let iconImgSource = browser.extension.getURL(sssIcon.iconPath);
-				icon = setupEngineIcon(iconImgSource, iconElem, settings);
-			}
+			iconImgSource = browser.extension.getURL(sssIcon.iconPath);
 		} else {
-			icon = setupEngineIcon(engine.iconUrl, iconElem, settings);
+			iconImgSource = engine.iconUrl;
 		}
 
-		return { iconElem, icon };
+		// Sets the icon for a search engine.
+		// "data:" links are data, URLs are cached as data too.
+		let icon = document.createElement("img");
+
+		if (iconImgSource.startsWith("data:") || iconImgSource.startsWith("moz-extension:")) {
+			icon.src = iconImgSource;
+		} else if (settings.searchEnginesCache[iconImgSource] === undefined && iconImgSource) {
+			icon.src = iconImgSource;
+			getDataUriFromImgUrl(iconImgSource, base64Img => {
+				icon.src = base64Img;
+				settings.searchEnginesCache[iconImgSource] = base64Img;
+				// console.log("\"" + iconImgSource + "\": \"" + base64Img + "\",");
+				saveSettings({ searchEnginesCache: settings.searchEnginesCache });
+			});
+		} else {
+			icon.src = settings.searchEnginesCache[iconImgSource];
+		}
+
+		return icon;
 	}
 
 	// creates and adds a row with options for a certain search engine to the engines table
@@ -1395,30 +1412,6 @@ namespace SSS_Settings
 
 		engine.isEnabledInContextMenu = value;
 		saveSettings({ searchEngines: settings.searchEngines });
-	}
-
-	// Sets the icon for a search engine in the engines table.
-	// "data:" links are data, URLs are cached as data too.
-	function setupEngineIcon(iconImgSource, parent, settings): HTMLImageElement
-	{
-		let icon = document.createElement("img");
-
-		if (iconImgSource.startsWith("data:") || iconImgSource.startsWith("moz-extension:")) {
-			icon.src = iconImgSource;
-		} else if (settings.searchEnginesCache[iconImgSource] === undefined && iconImgSource) {
-			icon.src = iconImgSource;
-			getDataUriFromImgUrl(iconImgSource, function(base64Img) {
-				icon.src = base64Img;
-				settings.searchEnginesCache[iconImgSource] = base64Img;
-				// console.log("\"" + iconImgSource + "\": \"" + base64Img + "\",");
-				saveSettings({ searchEnginesCache: settings.searchEnginesCache });
-			});
-		} else {
-			icon.src = settings.searchEnginesCache[iconImgSource];
-		}
-
-		parent.appendChild(icon);
-		return icon;
 	}
 
 	// sets the name field for a search engine in the engines table
