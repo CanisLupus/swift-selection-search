@@ -950,8 +950,8 @@ namespace SSS_Settings
 				onEnd: ev => {
 					if (DEBUG) { log("onEnd", settings); }
 					settings.searchEngines.splice(ev.newIndex, 0, settings.searchEngines.splice(ev.oldIndex, 1)[0]);
-					updateUIWithSettings();
 					saveSettings({ searchEngines: settings.searchEngines });
+					updateUIWithSettings();
 				},
 			});
 		}
@@ -1169,7 +1169,7 @@ namespace SSS_Settings
 		else
 		{
 			// create columns for normal icons
-			engineRow.appendChild(createEngineName(engine));
+			engineRow.appendChild(createElement_EngineName(engine));
 
 			// This object keeps references to a few variables so that when the user changes the search URL
 			// we can update the icon URL (if it was using the default URL), and when the icon URL is cleared
@@ -1186,22 +1186,17 @@ namespace SSS_Settings
 			}
 			else if (engine.type === SSS.SearchEngineType.Group)
 			{
-				// Create a comma-separated string containing the names of the engines.
-				const text = engine.groupEngines
-					.map(engine => engine.type !== SSS.SearchEngineType.SSS ? engine.name : sssIcons[engine.id].name)
-					.join(", ");
-
 				// create columns for groups
 				let engineDescription = document.createElement("div");
 				engineDescription.title = "Click to edit this group";
 				engineDescription.className = "engine-sss engine-description-small group-engine-description";
-				engineDescription.textContent = text;
+				engineDescription.textContent = getGroupEngineDescription(engine);
 				engineDescription.onclick = _ => showGroupPopup(engine);
 				engineRow.appendChild(engineDescription);
 			}
 			else
 			{
-				engineRow.appendChild(createEngineSearchLink(engine, references));
+				engineRow.appendChild(createElement_EngineSearchLink(engine, references));
 			}
 
 			engineRow.appendChild(createElement_EngineIconLink(engine, iconImg, references));
@@ -1210,6 +1205,14 @@ namespace SSS_Settings
 		}
 
 		return engineRow;
+	}
+
+	function getGroupEngineDescription(groupEngine: SSS.SearchEngine_Group): string
+	{
+		// Create a comma-separated string containing the names of the engines.
+		return groupEngine.groupEngines
+			.map(engine => engine.type !== SSS.SearchEngineType.SSS ? engine.name : sssIcons[engine.id].name)
+			.join(", ");
 	}
 
 	function createElement_EngineDragger(): HTMLDivElement
@@ -1397,7 +1400,7 @@ namespace SSS_Settings
 	}
 
 	// sets the name field for a search engine in the engines table
-	function createEngineName(engine)
+	function createElement_EngineName(engine)
 	{
 		let parent = document.createElement("div");
 		parent.className = "engine-name";
@@ -1407,15 +1410,26 @@ namespace SSS_Settings
 		nameInput.value = engine.name;
 		nameInput.onchange = () => {
 			engine.name = nameInput.value;
+
+			// make sure groups containing this engine get the updated engine name in their descriptions
+
+			const groupEngines = settings.searchEngines.filter(engine => engine.type === SSS.SearchEngineType.Group);
+			const groupEngineDescriptions = document.getElementsByClassName("group-engine-description");
+
+			for (let i = 0; i < groupEngines.length; i++) {
+				groupEngineDescriptions[i].textContent = getGroupEngineDescription(groupEngines[i] as SSS.SearchEngine_Group);
+			}
+
 			saveSettings({ searchEngines: settings.searchEngines });
 			calculateAndShowSettingsSize();
 		};
+
 		parent.appendChild(nameInput);
 		return parent;
 	}
 
 	// sets the search URL field for a search engine in the engines table
-	function createEngineSearchLink(engine, references)
+	function createElement_EngineSearchLink(engine, references)
 	{
 		let parent = document.createElement("div");
 		parent.className = "engine-search-link";
@@ -1607,8 +1621,8 @@ namespace SSS_Settings
 
 			settings.searchEngines.splice(i, 1); // remove element at i
 			trimSearchEnginesCache(settings);
-			updateUIWithSettings();
 			saveSettings({ searchEngines: settings.searchEngines, searchEnginesCache: settings.searchEnginesCache });
+			updateUIWithSettings();
 		};
 
 		parent.appendChild(deleteButton);
@@ -1669,8 +1683,8 @@ namespace SSS_Settings
 				settings = _settings;
 
 				if (DEBUG) { log("imported settings!", settings); }
-				updateUIWithSettings();
 				saveSettings(settings);
+				updateUIWithSettings();
 			},
 			getErrorHandler("Error sending runBackwardsCompatibilityUpdates message from settings.")
 		);
