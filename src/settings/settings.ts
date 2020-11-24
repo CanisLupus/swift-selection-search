@@ -453,6 +453,7 @@ namespace SSS_Settings
 
 				dragger.style.display = "none";
 				isSelected = false;
+				saveButton.disabled = groupEngines.length === 0;
 
 				ev.stopPropagation();	// block parent from also receiving click and selecting the engine again
 			};
@@ -476,9 +477,7 @@ namespace SSS_Settings
 		cancelButton.onclick = _ => hideGroupPopup();
 
 		const saveButton = document.querySelector("#group-popup-save-button") as HTMLInputElement;
-		// The save button is initially disabled. It's only enabled when editing a group
-		// or when at least one engine is selected.
-		saveButton.disabled = !isEditing;
+		saveButton.disabled = groupEngines.length === 0;
 		saveButton.onclick = _ => {
 			const groupName = groupTitleField.value.length > 0 ? groupTitleField.value : groupEngineToEdit?.name || "New Group";
 			const iconUrl: string = wasIconModifiedByUser ? groupIconAsImage.src : groupIconAsCanvas.toDataURL();
