@@ -268,29 +268,22 @@ namespace SSS_Settings
 	function hideGroupPopup()
 	{
 		// Hide the popup
-		const groupEnginePopup = document.getElementById("group-popup") as HTMLDivElement;
+		const groupEnginePopup = document.querySelector("#group-popup") as HTMLDivElement;
 		groupEnginePopup.classList.add("hidden");
 
-		const selectedEnginesContainer = document.getElementById("group-selected-engines-container") as HTMLDivElement;
+		const selectedEnginesContainer = document.querySelector("#group-selected-engines-container") as HTMLDivElement;
 		selectedEnginesContainer.innerHTML = "";
 
-		const availableEnginesContainer = document.getElementById("group-available-engines-container") as HTMLDivElement;
+		const availableEnginesContainer = document.querySelector("#group-available-engines-container") as HTMLDivElement;
 		availableEnginesContainer.innerHTML = "";
 
-		const groupIconImg = document.getElementById("group-icon-img") as HTMLImageElement;
+		const groupIconImg = document.querySelector("#group-icon-img") as HTMLImageElement;
 		groupIconImg.classList.add("hidden");
-		const groupIconCanvas = document.getElementById("group-icon-canvas") as HTMLCanvasElement;
+		const groupIconCanvas = document.querySelector("#group-icon-canvas") as HTMLCanvasElement;
 		groupIconCanvas.classList.add("hidden");
 
 		// Make body scrollable again.
 		document.body.style.overflow = "auto";
-	}
-
-	function drawDefaultGroupIcon(groupIconAsCanvas: HTMLCanvasElement, groupColorPicker: HTMLInputElement, color: string)
-	{
-		groupIconAsCanvas.classList.remove("hidden");
-		setGroupIconColor(groupIconAsCanvas, color);
-		groupColorPicker.value = color;
 	}
 
 	function setGroupIconColor(iconCanvas: HTMLCanvasElement, colorAsString: string)
@@ -324,92 +317,96 @@ namespace SSS_Settings
 	// When editing, we pass the group as a parameter.
 	function showGroupPopup(groupEngineToEdit: SSS.SearchEngine_Group = null)
 	{
-		const groupEnginePopup = document.getElementById("group-popup") as HTMLDivElement;
+		const groupEnginePopup = document.querySelector("#group-popup") as HTMLDivElement;
 		groupEnginePopup.classList.remove("hidden");
 
 		// This div overlays the whole page while the popup is showing. Clicking it hides the popup.
-		const backgroundDiv = document.getElementById("group-background-div") as HTMLDivElement;
+		const backgroundDiv = document.querySelector("#group-background-div") as HTMLDivElement;
 		backgroundDiv.onclick = _ => {
 			hideGroupPopup();
 		};
 
-		// Prevent body from scrolling on the background when reaching the end or the top of the list inside the popup
+		// Prevent body from scrolling in the background.
 		document.body.style.overflow = "hidden";
 
-		// This array stores the engines that will belong to the group (or already belong if we're editing)
-		let groupEngines: SSS.SearchEngine[] = groupEngineToEdit?.groupEngines ?? [];
+		let isEditing: boolean = groupEngineToEdit !== null;
 
-		// Group icon
-		let groupIconAsImage: HTMLImageElement = document.getElementById("group-icon-img") as HTMLImageElement;
-		let groupIconAsCanvas: HTMLCanvasElement = document.getElementById("group-icon-canvas") as HTMLCanvasElement;
+		// This array stores the engines that are selected for the group.
+		let groupEngines: SSS.SearchEngine[] = isEditing ? groupEngineToEdit.groupEngines : [];
 
-		let wasIconModified: boolean = groupEngineToEdit !== null && !groupEngineToEdit.iconUrl.startsWith("data:image/png");
+		// Group icon can be an image or a canvas. We get both elements and use whichever is needed later.
+		let groupIconAsImage: HTMLImageElement = document.querySelector("#group-icon-img") as HTMLImageElement;
+		let groupIconAsCanvas: HTMLCanvasElement = document.querySelector("#group-icon-canvas") as HTMLCanvasElement;
 
-		// Color picker
-		const groupColorPicker = document.getElementById("group-color-picker") as HTMLInputElement;
-		let color: string;
+		const groupColorPicker = document.querySelector("#group-color-picker") as HTMLInputElement;
+		let color: string = isEditing ? groupEngineToEdit.color : generateRandomColorAsString();
+		let wasIconModifiedByUser: boolean = isEditing && !groupEngineToEdit.iconUrl.startsWith("data:image/png");
 
-		if (wasIconModified) {
+		if (wasIconModifiedByUser)
+		{
 			groupIconAsImage.classList.remove("hidden");
 			groupIconAsImage.src = groupEngineToEdit.iconUrl;
-		} else {
-			color = groupEngineToEdit?.color ?? generateRandomColorAsString();
-			drawDefaultGroupIcon(groupIconAsCanvas, groupColorPicker, color);
+
+			// Implement onclick to ask for confirmation if the icon was hand-modified by the user.
+			groupColorPicker.onclick = ev => {
+				if (!wasIconModifiedByUser) return;
+
+				if (confirm("Revert to the default icon?")) {
+					groupIconAsImage.classList.add("hidden");
+					groupIconAsCanvas.classList.remove("hidden");
+					setGroupIconColor(groupIconAsCanvas, color);
+					groupColorPicker.value = color;
+					wasIconModifiedByUser = false;
+				} else {
+					ev.preventDefault();
+				}
+			};
+		}
+		else
+		{
+			groupIconAsCanvas.classList.remove("hidden");
+			setGroupIconColor(groupIconAsCanvas, color);
+			groupColorPicker.value = color;
 		}
 
-		groupColorPicker.onclick = ev => {
-			if (!wasIconModified) return;
-
-			ev.preventDefault();
-
-			if (confirm("Revert to the default icon?")) {
-				groupIconAsImage.classList.add("hidden");
-				color = groupEngineToEdit?.color ?? generateRandomColorAsString();
-				drawDefaultGroupIcon(groupIconAsCanvas, groupColorPicker, color);
-				wasIconModified = false;
-			}
-		};
-
-		// Change the color of the group icon
-		groupColorPicker.oninput = ev => {
+		groupColorPicker.oninput = _ => {
 			color = groupColorPicker.value;
 			setGroupIconColor(groupIconAsCanvas, color);
 		};
 
-		// Group title
-		const groupTitleField = document.getElementById("group-title-field") as HTMLInputElement;
-		groupTitleField.value = groupEngineToEdit?.name ?? "New group";
-		setTimeout(() => groupTitleField.focus(), 100);
+		const groupTitleField = document.querySelector("#group-title-field") as HTMLInputElement;
+		if (isEditing) {
+			groupTitleField.value = groupEngineToEdit.name;
+		} else {
+			groupTitleField.placeholder = "Group name";
+		}
+		groupTitleField.focus();
 
 		// This stores the rows (node) of the selected engines.
 		// Useful when editing a group, to show the engines in the exact order
 		// the user selected them when creating it.
 		let engineRows = [];
 
-		// Container for the selected engines.
-		const selectedEnginesContainer = document.getElementById("group-selected-engines-container") as HTMLDivElement;
+		const selectedEnginesContainer = document.querySelector("#group-selected-engines-container") as HTMLDivElement;		// for engines in the group
+		const availableEnginesContainer = document.querySelector("#group-available-engines-container") as HTMLDivElement;	// for engines NOT in the group
+		let engineRowTemplate = document.querySelector('#group-engines-list-row-template') as HTMLTemplateElement;	// will be cloned for each engine to create in the list
 
-		/* ---- Engines list ---- */
-		const availableEnginesContainer = document.getElementById("group-available-engines-container") as HTMLDivElement;
-
-		// Rows
 		let availableEngines = settings.searchEngines.filter(e => e !== groupEngineToEdit && e.type !== SSS.SearchEngineType.SSS);
 
 		for (let i = 0; i < availableEngines.length; i++)
 		{
 			const engine = availableEngines[i];
 
-			let template = document.getElementById('group-engines-list-row-template') as HTMLTemplateElement;
-			let groupEnginesListRow = template.content.firstElementChild.cloneNode(true) as HTMLDivElement;
+			let groupEnginesListRow = engineRowTemplate.content.firstElementChild.cloneNode(true) as HTMLDivElement;
 
 			// HACK-ish. Saves the index to use later when removing the engine from the group and adding it to the available engines again.
 			groupEnginesListRow["engineIndex"] = i;
 
-			let dragger = groupEnginesListRow.getElementsByClassName("engine-dragger")[0] as HTMLDivElement;
+			let dragger = groupEnginesListRow.querySelector(".engine-dragger") as HTMLDivElement;
 			dragger.style.display = "none"; // The dragger will only show for the selected engines.
 
 			// When editing, check the engines that are already on the group.
-			let isSelected: boolean = groupEngineToEdit?.groupEngines.indexOf(engine) > -1;
+			let isSelected: boolean = isEditing && groupEngineToEdit.groupEngines.indexOf(engine) > -1;
 
 			// Clicking on the row itself selects the engine.
 			groupEnginesListRow.onclick = _ => {
@@ -428,7 +425,7 @@ namespace SSS_Settings
 			const engineIconImg = groupEnginesListRow.querySelector(".engine-icon-img > img") as HTMLImageElement;
 			setupEngineIconImg(engine, engineIconImg);
 
-			const engineName = groupEnginesListRow.getElementsByClassName("engine-in-group-name")[0] as HTMLSpanElement;
+			const engineName = groupEnginesListRow.querySelector(".engine-in-group-name") as HTMLSpanElement;
 			engineName.textContent = engine.name;
 
 			const deleteButton = groupEnginesListRow.querySelector(".group-remove-engine-button > input") as HTMLInputElement;
@@ -475,16 +472,16 @@ namespace SSS_Settings
 		selectedEnginesContainer.prepend(...engineRows);
 
 		/* ---- Popup footer ---- */
-		const cancelButton = document.getElementById("group-popup-cancel-button") as HTMLInputElement;
+		const cancelButton = document.querySelector("#group-popup-cancel-button") as HTMLInputElement;
 		cancelButton.onclick = _ => hideGroupPopup();
 
-		const saveButton = document.getElementById("group-popup-save-button") as HTMLInputElement;
+		const saveButton = document.querySelector("#group-popup-save-button") as HTMLInputElement;
 		// The save button is initially disabled. It's only enabled when editing a group
 		// or when at least one engine is selected.
-		saveButton.disabled = groupEngineToEdit ? false : true;
+		saveButton.disabled = !isEditing;
 		saveButton.onclick = _ => {
 			const groupName = groupTitleField.value.length > 0 ? groupTitleField.value : groupEngineToEdit?.name || "New Group";
-			const iconUrl: string = wasIconModified ? groupIconAsImage.src : groupIconAsCanvas.toDataURL();
+			const iconUrl: string = wasIconModifiedByUser ? groupIconAsImage.src : groupIconAsCanvas.toDataURL();
 			const groupData = {
 				name: groupName,
 				groupEngines: groupEngines,
