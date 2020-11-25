@@ -332,7 +332,7 @@ namespace SSS_Settings
 		let isEditing: boolean = groupEngineToEdit !== null;
 
 		// This array stores the engines that are selected for the group.
-		let groupEngines: SSS.SearchEngine[] = isEditing ? groupEngineToEdit.groupEngines : [];
+		let groupEngines: SSS.SearchEngine[] = isEditing ? [...groupEngineToEdit.groupEngines] : [];
 
 		// Group icon can be an image or a canvas. We get both elements and use whichever is needed later.
 		let groupIconAsImage: HTMLImageElement = document.querySelector("#group-icon-img") as HTMLImageElement;
@@ -375,11 +375,8 @@ namespace SSS_Settings
 		};
 
 		const groupTitleField = document.querySelector("#group-title-field") as HTMLInputElement;
-		if (isEditing) {
-			groupTitleField.value = groupEngineToEdit.name;
-		} else {
-			groupTitleField.placeholder = "Group name";
-		}
+		groupTitleField.placeholder = "Group name";
+		groupTitleField.value = isEditing ? groupEngineToEdit.name : "";
 		groupTitleField.focus();
 
 		// This stores the rows (node) of the selected engines.
@@ -411,6 +408,32 @@ namespace SSS_Settings
 			// Clicking on the row itself selects the engine.
 			groupEnginesListRow.onclick = _ => {
 				if (isSelected) return;
+
+				// if adding a group to this group, make sure it doesn't contain this group (directly or indirectly), as it would create a cycle
+				if (isEditing && engine.type === SSS.SearchEngineType.Group)
+				{
+					let allGroupEnginesInGroup: SSS.SearchEngine_Group[] = [];
+
+					// recursively collect all groups in this group
+					function fillAllGroupEnginesInGroup(groupEngine: SSS.SearchEngine_Group)
+					{
+						for (const engine of (groupEngine as SSS.SearchEngine_Group).groupEngines)
+						{
+							if (engine.type === SSS.SearchEngineType.Group) {
+								allGroupEnginesInGroup.push(engine as SSS.SearchEngine_Group);
+								fillAllGroupEnginesInGroup(engine as SSS.SearchEngine_Group);
+							}
+						}
+					}
+
+					fillAllGroupEnginesInGroup(engine as SSS.SearchEngine_Group);
+
+					if (allGroupEnginesInGroup.find(e => e === groupEngineToEdit)) {
+						alert("Adding this group engine would create an infinite cycle, since it contains (directly or indirectly) the group you're currently editing. You can't do that! ;)")
+						return;
+					}
+				}
+
 				isSelected = true;
 
 				groupEngines.push(engine);
@@ -479,7 +502,7 @@ namespace SSS_Settings
 		const saveButton = document.querySelector("#group-popup-save-button") as HTMLInputElement;
 		saveButton.disabled = groupEngines.length === 0;
 		saveButton.onclick = _ => {
-			const groupName = groupTitleField.value.length > 0 ? groupTitleField.value : groupEngineToEdit?.name || "New Group";
+			const groupName = groupTitleField.value.length > 0 ? groupTitleField.value : groupEngineToEdit?.name || "Group";
 			const iconUrl: string = wasIconModifiedByUser ? groupIconAsImage.src : groupIconAsCanvas.toDataURL();
 			const groupData = {
 				name: groupName,
