@@ -449,7 +449,7 @@ namespace SSS_Settings
 			setupEngineIconImg(engine, engineIconImg);
 
 			const engineName = groupEnginesListRow.querySelector(".engine-in-group-name") as HTMLSpanElement;
-			engineName.textContent = engine.name;
+			engineName.textContent = (engine as SSS.SearchEngine_NonSSS).name;
 
 			const deleteButton = groupEnginesListRow.querySelector(".group-remove-engine-button > input") as HTMLInputElement;
 			deleteButton.onclick = ev => {
@@ -1234,7 +1234,9 @@ namespace SSS_Settings
 	{
 		// Create a comma-separated string containing the names of the engines.
 		return groupEngine.groupEngines
-			.map(engine => engine.type !== SSS.SearchEngineType.SSS ? engine.name : sssIcons[engine.id].name)
+			.map(engine => engine.type === SSS.SearchEngineType.SSS
+				? sssIcons[(engine as SSS.SearchEngine_SSS).id].name
+				: (engine as SSS.SearchEngine_NonSSS).name)
 			.join(", ");
 	}
 
@@ -1252,10 +1254,10 @@ namespace SSS_Settings
 
 		if (engine.type === SSS.SearchEngineType.SSS) {
 			// special SSS icons have data that never changes, so just get it from constants
-			let sssIcon = sssIcons[engine.id];
+			let sssIcon = sssIcons[(engine as SSS.SearchEngine_SSS).id];
 			iconImgSource = browser.extension.getURL(sssIcon.iconPath);
 		} else {
-			iconImgSource = engine.iconUrl;
+			iconImgSource = (engine as SSS.SearchEngine_NonSSS).iconUrl;
 		}
 
 		// Sets the icon for a search engine.
@@ -1281,14 +1283,16 @@ namespace SSS_Settings
 		let engineOptions = document.createElement("div");
 		engineOptions.className = "engine-options";
 
-		if (engine.id === "copyToClipboard")
+		if (engine.type === SSS.SearchEngineType.SSS && (engine as SSS.SearchEngine_SSS).id === "copyToClipboard")
 		{
+			const copyEngine = engine as SSS.SearchEngine_SSS_Copy;
+
 			let isPlainTextCheckboxParent = createCheckbox(
 				"Copy as plain-text",
 				`copy-as-plain-text`,
-				engine.isPlainText,
+				copyEngine.isPlainText,
 				isOn => {
-					engine.isPlainText = isOn;
+					copyEngine.isPlainText = isOn;
 					saveSettings({ searchEngines: settings.searchEngines });
 				}
 			);
@@ -1296,18 +1300,20 @@ namespace SSS_Settings
 			engineOptions.appendChild(isPlainTextCheckboxParent);
 		}
 
-		if (engine.type === SSS.SearchEngineType.Custom || engine.type === SSS.SearchEngineType.BrowserLegacy)
+		if (engine.type === SSS.SearchEngineType.Custom)
 		{
+			const customEngine = engine as SSS.SearchEngine_Custom;
+
 			let textEncodingDropdownParent = createDropdown(
 				"Text encoding",
 				`encoding-dropdown-${i}`,
 				encodings,
-				engine.encoding,
+				customEngine.encoding,
 				value => {
 					if (value !== null) {
-						engine.encoding = value;
+						customEngine.encoding = value;
 					} else {
-						delete engine.encoding;
+						delete customEngine.encoding;
 					}
 					saveSettings({ searchEngines: settings.searchEngines });
 				}
@@ -1318,9 +1324,9 @@ namespace SSS_Settings
 			let discardOnOpenCheckboxParent = createCheckbox(
 				"Discard on open (Advanced)",
 				`discard-on-open-${i}`,
-				engine.discardOnOpen,
+				customEngine.discardOnOpen,
 				isOn => {
-					engine.discardOnOpen = isOn;
+					customEngine.discardOnOpen = isOn;
 					saveSettings({ searchEngines: settings.searchEngines });
 				}
 			);
@@ -1580,7 +1586,7 @@ namespace SSS_Settings
 				{
 					let engineName = engineWithShortcut.type === SSS.SearchEngineType.SSS
 						? sssIcons[(engineWithShortcut as SSS.SearchEngine_SSS).id].name
-						: engineWithShortcut.name;
+						: (engineWithShortcut as SSS.SearchEngine_NonSSS).name;
 
 					const override = confirm(`This shortcut is already assigned to '${engineName}'! Override?`);
 
@@ -1626,7 +1632,9 @@ namespace SSS_Settings
 		deleteButton.onclick = () => {
 			// Deleting an engine that belongs to one or more groups must also remove it from the groups, so we ask the user for confirmation.
 			const engineToDelete = settings.searchEngines[i];
-			let groupsContainingEngine = settings.searchEngines.filter(engine => engine.type === SSS.SearchEngineType.Group && engine.groupEngines.includes(engineToDelete));
+			let groupsContainingEngine = settings.searchEngines.filter(
+				engine => engine.type === SSS.SearchEngineType.Group && (engine as SSS.SearchEngine_Group).groupEngines.indexOf(engineToDelete) > -1
+			) as SSS.SearchEngine_Group[];
 
 			if (groupsContainingEngine.length > 0)
 			{

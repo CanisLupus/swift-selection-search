@@ -33,11 +33,10 @@ namespace SSS
 	// Base class for all engines.
 	export abstract class SearchEngine
 	{
-		[key: string]: any;	// needed to keep legacy variables that are now unused, like iconSrc and id
-
 		type: SearchEngineType;
 		isEnabled: boolean;
 		isEnabledInContextMenu: boolean;
+		shortcut: string;
 	}
 
 	// SSS-specific engine base class, for copy to clipboard, open as link, etc.
@@ -53,31 +52,32 @@ namespace SSS
 		isPlainText: boolean;
 	}
 
-	// All custom engines created by the user (or imported from a search.json.mozlz4 file, the old way to import browser engines).
-	// (SearchEngineType: Custom or BrowserLegacy)
-	export class SearchEngine_Custom extends SearchEngine
+	// User-created engine base class, for custom engines, browser engines and groups.
+	export class SearchEngine_NonSSS extends SearchEngine
 	{
 		name: string;
-		searchUrl: string;
 		iconUrl: string;
+	}
+
+	// All custom engines created by the user (or imported from a search.json.mozlz4 file, the old way to import browser engines).
+	// (SearchEngineType: Custom)
+	export class SearchEngine_Custom extends SearchEngine_NonSSS
+	{
+		searchUrl: string;
 		encoding: string;
 		discardOnOpen: boolean;
 	}
 
 	// Search engines imported from the browser via the WebExtensions search API. More limited.
 	// (SearchEngineType: BrowserSearchApi)
-	export class SearchEngine_BrowserSearchApi extends SearchEngine
+	export class SearchEngine_BrowserSearchApi extends SearchEngine_NonSSS
 	{
-		name: string;
-		iconUrl: string;
 	}
 
 	// Group of search engines (or other groups).
 	// (SearchEngineType: Group)
-	export class SearchEngine_Group extends SearchEngine
+	export class SearchEngine_Group extends SearchEngine_NonSSS
 	{
-		name: string;
-		iconUrl: string;
 		groupEngines: SearchEngine[];
 		color: string;
 	}
@@ -183,7 +183,7 @@ namespace SSS
 	export const enum SearchEngineType {
 		SSS = "sss",
 		Custom = "custom",
-		BrowserLegacy = "browser",
+		BrowserLegacy = "browser",	// only kept for retrocompatibility; permanently turns into a "custom" engine after load
 		BrowserSearchApi = "browser-search-api",
 		Group = "group",
 	}
@@ -646,10 +646,19 @@ namespace SSS
 		// convert old unchangeable browser-imported engines to normal ones
 		for (let engine of settings.searchEngines)
 		{
-			if (engine.iconUrl === undefined && engine.type === SearchEngineType.BrowserLegacy) {
-				engine.iconUrl = engine.iconSrc;
-				delete engine.iconSrc;
-				delete engine.id;
+			if (engine.type === SearchEngineType.BrowserLegacy)
+			{
+				// a BrowserLegacy engine was essentially an old Custom engine with an id and iconSrc
+				const customEngine = engine as SSS.SearchEngine_Custom;
+
+				if (customEngine.iconUrl === undefined) {
+					customEngine.iconUrl = customEngine["iconSrc"];
+					delete customEngine["iconSrc"];
+					delete customEngine["id"];
+				}
+
+				// just say that BrowserLegacy is a Custom engine from now on, since they are equivalent at this point
+				customEngine.type = SearchEngineType.Custom;	// 3.47.0 (this specific line only)
 				shouldSave = true;
 			}
 		}
@@ -863,19 +872,14 @@ namespace SSS
 				contextMenuOption.title = concreteEngine.name;
 			}
 
-			let icon;
+			let icon: string;
+
 			if (engine.type === SearchEngineType.SSS) {
 				let concreteEngine = engine as SearchEngine_SSS;
 				icon = sssIcons[concreteEngine.id].iconPath;
 			}
 			else {
-				let iconUrl: string;
-
-				if (engine.type === SearchEngineType.Custom || engine.type === SearchEngineType.BrowserLegacy) {
-					iconUrl = (engine as SearchEngine_Custom).iconUrl;
-				} else { // engine.type === SearchEngineType.BrowserSearchApi
-					iconUrl = (engine as SearchEngine_BrowserSearchApi).iconUrl;
-				}
+				let iconUrl: string = (engine as SearchEngine_NonSSS).iconUrl;
 
 				if (iconUrl.startsWith("data:")) {
 					icon = iconUrl;

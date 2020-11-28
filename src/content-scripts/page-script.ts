@@ -792,7 +792,7 @@ namespace PopupCreator
 			{
 				// Calculate the final width of the popup based on the known widths and paddings of everything.
 				// We need this so that if the popup is created too close to the borders of the page it still gets the right size.
-				let nSeparators = settings.searchEngines.filter(e => e.type === SSS.SearchEngineType.SSS && e.id === "separator").length;
+				let nSeparators = settings.searchEngines.filter(e => e.type === SSS.SearchEngineType.SSS && (e as SSS.SearchEngine_SSS).id === "separator").length;
 				let nPopupIcons: number = settings.searchEngines.length - nSeparators;
 				width = nPopupIcons * (settings.popupItemSize + 2 * settings.popupItemPadding);
 				width += nSeparators * (settings.popupItemSize * settings.popupSeparatorWidth / 100 + 2 * settings.popupItemPadding);
@@ -861,29 +861,31 @@ namespace PopupCreator
 				// special SSS icons with special functions
 				if (engine.type === SSS.SearchEngineType.SSS)
 				{
-					let sssIcon = sssIcons[engine.id];
+					const sssEngine = engine as SSS.SearchEngine_SSS;
+					let sssIcon = sssIcons[sssEngine.id];
 
 					let iconImgSource = browser.extension.getURL(sssIcon.iconPath);
 					let isInteractive = sssIcon.isInteractive !== false;	// undefined or true means it's interactive
-					icon = this.setupEngineIcon(engine, iconImgSource, sssIcon.name, isInteractive, settings);
+					icon = this.setupEngineIcon(sssEngine, iconImgSource, sssIcon.name, isInteractive, settings);
 
-					if (engine.id === "separator") {
+					if (sssEngine.id === "separator") {
 						icon.classList.add("separator");
 					}
 				}
 				// "normal" custom search engines
 				else
 				{
+					const userEngine = engine as SSS.SearchEngine_NonSSS;
 					let iconImgSource: string;
 
-					if (engine.iconUrl.startsWith("data:")) {
-						iconImgSource = engine.iconUrl;	// use "URL" directly, as it's pure image data
+					if (userEngine.iconUrl.startsWith("data:")) {
+						iconImgSource = userEngine.iconUrl;	// use "URL" directly, as it's pure image data
 					} else {
-						let cachedIcon = settings.searchEnginesCache[engine.iconUrl];
-						iconImgSource = cachedIcon ? cachedIcon : engine.iconUrl;	// should have cached icon, but if not (for some reason) fall back to URL
+						let cachedIcon = settings.searchEnginesCache[userEngine.iconUrl];
+						iconImgSource = cachedIcon ? cachedIcon : userEngine.iconUrl;	// should have cached icon, but if not (for some reason) fall back to URL
 					}
 
-					icon = this.setupEngineIcon(engine, iconImgSource, engine.name, true, settings);
+					icon = this.setupEngineIcon(userEngine, iconImgSource, userEngine.name, true, settings);
 				}
 
 				this.enginesContainer.appendChild(icon);
