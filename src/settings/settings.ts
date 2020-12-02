@@ -122,6 +122,7 @@ namespace SSS_Settings
 
 	let sssIcons: { [id: string] : SSS.SSSIconDefinition; };
 	let defaultSettings: SSS.Settings;
+	let uniqueIdToEngineDictionary: { [uniqueId: number] : SSS.SearchEngine; } = {};
 	let browserVersion: number;	// unused for now, but we may want it to control compatibility
 	let hasDOMContentLoaded: boolean = false;
 
@@ -165,15 +166,16 @@ namespace SSS_Settings
 		}
 	}
 
-	function createDefaultEngine(engine)
+	async function createDefaultEngine(engine: SSS.SearchEngine): Promise<SSS.SearchEngine>
 	{
+		engine.uniqueId = await browser.runtime.sendMessage({ type: "generateUniqueEngineId" });
 		engine.isEnabled = true;
 		engine.isEnabledInContextMenu = true;
 		return engine;
 	}
 
 	// adds to SSS all engines from the browser (these are special and contain very little information)
-	function addBrowserEnginesToEnginesList(browserSearchEngines: browser.search.SearchEngine[])
+	async function addBrowserEnginesToEnginesList(browserSearchEngines: browser.search.SearchEngine[])
 	{
 		// "hash set" of search URLs (will help avoiding duplicates of previously imported browser engines)
 		let names = {};
@@ -186,17 +188,17 @@ namespace SSS_Settings
 		let nAddedEngines = 0;
 
 		// add all browser search engines
-		for (let engine of browserSearchEngines)
+		for (let browserSearchEngine of browserSearchEngines)
 		{
 			// avoid duplicates if this browser engine is already in the "hash set"
-			if (names.hasOwnProperty(engine.name)) continue;
+			if (names.hasOwnProperty(browserSearchEngine.name)) continue;
 
 			// create an engine object compatible with class SearchEngine_BrowserSearchApi
-			settings.searchEngines.push(createDefaultEngine({
+			settings.searchEngines.push(await createDefaultEngine({
 				type: SSS.SearchEngineType.BrowserSearchApi,
-				name: engine.name,
-				iconUrl: engine.favIconUrl ?? "",
-			}));
+				name: browserSearchEngine.name,
+				iconUrl: browserSearchEngine.favIconUrl ?? "",
+			} as SSS.SearchEngine_BrowserSearchApi));
 
 			nAddedEngines++;
 		}
@@ -332,7 +334,7 @@ namespace SSS_Settings
 		let isEditing: boolean = groupEngineToEdit !== null;
 
 		// This array stores the engines that are selected for the group.
-		let groupEngines: SSS.SearchEngine[] = isEditing ? [...groupEngineToEdit.groupEngines] : [];
+		let groupEngineUniqueIds: string[] = isEditing ? [...groupEngineToEdit.enginesUniqueIds] : [];
 
 		// Group icon can be an image or a canvas. We get both elements and use whichever is needed later.
 		let groupIconAsImage: HTMLImageElement = document.querySelector("#group-icon-img") as HTMLImageElement;
@@ -403,7 +405,7 @@ namespace SSS_Settings
 			dragger.style.display = "none"; // The dragger will only show for the selected engines.
 
 			// When editing, check the engines that are already on the group.
-			let isSelected: boolean = isEditing && groupEngineToEdit.groupEngines.indexOf(engine) > -1;
+			let isSelected: boolean = isEditing && groupEngineUniqueIds.indexOf(engine.uniqueId) > -1;
 
 			// Clicking on the row itself selects the engine.
 			groupEnginesListRow.onclick = _ => {
@@ -412,23 +414,22 @@ namespace SSS_Settings
 				// if adding a group to this group, make sure it doesn't contain this group (directly or indirectly), as it would create a cycle
 				if (isEditing && engine.type === SSS.SearchEngineType.Group)
 				{
-					let allGroupEnginesInGroup: SSS.SearchEngine_Group[] = [];
-
-					// recursively collect all groups in this group
-					function fillAllGroupEnginesInGroup(groupEngine: SSS.SearchEngine_Group)
+					// recursively search the clicked group for the engine we're editing
+					function findRecursively(groupEngine: SSS.SearchEngine_Group, engineToFind: SSS.SearchEngine): boolean
 					{
-						for (const engine of (groupEngine as SSS.SearchEngine_Group).groupEngines)
+						for (const engineId of (groupEngine as SSS.SearchEngine_Group).enginesUniqueIds)
 						{
+							const engine = uniqueIdToEngineDictionary[engineId];
+
 							if (engine.type === SSS.SearchEngineType.Group) {
-								allGroupEnginesInGroup.push(engine as SSS.SearchEngine_Group);
-								fillAllGroupEnginesInGroup(engine as SSS.SearchEngine_Group);
+								if (engine === engineToFind) return true;
+								if (findRecursively(engine as SSS.SearchEngine_Group, engineToFind)) return true;
 							}
 						}
+						return false;
 					}
 
-					fillAllGroupEnginesInGroup(engine as SSS.SearchEngine_Group);
-
-					if (allGroupEnginesInGroup.find(e => e === groupEngineToEdit)) {
+					if (findRecursively(engine as SSS.SearchEngine_Group, groupEngineToEdit)) {
 						alert("Adding this group engine would create an infinite cycle, since it contains (directly or indirectly) the group you're currently editing. You can't do that! ;)")
 						return;
 					}
@@ -436,7 +437,7 @@ namespace SSS_Settings
 
 				isSelected = true;
 
-				groupEngines.push(engine);
+				groupEngineUniqueIds.push(engine.uniqueId);
 				dragger.style.display = "block";
 
 				// The first selected engine will be the main one and stays at the top of the list.
@@ -453,8 +454,8 @@ namespace SSS_Settings
 
 			const deleteButton = groupEnginesListRow.querySelector(".group-remove-engine-button > input") as HTMLInputElement;
 			deleteButton.onclick = ev => {
-				const index = groupEngines.indexOf(engine);
-				groupEngines.splice(index, 1);
+				const index = groupEngineUniqueIds.indexOf(engine.uniqueId);
+				groupEngineUniqueIds.splice(index, 1);
 
 				// Find the correct place to insert the engine back in the available engines list,
 				// even if other engines were removed from there in the meantime.
@@ -476,7 +477,7 @@ namespace SSS_Settings
 
 				dragger.style.display = "none";
 				isSelected = false;
-				saveButton.disabled = groupEngines.length === 0;
+				saveButton.disabled = groupEngineUniqueIds.length === 0;
 
 				ev.stopPropagation();	// block parent from also receiving click and selecting the engine again
 			};
@@ -485,7 +486,7 @@ namespace SSS_Settings
 				// engineRows stores the rows in the same order the engines were selected
 				// which is the same order in groupEngines. This allows the user to
 				// change the position of the engines according to their needs.
-				engineRows[groupEngines.indexOf(engine)] = groupEnginesListRow;
+				engineRows[groupEngineUniqueIds.indexOf(engine.uniqueId)] = groupEnginesListRow;
 				dragger.style.display = "block"; // Show dragger only for the selected engines
 			}
 
@@ -500,13 +501,13 @@ namespace SSS_Settings
 		cancelButton.onclick = _ => hideGroupPopup();
 
 		const saveButton = document.querySelector("#group-popup-save-button") as HTMLInputElement;
-		saveButton.disabled = groupEngines.length === 0;
-		saveButton.onclick = _ => {
+		saveButton.disabled = groupEngineUniqueIds.length === 0;
+		saveButton.onclick = async _ => {
 			const groupName = groupTitleField.value.length > 0 ? groupTitleField.value : groupEngineToEdit?.name || "Group";
 			const iconUrl: string = wasIconModifiedByUser ? groupIconAsImage.src : groupIconAsCanvas.toDataURL();
 			const groupData = {
 				name: groupName,
-				groupEngines: groupEngines,
+				enginesUniqueIds: groupEngineUniqueIds,
 				iconUrl: iconUrl,
 				color: color,
 				type: SSS.SearchEngineType.Group,
@@ -515,7 +516,7 @@ namespace SSS_Settings
 			if (groupEngineToEdit) {
 				Object.assign(groupEngineToEdit, groupData);
 			} else {
-				settings.searchEngines.push(createDefaultEngine(groupData));
+				settings.searchEngines.push(await createDefaultEngine(groupData as SSS.SearchEngine_Group));
 			}
 
 			saveSettings({ searchEngines: settings.searchEngines });
@@ -527,7 +528,7 @@ namespace SSS_Settings
 		Sortable.create(selectedEnginesContainer, {
 			handle: ".engine-dragger",
 			onEnd: ev => {
-				groupEngines.splice(ev.newIndex, 0, groupEngines.splice(ev.oldIndex, 1)[0]);
+				groupEngineUniqueIds.splice(ev.newIndex, 0, groupEngineUniqueIds.splice(ev.oldIndex, 1)[0]);
 			},
 		});
 
@@ -581,16 +582,16 @@ namespace SSS_Settings
 			}
 		};
 
-		page.importBrowserEnginesButton.onclick = () =>
+		page.importBrowserEnginesButton.onclick = async () =>
 		{
 			if (confirm("Really import your browser's search engines?"))
 			{
-				browser.search.get().then((browserSearchEngines: browser.search.SearchEngine[]) => {
-					if (DEBUG) { log(browserSearchEngines); }
-					addBrowserEnginesToEnginesList(browserSearchEngines);
-					updateUIWithSettings();
-					saveSettings({ searchEngines: settings.searchEngines });
-				});
+				let browserSearchEngines: browser.search.SearchEngine[] = await browser.search.get();
+				if (DEBUG) { log(browserSearchEngines); }
+
+				await addBrowserEnginesToEnginesList(browserSearchEngines);
+				updateUIWithSettings();
+				saveSettings({ searchEngines: settings.searchEngines });
 			}
 		}
 
@@ -738,16 +739,16 @@ namespace SSS_Settings
 			saveSettings({ useDarkModeInOptionsPage: settings.useDarkModeInOptionsPage });
 		};
 
-		page.addEngineButton.onclick = () => {
+		page.addEngineButton.onclick = async () => {
 			let searchUrl = "https://www.google.com/search?q={searchTerms}";	// use google as an example
 			let iconUrl = getIconUrlFromSearchUrl(searchUrl);	// by default try to get a favicon for the domain
 
-			settings.searchEngines.push(createDefaultEngine({
+			settings.searchEngines.push(await createDefaultEngine({
 				type: SSS.SearchEngineType.Custom,
 				name: "New Search Engine",
 				searchUrl: searchUrl,
 				iconUrl: iconUrl
-			}));
+			} as SSS.SearchEngine_Custom));
 
 			saveSettings({ searchEngines: settings.searchEngines });
 			updateUIWithSettings();
@@ -757,11 +758,11 @@ namespace SSS_Settings
 			showGroupPopup();
 		};
 
-		page.addSeparatorButton.onclick = () => {
-			settings.searchEngines.push(createDefaultEngine({
+		page.addSeparatorButton.onclick = async () => {
+			settings.searchEngines.push(await createDefaultEngine({
 				type: SSS.SearchEngineType.SSS,
 				id: "separator",
-			}));
+			} as SSS.SearchEngine_SSS));
 
 			saveSettings({ searchEngines: settings.searchEngines });
 			updateUIWithSettings();
@@ -886,6 +887,11 @@ namespace SSS_Settings
 	function onSettingsAcquired(_settings)
 	{
 		settings = _settings;
+
+		uniqueIdToEngineDictionary = {};
+		for (const engine of settings.searchEngines) {
+			uniqueIdToEngineDictionary[engine.uniqueId] = engine;
+		}
 
 		if (hasPageLoaded) {
 			updateUIWithSettings();
@@ -1233,10 +1239,13 @@ namespace SSS_Settings
 	function getGroupEngineDescription(groupEngine: SSS.SearchEngine_Group): string
 	{
 		// Create a comma-separated string containing the names of the engines.
-		return groupEngine.groupEngines
-			.map(engine => engine.type === SSS.SearchEngineType.SSS
-				? sssIcons[(engine as SSS.SearchEngine_SSS).id].name
-				: (engine as SSS.SearchEngine_NonSSS).name)
+		return groupEngine.enginesUniqueIds
+			.map(engineId => {
+				const engine = uniqueIdToEngineDictionary[engineId];
+				return engine.type === SSS.SearchEngineType.SSS
+					? sssIcons[(engine as SSS.SearchEngine_SSS).id].name
+					: (engine as SSS.SearchEngine_NonSSS).name;
+			})
 			.join(", ");
 	}
 
@@ -1633,7 +1642,7 @@ namespace SSS_Settings
 			// Deleting an engine that belongs to one or more groups must also remove it from the groups, so we ask the user for confirmation.
 			const engineToDelete = settings.searchEngines[i];
 			let groupsContainingEngine = settings.searchEngines.filter(
-				engine => engine.type === SSS.SearchEngineType.Group && (engine as SSS.SearchEngine_Group).groupEngines.indexOf(engineToDelete) > -1
+				engine => engine.type === SSS.SearchEngineType.Group && (engine as SSS.SearchEngine_Group).enginesUniqueIds.indexOf(engineToDelete.uniqueId) > -1
 			) as SSS.SearchEngine_Group[];
 
 			if (groupsContainingEngine.length > 0)
@@ -1643,7 +1652,7 @@ namespace SSS_Settings
 
 				if (confirm(`This engine will also be removed from the following group(s): \n\n${groupNames}\n\nAre you sure?`)) {
 					for (const group of groupsContainingEngine) {
-						group.groupEngines.splice(group.groupEngines.indexOf(settings.searchEngines[i]), 1);
+						group.enginesUniqueIds.splice(group.enginesUniqueIds.indexOf(engineToDelete.uniqueId), 1);
 					}
 				} else {
 					return;

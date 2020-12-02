@@ -33,6 +33,7 @@ namespace SSS
 	// Base class for all engines.
 	export abstract class SearchEngine
 	{
+		uniqueId: string;
 		type: SearchEngineType;
 		isEnabled: boolean;
 		isEnabledInContextMenu: boolean;
@@ -78,7 +79,7 @@ namespace SSS
 	// (SearchEngineType: Group)
 	export class SearchEngine_Group extends SearchEngine_NonSSS
 	{
-		groupEngines: SearchEngine[];
+		enginesUniqueIds: string[];
 		color: string;
 	}
 
@@ -266,6 +267,8 @@ namespace SSS
 			isInteractive: false,
 		}
 	};
+
+	let uniqueIdToEngineDictionary: { [uniqueId: number] : SearchEngine; } = {};
 
 	// Default state of all configurable options.
 	const defaultSettings: Settings =
@@ -505,6 +508,11 @@ namespace SSS
 			return;	// calling "set" will trigger this whole function again, so quit before wasting time
 		}
 
+		uniqueIdToEngineDictionary = {};
+		for (const engine of settings.searchEngines) {
+			uniqueIdToEngineDictionary[engine.uniqueId] = engine;
+		}
+
 		// save settings and also keep subsets of them for content-script-related purposes
 		sss.settings = settings;
 		sss.activationSettingsForContentScript = getActivationSettingsForContentScript(settings);
@@ -673,6 +681,14 @@ namespace SSS
 			}
 		}
 
+		// 3.47.0
+		for (const engine of settings.searchEngines) {
+			if (engine.uniqueId === undefined) {
+				engine.uniqueId = generateUniqueEngineId(engine);
+				shouldSave = true;
+			}
+		}
+
 		return shouldSave;
 	}
 
@@ -683,6 +699,26 @@ namespace SSS
 			return true;
 		}
 		return false;
+	}
+
+	// Generates a unique string ID to be used for an engine, and stores the engine in the IDs dictionary (if engine is provided).
+	function generateUniqueEngineId(engine: SearchEngine = null): string
+	{
+		let uniqueId: string = null;
+		let isUnique = false;
+
+		// generate until unique (first try almost every time)
+		while (!isUnique)
+		{
+			uniqueId = Math.random().toString(36).substring(2);	// substring(2) removes "0." from start
+			isUnique = uniqueIdToEngineDictionary[uniqueId] === undefined;
+		}
+
+		if (engine !== null) {
+			uniqueIdToEngineDictionary[uniqueId] = engine;
+		}
+
+		return uniqueId;
 	}
 
 	// whenever settings change, we re-aquire all settings and setup everything again as if just starting
@@ -798,12 +834,20 @@ namespace SSS
 				callbackFunc(msg.settings);
 				break;
 
+			case "generateUniqueEngineId":
+				// Generate an ID but don't provide any engine since this message happens for engines currently being created in the settings menu.
+				// After the engine is created, the settings will be saved and we'll regenerate the IDs dictionary then.
+				callbackFunc(generateUniqueEngineId());
+				break;
+
 			default: break;
 		}
 	}
 
 	function createDefaultEngine(engine) : SearchEngine
 	{
+		engine.uniqueId = generateUniqueEngineId(engine);
+
 		if (engine.type === undefined) {
 			engine.type = SearchEngineType.Custom;
 		}
@@ -1143,7 +1187,9 @@ namespace SSS
 			// Recursively collects all engines in the group, including engines inside infinitely nested groups.
 			function fillWithGroupEngines(expandedEngines: SearchEngine[], groupEngine: SearchEngine_Group)
 			{
-				for (const engine of (groupEngine as SearchEngine_Group).groupEngines) {
+				for (const engineId of (groupEngine as SearchEngine_Group).enginesUniqueIds)
+				{
+					const engine = uniqueIdToEngineDictionary[engineId];
 					if (engine.type === SearchEngineType.Group) {
 						fillWithGroupEngines(expandedEngines, engine as SearchEngine_Group);
 					} else {
