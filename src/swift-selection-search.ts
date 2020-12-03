@@ -1234,10 +1234,12 @@ namespace SSS
 			if (engine.type === SearchEngineType.Custom)
 			{
 				let engine_Custom = engine as SearchEngine_Custom;
+				let openingBehaviourBeforeDiscard: OpenResultBehaviour;
 
 				if (engine_Custom.discardOnOpen) {
 					// To be able to discard we need to open the URL in a new tab, regardless of opening behaviour choice.
 					// We'll discard the tab when it finishes opening the search.
+					openingBehaviourBeforeDiscard = openingBehaviour;
 					openingBehaviour = OpenResultBehaviour.NewBgTabNextToThis;
 				}
 
@@ -1252,6 +1254,13 @@ namespace SSS
 					// Instead we (UGLYYYY) wait 50ms for the search to hopefully be started.
 					await new Promise(finish => setTimeout(finish, 50));
 					await browser.tabs.remove(tab.id);
+
+					// Return to normal opening behaviour after discard.
+					openingBehaviour = openingBehaviourBeforeDiscard;
+
+					// If opening behaviour was set to NewBgTabNextToThis, the offset will be increased at the end
+					// of this iteration, but we removed the tab, so we counter that increase here.
+					if (openingBehaviour === OpenResultBehaviour.NewBgTabNextToThis) tabIndexOffset--;
 				}
 			}
 			// check if it's a browser-managed engine
