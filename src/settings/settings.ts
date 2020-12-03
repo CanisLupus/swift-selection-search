@@ -171,6 +171,7 @@ namespace SSS_Settings
 		engine.uniqueId = await browser.runtime.sendMessage({ type: "generateUniqueEngineId" });
 		engine.isEnabled = true;
 		engine.isEnabledInContextMenu = true;
+		uniqueIdToEngineDictionary[engine.uniqueId] = engine;
 		return engine;
 	}
 
