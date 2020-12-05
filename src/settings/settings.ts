@@ -268,27 +268,6 @@ namespace SSS_Settings
 		hasDOMContentLoaded = true;
 	}
 
-	function hideGroupPopup()
-	{
-		// Hide the popup
-		const groupEnginePopup = document.querySelector("#group-popup") as HTMLDivElement;
-		groupEnginePopup.classList.add("hidden");
-
-		const selectedEnginesContainer = document.querySelector("#group-selected-engines-container") as HTMLDivElement;
-		selectedEnginesContainer.innerHTML = "";
-
-		const availableEnginesContainer = document.querySelector("#group-available-engines-container") as HTMLDivElement;
-		availableEnginesContainer.innerHTML = "";
-
-		const groupIconImg = document.querySelector("#group-icon-img") as HTMLImageElement;
-		groupIconImg.classList.add("hidden");
-		const groupIconCanvas = document.querySelector("#group-icon-canvas") as HTMLCanvasElement;
-		groupIconCanvas.classList.add("hidden");
-
-		// Make body scrollable again.
-		document.body.style.overflow = "auto";
-	}
-
 	function setGroupIconColor(iconCanvas: HTMLCanvasElement, colorAsString: string)
 	{
 		const iconSize: number = iconCanvas.width;	// same as height
@@ -325,9 +304,7 @@ namespace SSS_Settings
 
 		// This div overlays the whole page while the popup is showing. Clicking it hides the popup.
 		const backgroundDiv = document.querySelector("#group-background-div") as HTMLDivElement;
-		backgroundDiv.onclick = _ => {
-			hideGroupPopup();
-		};
+		backgroundDiv.onclick = _ => hideGroupPopup();
 
 		// Prevent body from scrolling in the background.
 		document.body.style.overflow = "hidden";
@@ -495,7 +472,7 @@ namespace SSS_Settings
 		}
 
 		// When editing, place the engines of the group at the top of the list.
-		selectedEnginesContainer.prepend(...engineRows);
+		selectedEnginesContainer.append(...engineRows);
 
 		/* ---- Popup footer ---- */
 		const cancelButton = document.querySelector("#group-popup-cancel-button") as HTMLInputElement;
@@ -526,7 +503,7 @@ namespace SSS_Settings
 		};
 
 		// setup draggable elements to be able to sort engines
-		Sortable.create(selectedEnginesContainer, {
+		let groupPopupSortableManager = Sortable.create(selectedEnginesContainer, {
 			handle: ".engine-dragger",
 			onEnd: ev => {
 				groupEngineUniqueIds.splice(ev.newIndex, 0, groupEngineUniqueIds.splice(ev.oldIndex, 1)[0]);
@@ -537,11 +514,29 @@ namespace SSS_Settings
 			switch (ev.key) {
 				case "Escape":
 					hideGroupPopup();
-					return;
+					break;
 				case "Enter":
 					saveButton.click();
+					break;
 			}
 		};
+
+		function hideGroupPopup()
+		{
+			// Hide the popup
+			groupEnginePopup.classList.add("hidden");
+
+			selectedEnginesContainer.innerHTML = "";
+			availableEnginesContainer.innerHTML = "";
+
+			groupIconAsImage.classList.add("hidden");
+			groupIconAsCanvas.classList.add("hidden");
+
+			groupPopupSortableManager.destroy();
+
+			// Make body scrollable again.
+			document.body.style.overflow = "auto";
+		}
 	}
 
 	// main setup for settings page, called when page loads
