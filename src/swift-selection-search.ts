@@ -612,7 +612,7 @@ namespace SSS
 
 	function escapeRegexString(str: string): string
 	{
-		return str.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched str
+		return str.replace(/[.*+\-?^${}()|[\]\\]/g, "\\$&"); // $& means the whole matched str
 	}
 
 	// Adds settings that were not available in older versions of SSS to the settings object.
@@ -1117,8 +1117,8 @@ namespace SSS
 
 		browser.webRequest.onHeadersReceived.addListener(
 			modifyCSPRequest,
-			{ urls : [ 'http://*/*', 'https://*/*' ], types: [ 'main_frame' ] },
-			[ 'blocking', 'responseHeaders' ]
+			{ urls : [ "http://*/*", "https://*/*" ], types: [ "main_frame" ] },
+			[ "blocking", "responseHeaders" ]
 		);
 	}
 
@@ -1127,7 +1127,7 @@ namespace SSS
 		for (const responseHeader of details.responseHeaders)
 		{
 			const headerName = responseHeader.name.toLowerCase();
-			if (headerName !== 'content-security-policy' && headerName !== 'x-webkit-csp') continue;
+			if (headerName !== "content-security-policy" && headerName !== "x-webkit-csp") continue;
 
 			const CSP_SOURCE = "style-src";
 
@@ -1327,7 +1327,7 @@ namespace SSS
 		if (hasCustomEncoding) {
 			// encode to bytes, then convert bytes to hex and add % before each pair of characters (so it can be used in the URL)
 			let buffer = iconv.encode(searchText, engine.encoding);
-			searchText = "%" + buffer.toString('hex').toUpperCase().replace(/([A-Z0-9]{2})\B/g, '$1%');
+			searchText = "%" + buffer.toString("hex").toUpperCase().replace(/([A-Z0-9]{2})\B/g, "$1%");
 		}
 
 		let query = engine.searchUrl;

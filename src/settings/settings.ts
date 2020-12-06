@@ -290,7 +290,7 @@ namespace SSS_Settings
 			return hex.length == 2 ? hex : "0" + hex;	// pad with zero if needed
 		}
 
-		return '#' + channelToHex(Math.floor(Math.random() * 256))
+		return "#" + channelToHex(Math.floor(Math.random() * 256))
 				   + channelToHex(Math.floor(Math.random() * 256))
 				   + channelToHex(Math.floor(Math.random() * 256));
 	}
@@ -366,7 +366,7 @@ namespace SSS_Settings
 
 		const selectedEnginesContainer = document.querySelector("#group-selected-engines-container") as HTMLDivElement;		// for engines in the group
 		const availableEnginesContainer = document.querySelector("#group-available-engines-container") as HTMLDivElement;	// for engines NOT in the group
-		let engineRowTemplate = document.querySelector('#group-engines-list-row-template') as HTMLTemplateElement;	// will be cloned for each engine to create in the list
+		let engineRowTemplate = document.querySelector("#group-engines-list-row-template") as HTMLTemplateElement;	// will be cloned for each engine to create in the list
 
 		let availableEngines = settings.searchEngines.filter(e => e !== groupEngineToEdit && e.type !== SSS.SearchEngineType.SSS);
 
@@ -722,9 +722,9 @@ namespace SSS_Settings
 
 		page.toggleDarkMode.setDarkModeState = enable => {
 			if (enable) {
-				document.body.classList.add('dark');
+				document.body.classList.add("dark");
 			} else {
-				document.body.classList.remove('dark');
+				document.body.classList.remove("dark");
 			}
 		};
 
@@ -1593,7 +1593,7 @@ namespace SSS_Settings
 						? sssIcons[(engineWithShortcut as SSS.SearchEngine_SSS).id].name
 						: (engineWithShortcut as SSS.SearchEngine_NonSSS).name;
 
-					const override = confirm(`This shortcut is already assigned to '${engineName}'! Override?`);
+					const override = confirm(`This shortcut is already assigned to "${engineName}"! Override?`);
 
 					if (override) {
 						engine.shortcut = newValue;

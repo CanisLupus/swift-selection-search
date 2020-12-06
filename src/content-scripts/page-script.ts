@@ -121,15 +121,15 @@ namespace ContentScript
 
 	function copyToClipboardAsPlainText()
 	{
-		document.addEventListener('copy', copyToClipboardAsPlainText_Listener);
-		document.execCommand('copy');
-		document.removeEventListener('copy', copyToClipboardAsPlainText_Listener);
+		document.addEventListener("copy", copyToClipboardAsPlainText_Listener);
+		document.execCommand("copy");
+		document.removeEventListener("copy", copyToClipboardAsPlainText_Listener);
 	}
 
 	function copyToClipboardAsPlainText_Listener(e: ClipboardEvent)
 	{
 		if (saveCurrentSelection()) {
-			e.clipboardData.setData('text/plain', selection.unprocessedText);
+			e.clipboardData.setData("text/plain", selection.unprocessedText);
 			e.preventDefault();
 		}
 	}
@@ -370,14 +370,14 @@ namespace ContentScript
 	function createPopup(settings: SSS.Settings): PopupCreator.SSSPopup
 	{
 		// only define new element if not already defined (can get here multiple times if settings are reloaded)
-		if (!customElements.get('sss-popup'))
+		if (!customElements.get("sss-popup"))
 		{
 			// temp class that locks in settings as arguments to SSSPopup
 			class SSSPopupWithSettings extends PopupCreator.SSSPopup {
 				constructor() { super(getSettings(), getIcons()); }
 			}
 
-			customElements.define('sss-popup', SSSPopupWithSettings);
+			customElements.define("sss-popup", SSSPopupWithSettings);
 		}
 
 		let popup = document.createElement("sss-popup") as PopupCreator.SSSPopup;
@@ -460,7 +460,7 @@ namespace ContentScript
 		// The code below should only work if the popup is showing.
 		if (!isPopupVisible) return;
 
-		// Loop the icons using 'Tab'
+		// Loop the icons using "Tab"
 		if (ev.key === "Tab")
 		{
 			const firstIcon = popup.enginesContainer.firstChild as HTMLImageElement;
@@ -485,7 +485,7 @@ namespace ContentScript
 				engine = settings.searchEngines.find(e => e.type !== SSS.SearchEngineType.SSS);
 				openingBehaviour = SSS.OpenResultBehaviour.NewBgTab;	// for now, using enter is the same as ctrl-clicking
 			} else {
-				// if cycling the icons using 'tab', grab the focused icon
+				// if cycling the icons using "tab", grab the focused icon
 				const engineIndex = [...popup.enginesContainer.children].indexOf(ev.originalTarget);
 				engine = settings.searchEngines[engineIndex];
 				openingBehaviour = settings.shortcutBehaviour;
@@ -671,10 +671,10 @@ namespace PopupCreator
 
 			Object.setPrototypeOf(this, SSSPopup.prototype);	// needed so that instanceof and casts work
 
-			let shadowRoot = this.attachShadow({mode: 'closed'});
+			let shadowRoot = this.attachShadow({mode: "closed"});
 
 			let css = this.generateStylesheet(settings);
-			var style = document.createElement('style');
+			var style = document.createElement("style");
 			style.appendChild(document.createTextNode(css));
 			shadowRoot.appendChild(style);
 
@@ -685,7 +685,7 @@ namespace PopupCreator
 
 			if (settings.showSelectionTextField)
 			{
-				this.inputField = document.createElement('input');
+				this.inputField = document.createElement("input");
 				this.inputField.type = "text";
 				this.inputField.classList.add("sss-input-field");
 				this.content.appendChild(this.inputField);
@@ -896,14 +896,14 @@ namespace PopupCreator
 		{
 			let icon: HTMLImageElement = document.createElement("img");
 			icon.src = iconImgSource;
-			icon.tabIndex = 0; // to allow cycling through the icons using 'tab'
+			icon.tabIndex = 0; // to allow cycling through the icons using "tab"
 
 			// if icon responds to mouse interaction
 			if (isInteractive) {
 				icon.title = engine.shortcut ? `${iconTitle} (${engine.shortcut})` : iconTitle;	// tooltip
 				icon.addEventListener("mouseup", ev => onSearchEngineClick(ev, engine, settings)); // "mouse up" instead of "click" to support middle click
 				// prevent context menu since icons have a right click behaviour
-				icon.addEventListener('contextmenu', ev => {
+				icon.addEventListener("contextmenu", ev => {
 					ev.preventDefault();
 					return false;
 				});
