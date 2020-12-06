@@ -215,7 +215,7 @@ namespace SSS_Settings
 	{
 		var img = new Image();
 		img.crossOrigin = "Anonymous";
-		img.onload = () => {
+		img.onload = _ => {
 			const maxSize = 48;
 			let width;
 			let height;
@@ -565,7 +565,7 @@ namespace SSS_Settings
 			if (item.name === "importSettingsFromFileButton_real")
 			{
 				let reader = new FileReader();
-				reader.onload = () => {
+				reader.onload = _ => {
 					let importedSettings = JSON.parse(reader.result as string);
 					importSettings(importedSettings);
 					// alert("All settings were imported!");
@@ -578,7 +578,7 @@ namespace SSS_Settings
 			}
 		};
 
-		page.importBrowserEnginesButton.onclick = async () =>
+		page.importBrowserEnginesButton.onclick = async _ =>
 		{
 			if (confirm("Really import your browser's search engines?"))
 			{
@@ -591,7 +591,7 @@ namespace SSS_Settings
 			}
 		}
 
-		page.exportSettingsToFileButton.onclick = () =>
+		page.exportSettingsToFileButton.onclick = _ =>
 		{
 			// to save as a file we need the "downloads permission"
 			browser.permissions.request({ permissions: ["downloads"] }).then(wasPermissionGranted =>
@@ -617,16 +617,16 @@ namespace SSS_Settings
 		// There are two elements for the import button: a button for display and the actual "real" button that lets the user pick the file.
 		// This is done because the file picker button can't be formatted and would look very ugly.
 		// When we click the visual one, we want to call the real one.
-		page.importSettingsFromFileButton.onclick = () => page.importSettingsFromFileButton_real.click();
+		page.importSettingsFromFileButton.onclick = _ => page.importSettingsFromFileButton_real.click();
 
 		// register events for specific behaviour when certain fields change (color pickers change their text and vice versa)
-		page.popupBackgroundColorPicker.oninput = () => updateColorText  (page.popupBackgroundColor,       page.popupBackgroundColorPicker.value);
-		page.popupBackgroundColor.oninput       = () => updatePickerColor(page.popupBackgroundColorPicker, page.popupBackgroundColor.value);
-		page.popupHighlightColorPicker.oninput  = () => updateColorText  (page.popupHighlightColor,        page.popupHighlightColorPicker.value);
-		page.popupHighlightColor.oninput        = () => updatePickerColor(page.popupHighlightColorPicker,  page.popupHighlightColor.value);
+		page.popupBackgroundColorPicker.oninput = _ => updateColorText  (page.popupBackgroundColor,       page.popupBackgroundColorPicker.value);
+		page.popupBackgroundColor.oninput       = _ => updatePickerColor(page.popupBackgroundColorPicker, page.popupBackgroundColor.value);
+		page.popupHighlightColorPicker.oninput  = _ => updateColorText  (page.popupHighlightColor,        page.popupHighlightColorPicker.value);
+		page.popupHighlightColor.oninput        = _ => updatePickerColor(page.popupHighlightColorPicker,  page.popupHighlightColor.value);
 
 		// this should use "onfocus" instead of "onclick" but permissions.request can only be called on user input... (it still works with onfocus, but prints errors)
-		page.websiteBlocklist.onclick = () => {
+		page.websiteBlocklist.onclick = _ => {
 			// to use the website blocklist we need the tabs permission
 			browser.permissions.request({ permissions: ["tabs"] }).then(wasPermissionGranted =>
 			{
@@ -665,7 +665,7 @@ namespace SSS_Settings
 		for (let sectionNameElement of sectionNameElements)
 		{
 			// toggle entire section on clicking the title, and save in settings the resulting state (open/closed)
-			(sectionNameElement as HTMLElement).onclick = () => {
+			(sectionNameElement as HTMLElement).onclick = _ => {
 				if (settings.sectionsExpansionState === undefined) {
 					settings.sectionsExpansionState = {};
 				}
@@ -704,7 +704,7 @@ namespace SSS_Settings
 
 		// entering/leaving settings page
 
-		window.onfocus = () => {
+		window.onfocus = _ => {
 			// if settings changed while page was not focused, reload settings and UI
 			if (isPendingSettings) {
 				browser.storage.local.get().then(onSettingsAcquired, getErrorHandler("Error getting settings in settings page."));
@@ -712,7 +712,7 @@ namespace SSS_Settings
 			isFocused = true;
 		};
 
-		window.onblur = () => {
+		window.onblur = _ => {
 			isFocused = false;
 		};
 
@@ -726,14 +726,14 @@ namespace SSS_Settings
 			}
 		};
 
-		page.toggleDarkMode.onclick = () => {
+		page.toggleDarkMode.onclick = _ => {
 			settings.useDarkModeInOptionsPage = !settings.useDarkModeInOptionsPage;
 			page.toggleDarkMode.setDarkModeState(settings.useDarkModeInOptionsPage);
 
 			saveSettings({ useDarkModeInOptionsPage: settings.useDarkModeInOptionsPage });
 		};
 
-		page.addEngineButton.onclick = async () => {
+		page.addEngineButton.onclick = async _ => {
 			let searchUrl = "https://www.google.com/search?q={searchTerms}";	// use google as an example
 			let iconUrl = getIconUrlFromSearchUrl(searchUrl);	// by default try to get a favicon for the domain
 
@@ -748,11 +748,11 @@ namespace SSS_Settings
 			updateUIWithSettings();
 		};
 
-		page.addGroupButton.onclick = () => {
+		page.addGroupButton.onclick = _ => {
 			showGroupPopup();
 		};
 
-		page.addSeparatorButton.onclick = async () => {
+		page.addSeparatorButton.onclick = async _ => {
 			settings.searchEngines.push(await createDefaultEngine({
 				type: SSS.SearchEngineType.SSS,
 				id: "separator",
@@ -763,7 +763,7 @@ namespace SSS_Settings
 		};
 
 		// saves settings to Firefox Sync
-		page.saveSettingsToSyncButton.onclick = () => {
+		page.saveSettingsToSyncButton.onclick = _ => {
 			if (DEBUG) { log("saving!"); }
 
 			// remove useless stuff that doesn't need to be stored
@@ -786,7 +786,7 @@ namespace SSS_Settings
 
 		// buttons with confirmation
 
-		page.resetSearchEnginesButton.onclick = () =>
+		page.resetSearchEnginesButton.onclick = _ =>
 		{
 			if (confirm("Really reset search engines to the default ones?"))
 			{
@@ -797,7 +797,7 @@ namespace SSS_Settings
 			}
 		};
 
-		page.resetSettingsButton.onclick = () =>
+		page.resetSettingsButton.onclick = _ =>
 		{
 			if (confirm("Really reset all settings to their default values?"))
 			{
@@ -809,7 +809,7 @@ namespace SSS_Settings
 			}
 		};
 
-		page.loadSettingsFromSyncButton.onclick = () =>
+		page.loadSettingsFromSyncButton.onclick = _ =>
 		{
 			if (confirm("Really load all settings from Firefox Sync?"))
 			{
@@ -1126,7 +1126,7 @@ namespace SSS_Settings
 		isEnabledCheckbox.checked = engine.isEnabled;
 		isEnabledCheckbox.autocomplete = "off";
 		isEnabledCheckbox.title = "Show in popup";
-		isEnabledCheckbox.onchange = () => {
+		isEnabledCheckbox.onchange = _ => {
 			setEnabledInPopup(engine, i, isEnabledCheckbox.checked);
 		};
 		isEnabledCheckboxParent.appendChild(isEnabledCheckbox);
@@ -1143,7 +1143,7 @@ namespace SSS_Settings
 		isEnabledInContextMenuCheckbox.checked = engine.isEnabledInContextMenu;
 		isEnabledInContextMenuCheckbox.autocomplete = "off";
 		isEnabledInContextMenuCheckbox.title = "Show in context menu";
-		isEnabledInContextMenuCheckbox.onchange = () => {
+		isEnabledInContextMenuCheckbox.onchange = _ => {
 			setEnabledInContextMenu(engine, i, isEnabledInContextMenuCheckbox.checked);
 		};
 		isEnabledInContextMenuCheckboxParent.appendChild(isEnabledInContextMenuCheckbox);
@@ -1356,7 +1356,7 @@ namespace SSS_Settings
 		checkbox.id = elementId;
 		checkbox.checked = checked;
 		checkbox.autocomplete = "off";
-		checkbox.onchange = () => onChange(checkbox.checked);
+		checkbox.onchange = _ => onChange(checkbox.checked);
 		parent.appendChild(checkbox);
 
 		let label = document.createElement("label");
@@ -1397,7 +1397,7 @@ namespace SSS_Settings
 		if (currentValue) {
 			dropdown.value = currentValue;
 		}
-		dropdown.onchange = () => onChange(dropdown.value);
+		dropdown.onchange = _ => onChange(dropdown.value);
 
 		let label = document.createElement("label");
 		label.textContent = " " + labelText;	// space adds padding between checkbox and label
@@ -1439,7 +1439,7 @@ namespace SSS_Settings
 		let nameInput = document.createElement("input");
 		nameInput.type = "text";
 		nameInput.value = engine.name;
-		nameInput.onchange = () => {
+		nameInput.onchange = _ => {
 			engine.name = nameInput.value;
 
 			// make sure groups containing this engine get the updated engine name in their descriptions
@@ -1471,7 +1471,7 @@ namespace SSS_Settings
 
 		let previousSearchLinkInputValue = engine.searchUrl;	// keeps the previous value when it changes
 
-		searchLinkInput.onchange = () => {
+		searchLinkInput.onchange = _ => {
 			// trim search url and prepend "http://" if it doesn't begin with a protocol
 			let url = searchLinkInput.value.trim();
 			if (url.length > 0 && !url.match(/^[0-9a-zA-Z\-+]+:(\/\/)?/)) {
@@ -1513,11 +1513,11 @@ namespace SSS_Settings
 		iconLinkInput.type = "text";
 		iconLinkInput.value = engine.iconUrl;
 
-		iconLinkInput.oninput = () => {
+		iconLinkInput.oninput = _ => {
 			setIconUrlInput(engine, iconLinkInput, icon);
 		};
 
-		iconLinkInput.onchange = () => {
+		iconLinkInput.onchange = _ => {
 			if (iconLinkInput.value.length == 0 && references.searchLinkInput !== undefined) {
 				iconLinkInput.value = getIconUrlFromSearchUrl(references.searchLinkInput.value);
 				setIconUrlInput(engine, iconLinkInput, icon);
@@ -1631,7 +1631,7 @@ namespace SSS_Settings
 		deleteButton.type = "button";
 		deleteButton.value = "✖";
 		deleteButton.title = "Delete";
-		deleteButton.onclick = () => {
+		deleteButton.onclick = _ => {
 			// Deleting an engine that belongs to one or more groups must also remove it from the groups, so we ask the user for confirmation.
 			const engineToDelete = settings.searchEngines[i];
 			let groupsContainingEngine = settings.searchEngines.filter(

@@ -912,7 +912,7 @@ namespace PopupCreator
 			// prevents focus from changing to icon and breaking copy from input fields
 			icon.addEventListener("mousedown", ev => ev.preventDefault());
 			// disable dragging popup images
-			icon.ondragstart = () => false;
+			icon.ondragstart = _ => false;
 
 			return icon;
 		}
