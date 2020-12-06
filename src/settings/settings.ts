@@ -18,7 +18,7 @@ How to add a new setting:
 	- [extra] If it depends on another setting, add "hidden" (and perhaps "indent") as a class.
 - settings.ts
 	- [extra] If it depends on another setting, add both to "const page" object.
-	- [extra] If it depends on another setting, create a new "updateSetting_??" function and add it to "function updateSetting".
+	- [extra] If it depends on another setting, add the relation to the "updateSetting" function.
 - page-script.ts
 	- Implement! (Unless it's not a setting that affects the page script, of course. ;))
 
@@ -642,9 +642,7 @@ namespace SSS_Settings
 		for (let elem of document.getElementsByClassName("setting-reset"))
 		{
 			let inputElements = elem.getElementsByTagName("input");
-			if (inputElements.length == 0) {
-				continue;
-			}
+			if (inputElements.length == 0) continue;
 
 			inputElements[0].onclick = _ => {
 				let parent = elem.closest(".setting");
@@ -1001,10 +999,7 @@ namespace SSS_Settings
 	function saveElementValueToSettings(item: HTMLFormElement, didElementValueChange: boolean = false): boolean
 	{
 		let name = item.name;
-
-		if (!(name in settings)) {
-			return false;
-		}
+		if (!(name in settings)) return false;
 
 		// different fields have different ways to get their value
 		let value;
@@ -1016,8 +1011,7 @@ namespace SSS_Settings
 			value = item.value;
 		}
 
-		if (didElementValueChange)
-		{
+		if (didElementValueChange) {
 			updateSetting(name, value);
 		}
 
@@ -1033,9 +1027,7 @@ namespace SSS_Settings
 		let name = item.name;
 
 		// all settings are saved with the same name as the input elements in the page
-		if (!(name in settings)) {
-			return false;
-		}
+		if (!(name in settings)) return false;
 
 		let value = settings[name];
 
@@ -1064,40 +1056,45 @@ namespace SSS_Settings
 				break;
 			// some options only appear if some other option has a certain value
 			case "popupOpenBehaviour":
-				updateSetting_popupDelay(value);
-				updateSetting_minSelectedCharacters(value);
-				updateSetting_maxSelectedCharacters(value);
-				updateSetting_middleMouseSelectionClickMargin(value);
+				updateHtmlElementSetting(page.popupDelay, value === SSS.PopupOpenBehaviour.Auto);
+				updateHtmlElementSetting(page.minSelectedCharacters, value === SSS.PopupOpenBehaviour.Auto);
+				updateHtmlElementSetting(page.maxSelectedCharacters, value === SSS.PopupOpenBehaviour.Auto);
+				updateHtmlElementSetting(page.middleMouseSelectionClickMargin, value === SSS.PopupOpenBehaviour.MiddleMouse);;
 				break;
 			case "showSelectionTextField":
-				updateSetting_selectionTextFieldLocation(value);
+				updateHtmlElementSetting(page.selectionTextFieldLocation, value === true);
 				break;
 			case "useSingleRow":
-				updateSetting_nPopupIconsPerRow(value);
-				updateSetting_iconAlignmentInGrid(value);
+				updateHtmlElementSetting(page.nPopupIconsPerRow, value === false);
+				updateHtmlElementSetting(page.iconAlignmentInGrid, value === false);
 				break;
 			case "useCustomPopupCSS":
-				updateSetting_customPopupCSS(value);
+				updateHtmlElementSetting(page.customPopupCSS, value === true);
 				break;
+		}
+
+		function updateHtmlElementSetting(element: HTMLElement, enabled: boolean)
+		{
+			let setting = element.closest(".setting");
+			if (enabled) {
+				setting.classList.remove("hidden");
+			} else {
+				setting.classList.add("hidden");
+			}
 		}
 	}
 
 	// estimates size of settings in bytes and shows warning messages if this is a problem when using Firefox Sync
 	function calculateAndShowSettingsSize()
 	{
-		// let storageSize = runActionOnDietSettings(settings, settings => roughSizeOfObject(settings));
-		let storageSize = runActionOnDietSettings(settings, settings => JSON.stringify(settings).length * 2);	// times 2 because each char has size 2 bytes
-		if (storageSize > 100 * 1024) {
-			for (let elem of document.getElementsByClassName("warn-when-over-storage-limit")) {
-				(elem as HTMLElement).style.color = "red";
-			}
-		} else {
-			for (let elem of document.getElementsByClassName("warn-when-over-storage-limit")) {
-				(elem as HTMLElement).style.color = "";
-			}
+		let storageSize = runActionOnDietSettings(settings, settings => JSON.stringify(settings).length * 2);	// times 2 because each char is 2 bytes
+		const maxRecommendedStorageSize = 100 * 1024;
+
+		for (let elem of document.getElementsByClassName("warn-when-over-storage-limit")) {
+			(elem as HTMLElement).style.color = storageSize > maxRecommendedStorageSize ? "red" : "";
 		}
-		let storageSizeElement = document.getElementById("storage-size");
-		storageSizeElement.textContent = getSizeWithUnit(storageSize);
+
+		document.getElementById("storage-size").textContent = getSizeWithUnit(storageSize);
 	}
 
 	// creates a row for the engines table
@@ -1746,58 +1743,8 @@ namespace SSS_Settings
 		}
 	}
 
-	function updateSetting_popupDelay(popupOpenBehaviour)
-	{
-		updateSetting_specific(page.popupDelay, popupOpenBehaviour === SSS.PopupOpenBehaviour.Auto);
-	}
-
-	function updateSetting_minSelectedCharacters(popupOpenBehaviour)
-	{
-		updateSetting_specific(page.minSelectedCharacters, popupOpenBehaviour === SSS.PopupOpenBehaviour.Auto);
-	}
-
-	function updateSetting_maxSelectedCharacters(popupOpenBehaviour)
-	{
-		updateSetting_specific(page.maxSelectedCharacters, popupOpenBehaviour === SSS.PopupOpenBehaviour.Auto);
-	}
-
-	function updateSetting_middleMouseSelectionClickMargin(popupOpenBehaviour)
-	{
-		updateSetting_specific(page.middleMouseSelectionClickMargin, popupOpenBehaviour === SSS.PopupOpenBehaviour.MiddleMouse);
-	}
-
-	function updateSetting_selectionTextFieldLocation(showSelectionTextField)
-	{
-		updateSetting_specific(page.selectionTextFieldLocation, showSelectionTextField === true);
-	}
-
-	function updateSetting_nPopupIconsPerRow(useSingleRow)
-	{
-		updateSetting_specific(page.nPopupIconsPerRow, useSingleRow === false);
-	}
-
-	function updateSetting_iconAlignmentInGrid(useSingleRow)
-	{
-		updateSetting_specific(page.iconAlignmentInGrid, useSingleRow === false);
-	}
-
-	function updateSetting_customPopupCSS(useCustomPopupCSS)
-	{
-		updateSetting_specific(page.customPopupCSS, useCustomPopupCSS === true);
-	}
-
-	function updateSetting_specific(element: HTMLElement, enabled: boolean)
-	{
-		let setting = element.closest(".setting");
-		if (enabled) {
-			setting.classList.remove("hidden");
-		} else {
-			setting.classList.add("hidden");
-		}
-	}
-
 	// gets a much more readable string for a size in bytes (ex.: 25690112 bytes is "24.5MB")
-	function getSizeWithUnit(size)
+	function getSizeWithUnit(size: number)
 	{
 		let unit = 0;
 		while (size >= 1024 && unit <= 2) {
@@ -1807,15 +1754,10 @@ namespace SSS_Settings
 
 		size = Math.round(size);
 
-		if (unit == 0) {
-			return size + "B";
-		} else if (unit == 1) {
-			return size + "KB";
-		} else if (unit == 2) {
-			return size + "MB";
-		} else {
-			return size + "GB";
-		}
+		if (unit == 0) return size + "B";
+		if (unit == 1) return size + "KB";
+		if (unit == 2) return size + "MB";
+		return size + "GB";
 	}
 
 	// just a wrapper for saving the settings to storage and logging info

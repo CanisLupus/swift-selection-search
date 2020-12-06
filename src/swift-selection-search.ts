@@ -725,9 +725,7 @@ namespace SSS
 	// (definitely not performant, but very robust)
 	function onSettingsChanged(changes: object, area: string)
 	{
-		if (area !== "local" || isObjectEmpty(changes)) {
-			return;
-		}
+		if (area !== "local" || isObjectEmpty(changes)) return;
 
 		if (DEBUG) { log("onSettingsChanged in " + area); }
 		if (DEBUG) { log(changes); }
