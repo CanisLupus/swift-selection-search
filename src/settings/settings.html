@@ -214,11 +214,13 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 	.engine-dragger,
 	.engine-is-enabled,
 	.engine-is-enabled-in-context-menu,
-	.engine-icon-img,
-	.engine-shortcut {
+	.engine-icon-img {
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		min-width: 22px;
+	}
+	.engine-shortcut {
 		width: 30px;
 	}
 	.engine-shortcut input {
@@ -262,7 +264,8 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 	}
 	.engine-add-button {
 		max-width: 150px;
-		width: 40%;
+		min-width: 0px;
+		width: 30%;
 	}
 
 	/* group popup */
