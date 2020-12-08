@@ -213,7 +213,7 @@ namespace ContentScript
 			clearPopupShowTimeout();
 
 			if (saveCurrentSelection()) {
-				popupShowTimeout = setTimeout(() => showPopupForSelection(ev, false), activationSettings.popupDelay);
+				popupShowTimeout = window.setTimeout(() => showPopupForSelection(ev, false), activationSettings.popupDelay);	// use "window.setTimeout" to avoid problems with TS type definitions
 			}
 		}
 		else

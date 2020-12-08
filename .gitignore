@@ -2,7 +2,6 @@
 Thumbs.db
 .vscode
 /node_modules
-package-lock.json
 *.js
 
 # but not these files
