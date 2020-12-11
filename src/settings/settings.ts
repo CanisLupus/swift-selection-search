@@ -544,7 +544,7 @@ namespace SSS_Settings
 	{
 		// save all form elements for easy access
 
-		page.engines = document.getElementById("engines");
+		page.engines = document.querySelector("#engines");
 		page.inputs = document.querySelectorAll("input, select, textarea");
 
 		for (let item of page.inputs) {
@@ -553,7 +553,7 @@ namespace SSS_Settings
 
 		// register change event for anything in the form
 
-		let container: any = document.getElementById("settings");
+		let container: any = document.querySelector("#settings");
 
 		container.onchange = ev => {
 			let item = ev.target;
@@ -639,9 +639,9 @@ namespace SSS_Settings
 
 		// setup reset buttons for each option
 
-		for (let elem of document.getElementsByClassName("setting-reset"))
+		for (let elem of document.querySelectorAll(".setting-reset"))
 		{
-			let inputElements = elem.getElementsByTagName("input");
+			let inputElements = elem.querySelectorAll("input");
 			if (inputElements.length == 0) continue;
 
 			inputElements[0].onclick = _ => {
@@ -660,9 +660,7 @@ namespace SSS_Settings
 
 		// sections' collapse/expand code
 
-		let sectionNameElements = document.getElementsByClassName("section-name");
-
-		for (let sectionNameElement of sectionNameElements)
+		for (let sectionNameElement of document.querySelectorAll(".section-name"))
 		{
 			// toggle entire section on clicking the title, and save in settings the resulting state (open/closed)
 			(sectionNameElement as HTMLElement).onclick = _ => {
@@ -686,14 +684,14 @@ namespace SSS_Settings
 				case "cros":
 				case "linux":
 				case "openbsd":
-					platformSpecificElements = document.getElementsByClassName("os-linux");
+					platformSpecificElements = document.querySelectorAll(".os-linux");
 					break;
 				case "mac":
-					platformSpecificElements = document.getElementsByClassName("os-mac");
+					platformSpecificElements = document.querySelectorAll(".os-mac");
 					break;
 				case "win":
 				default:
-					platformSpecificElements = document.getElementsByClassName("os-windows");
+					platformSpecificElements = document.querySelectorAll(".os-windows");
 					break;
 			}
 
@@ -985,7 +983,7 @@ namespace SSS_Settings
 		{
 			for (let sectionId of Object.keys(settings.sectionsExpansionState))
 			{
-				let classList = document.getElementById(sectionId).classList;
+				let classList = document.querySelector("#" + sectionId).classList;
 				let isExpanded = settings.sectionsExpansionState[sectionId];
 				classList.toggle("collapsed-section", !isExpanded);
 			}
@@ -1090,11 +1088,11 @@ namespace SSS_Settings
 		let storageSize = runActionOnDietSettings(settings, settings => JSON.stringify(settings).length * 2);	// times 2 because each char is 2 bytes
 		const maxRecommendedStorageSize = 100 * 1024;
 
-		for (let elem of document.getElementsByClassName("warn-when-over-storage-limit")) {
+		for (let elem of document.querySelectorAll(".warn-when-over-storage-limit")) {
 			(elem as HTMLElement).style.color = storageSize > maxRecommendedStorageSize ? "red" : "";
 		}
 
-		document.getElementById("storage-size").textContent = getSizeWithUnit(storageSize);
+		document.querySelector("#storage-size").textContent = getSizeWithUnit(storageSize);
 	}
 
 	// creates a row for the engines table
@@ -1445,7 +1443,7 @@ namespace SSS_Settings
 			// make sure groups containing this engine get the updated engine name in their descriptions
 
 			const groupEngines = settings.searchEngines.filter(engine => engine.type === SSS.SearchEngineType.Group);
-			const groupEngineDescriptions = document.getElementsByClassName("group-engine-description");
+			const groupEngineDescriptions = document.querySelectorAll(".group-engine-description");
 
 			for (let i = 0; i < groupEngines.length; i++) {
 				groupEngineDescriptions[i].textContent = getGroupEngineDescription(groupEngines[i] as SSS.SearchEngine_Group);

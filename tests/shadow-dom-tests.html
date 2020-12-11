@@ -41,13 +41,13 @@
 
 		let main;
 
-		main = document.getElementsByClassName("main")[0];
+		main = document.querySelectorAll(".main")[0];
 		createStructure(main);
 
-		main = document.getElementsByClassName("main")[2];
+		main = document.querySelectorAll(".main")[2];
 		createStructure(main);
 
-		main = document.getElementsByClassName("main")[1];
+		main = document.querySelectorAll(".main")[1];
 		let shadow = main.attachShadow({mode: "closed"});
 
 		var style = document.createElement("style");
