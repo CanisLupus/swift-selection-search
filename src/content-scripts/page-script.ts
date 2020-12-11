@@ -63,7 +63,7 @@ namespace ContentScript
 
 	// Globals
 	let popup: PopupCreator.SSSPopup = null;
-	let selection: SelectionData = new SelectionData();
+	const selection: SelectionData = new SelectionData();
 	let mousePositionX: number = 0;
 	let mousePositionY: number = 0;
 	let canMiddleClickEngine: boolean = true;
@@ -260,7 +260,7 @@ namespace ContentScript
 
 	function saveCurrentSelection()
 	{
-		let elem: Element = document.activeElement;
+		const elem: Element = document.activeElement;
 
 		if (elem instanceof HTMLTextAreaElement || (elem instanceof HTMLInputElement && elem.type !== "password"))
 		{
@@ -275,7 +275,7 @@ namespace ContentScript
 			selection.isInInputField = false;
 
 			// get selection, but exit if there's no text selected after all
-			let selectionObject = window.getSelection();
+			const selectionObject = window.getSelection();
 			if (selectionObject === null) return false;
 
 			let selectedText = selectionObject.toString();
@@ -380,7 +380,7 @@ namespace ContentScript
 			customElements.define("sss-popup", SSSPopupWithSettings);
 		}
 
-		let popup = document.createElement("sss-popup") as PopupCreator.SSSPopup;
+		const popup = document.createElement("sss-popup") as PopupCreator.SSSPopup;
 
 		document.documentElement.appendChild(popup);
 
@@ -413,7 +413,7 @@ namespace ContentScript
 		// to find if this element is editable, we go up the hierarchy until an element that specifies "isContentEditable" (or the root)
 		for (let elem = node; elem !== document; elem = elem.parentNode)
 		{
-			let concreteElem = elem as HTMLElement;
+			const concreteElem = elem as HTMLElement;
 			if (concreteElem.isContentEditable === undefined) {
 				continue;		// check parent for value
 			}
@@ -425,7 +425,7 @@ namespace ContentScript
 
 	function isAnyEditableFieldFocused()
 	{
-		let elem: Element = document.activeElement;
+		const elem: Element = document.activeElement;
 		return elem instanceof HTMLTextAreaElement || (elem instanceof HTMLInputElement && elem.type !== "password") || isInContentEditableField(elem);
 	}
 
@@ -441,7 +441,7 @@ namespace ContentScript
 		// Check if the user pressed a shortcut.
 		// The popup must be visible, unless 'Always enable shortcuts' is checked.
 
-		let isPopupVisible = popup !== null && popup.isShown();
+		const isPopupVisible = popup !== null && popup.isShown();
 
 		if (!ev.altKey && !ev.ctrlKey && !ev.metaKey && !ev.shiftKey	// modifiers are not supported right now
 			&& !isAnyEditableFieldFocused())							// shortcuts are disabled in editable fields
@@ -491,7 +491,7 @@ namespace ContentScript
 				openingBehaviour = settings.shortcutBehaviour;
 			}
 
-			let message = createSearchMessage(engine, settings);
+			const message = createSearchMessage(engine, settings);
 			message.openingBehaviour = openingBehaviour;
 			browser.runtime.sendMessage(message);
 		}
@@ -503,9 +503,9 @@ namespace ContentScript
 
 	function searchWithEngineUsingShortcut(key: string)
 	{
-		let engine = getEngineWithShortcut(key);
+		const engine = getEngineWithShortcut(key);
 		if (engine) {
-			let message = createSearchMessage(engine, settings);
+			const message = createSearchMessage(engine, settings);
 			message.openingBehaviour = settings.shortcutBehaviour;
 			browser.runtime.sendMessage(message);
 		}
@@ -566,7 +566,7 @@ namespace ContentScript
 
 		if (ev.button === 0 || ev.button === 1 || ev.button === 2)
 		{
-			let message: EngineClickMessage = createSearchMessage(engine, settings);
+			const message: EngineClickMessage = createSearchMessage(engine, settings);
 
 			if (ev[selectionchange.modifierKey]) {
 				message.openingBehaviour = SSS.OpenResultBehaviour.NewBgTab;
@@ -584,7 +584,7 @@ namespace ContentScript
 
 	function createSearchMessage(engine: SSS.SearchEngine, settings: SSS.Settings): EngineClickMessage
 	{
-		let message = new EngineClickMessage();
+		const message = new EngineClickMessage();
 		// Due to shortcuts, we can search without a popup, so we only get the input field contents if popup is not null.
 		message.selection = popup !== null && settings.showSelectionTextField === true ? popup.getInputFieldText() : selection.text;
 		message.engine = engine;
@@ -600,10 +600,10 @@ namespace ContentScript
 	{
 		if (ev.button !== 1) return;
 
-		let selection: Selection = window.getSelection();
+		const selection: Selection = window.getSelection();
 
 		// for selections inside editable elements
-		let elem: Element = document.activeElement;
+		const elem: Element = document.activeElement;
 
 		if (elem instanceof HTMLTextAreaElement || (elem instanceof HTMLInputElement && elem.type !== "password")) {
 			if (forceSelectionIfWithinRect(ev, elem.getBoundingClientRect())) {
@@ -614,8 +614,8 @@ namespace ContentScript
 		// for normal text selections
 		for (let i = 0; i < selection.rangeCount; ++i)
 		{
-			let range: Range = selection.getRangeAt(i); // get the text range
-			let bounds: ClientRect | DOMRect = range.getBoundingClientRect();
+			const range: Range = selection.getRangeAt(i); // get the text range
+			const bounds: ClientRect | DOMRect = range.getBoundingClientRect();
 			if (bounds.width > 0 && bounds.height > 0 && forceSelectionIfWithinRect(ev, bounds)) {
 				return false;
 			}
@@ -633,7 +633,7 @@ namespace ContentScript
 	// if ev position is within the given rect plus margin, try to show popup for the selection
 	function forceSelectionIfWithinRect(ev: MouseEvent, rect: ClientRect | DOMRect)
 	{
-		let margin = activationSettings.middleMouseSelectionClickMargin;
+		const margin = activationSettings.middleMouseSelectionClickMargin;
 
 		if (ev.clientX > rect.left - margin && ev.clientX < rect.right + margin
 		 && ev.clientY > rect.top - margin  && ev.clientY < rect.bottom + margin)
@@ -671,9 +671,9 @@ namespace PopupCreator
 
 			Object.setPrototypeOf(this, SSSPopup.prototype);	// needed so that instanceof and casts work
 
-			let shadowRoot = this.attachShadow({mode: "closed"});
+			const shadowRoot = this.attachShadow({mode: "closed"});
 
-			let css = this.generateStylesheet(settings);
+			const css = this.generateStylesheet(settings);
 			var style = document.createElement("style");
 			style.appendChild(document.createTextNode(css));
 			shadowRoot.appendChild(style);
@@ -792,14 +792,14 @@ namespace PopupCreator
 			{
 				// Calculate the final width of the popup based on the known widths and paddings of everything.
 				// We need this so that if the popup is created too close to the borders of the page it still gets the right size.
-				let nSeparators = settings.searchEngines.filter(e => e.type === SSS.SearchEngineType.SSS && (e as SSS.SearchEngine_SSS).id === "separator").length;
-				let nPopupIcons: number = settings.searchEngines.length - nSeparators;
+				const nSeparators = settings.searchEngines.filter(e => e.type === SSS.SearchEngineType.SSS && (e as SSS.SearchEngine_SSS).id === "separator").length;
+				const nPopupIcons: number = settings.searchEngines.length - nSeparators;
 				width = nPopupIcons * (settings.popupItemSize + 2 * settings.popupItemPadding);
 				width += nSeparators * (settings.popupItemSize * settings.popupSeparatorWidth / 100 + 2 * settings.popupItemPadding);
 			}
 			else
 			{
-				let nPopupIconsPerRow: number = Math.max(1, Math.min(settings.nPopupIconsPerRow, settings.searchEngines.length));
+				const nPopupIconsPerRow: number = Math.max(1, Math.min(settings.nPopupIconsPerRow, settings.searchEngines.length));
 				width = nPopupIconsPerRow * (settings.popupItemSize + 2 * settings.popupItemPadding);
 			}
 
@@ -813,10 +813,10 @@ namespace PopupCreator
 			{
 				let borderCompensation;
 				if (settings.popupItemHoverBehaviour === SSS.ItemHoverBehaviour.HighlightAndMove) {
-					let marginTopValue = Math.min(-3 - settings.popupItemVerticalPadding + 2, -2);	// equal or less than -2 to counter the border's 2px
+					const marginTopValue = Math.min(-3 - settings.popupItemVerticalPadding + 2, -2);	// equal or less than -2 to counter the border's 2px
 					borderCompensation = `margin-top: ${marginTopValue}px;`;
 				} else {
-					let paddingBottomValue = Math.max(3 + settings.popupItemVerticalPadding - 2, 0);	// must be positive to counter the border's 2px
+					const paddingBottomValue = Math.max(3 + settings.popupItemVerticalPadding - 2, 0);	// must be positive to counter the border's 2px
 					borderCompensation = `padding-bottom: ${paddingBottomValue}px;`;
 				}
 
@@ -840,8 +840,8 @@ namespace PopupCreator
 
 		generateStylesheet_Separator(settings: SSS.Settings): string
 		{
-			let separatorWidth = settings.popupItemSize * settings.popupSeparatorWidth / 100;
-			let separatorMargin = (separatorWidth - settings.popupItemSize) / 2;
+			const separatorWidth = settings.popupItemSize * settings.popupSeparatorWidth / 100;
+			const separatorMargin = (separatorWidth - settings.popupItemSize) / 2;
 
 			return `
 				pointer-events: none !important;
@@ -855,17 +855,17 @@ namespace PopupCreator
 			// add each engine to the popup
 			for (let i = 0; i < settings.searchEngines.length; i++)
 			{
-				let engine = settings.searchEngines[i];
+				const engine = settings.searchEngines[i];
 				let icon: HTMLImageElement;
 
 				// special SSS icons with special functions
 				if (engine.type === SSS.SearchEngineType.SSS)
 				{
 					const sssEngine = engine as SSS.SearchEngine_SSS;
-					let sssIcon = sssIcons[sssEngine.id];
+					const sssIcon = sssIcons[sssEngine.id];
 
-					let iconImgSource = browser.extension.getURL(sssIcon.iconPath);
-					let isInteractive = sssIcon.isInteractive !== false;	// undefined or true means it's interactive
+					const iconImgSource = browser.extension.getURL(sssIcon.iconPath);
+					const isInteractive = sssIcon.isInteractive !== false;	// undefined or true means it's interactive
 					icon = this.setupEngineIcon(sssEngine, iconImgSource, sssIcon.name, isInteractive, settings);
 
 					if (sssEngine.id === "separator") {
@@ -881,7 +881,7 @@ namespace PopupCreator
 					if (userEngine.iconUrl.startsWith("data:")) {
 						iconImgSource = userEngine.iconUrl;	// use "URL" directly, as it's pure image data
 					} else {
-						let cachedIcon = settings.searchEnginesCache[userEngine.iconUrl];
+						const cachedIcon = settings.searchEnginesCache[userEngine.iconUrl];
 						iconImgSource = cachedIcon ? cachedIcon : userEngine.iconUrl;	// should have cached icon, but if not (for some reason) fall back to URL
 					}
 
@@ -894,7 +894,7 @@ namespace PopupCreator
 
 		setupEngineIcon(engine: SSS.SearchEngine, iconImgSource: string, iconTitle: string, isInteractive: boolean, settings: SSS.Settings): HTMLImageElement
 		{
-			let icon: HTMLImageElement = document.createElement("img");
+			const icon: HTMLImageElement = document.createElement("img");
 			icon.src = iconImgSource;
 			icon.tabIndex = 0; // to allow cycling through the icons using "tab"
 
@@ -919,9 +919,9 @@ namespace PopupCreator
 
 		setPopupPosition(settings: SSS.Settings, selection: ContentScript.SelectionData, mousePositionX: number, mousePositionY: number)
 		{
-			let bounds = this.content.getBoundingClientRect();
-			let width = bounds.width;
-			let height = bounds.height;
+			const bounds = this.content.getBoundingClientRect();
+			const width = bounds.width;
+			const height = bounds.height;
 
 			// position popup
 
@@ -934,7 +934,7 @@ namespace PopupCreator
 				if (selection.isInInputField) {
 					rect = selection.element.getBoundingClientRect();
 				} else {
-					let range = selection.selection.getRangeAt(0); // get the text range
+					const range = selection.selection.getRangeAt(0); // get the text range
 					rect = range.getBoundingClientRect();
 				}
 				// lower right corner of selected text's "bounds"
@@ -954,7 +954,7 @@ namespace PopupCreator
 			positionLeft += settings.popupOffsetX;
 			positionTop -= settings.popupOffsetY;	// invert sign because y is 0 at the top
 
-			// don't let popup be outside of the viewport
+			// don't const popup be outside of the viewport
 
 			const margin: number = 5;
 
@@ -962,7 +962,7 @@ namespace PopupCreator
 			if (positionLeft < margin + window.scrollX) {
 				positionLeft = margin + window.scrollX;
 			} else {
-				let clientWidth = Math.max(document.body.clientWidth, document.documentElement.clientWidth);
+				const clientWidth = Math.max(document.body.clientWidth, document.documentElement.clientWidth);
 				if (positionLeft + width + margin > clientWidth + window.scrollX) {
 					positionLeft = clientWidth + window.scrollX - width - margin;
 				}
@@ -972,7 +972,7 @@ namespace PopupCreator
 			if (positionTop < margin + window.scrollY) {
 				positionTop = margin + window.scrollY;
 			} else {
-				let clientHeight = Math.max(document.body.clientHeight, document.documentElement.clientHeight);
+				const clientHeight = Math.max(document.body.clientHeight, document.documentElement.clientHeight);
 				if (positionTop + height + margin > clientHeight + window.scrollY) {
 					positionTop = clientHeight + window.scrollY - height - margin;
 				}

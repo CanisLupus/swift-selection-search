@@ -536,7 +536,7 @@ namespace SSS
 	// small subset of settings needed for activating content scripts (no need to pass everything if the popup isn't ever called)
 	function getActivationSettingsForContentScript(settings: Settings): ActivationSettings
 	{
-		let activationSettings = new ActivationSettings();
+		const activationSettings = new ActivationSettings();
 		activationSettings.useEngineShortcutWithoutPopup = settings.useEngineShortcutWithoutPopup;
 		activationSettings.popupLocation = settings.popupLocation;
 		activationSettings.popupOpenBehaviour = settings.popupOpenBehaviour;
@@ -549,7 +549,7 @@ namespace SSS
 	// settings for when a content script needs to show the popup
 	function getPopupSettingsForContentScript(settings: Settings): ContentScriptSettings
 	{
-		let contentScriptSettings = new ContentScriptSettings();
+		const contentScriptSettings = new ContentScriptSettings();
 		contentScriptSettings.settings = Object.assign({}, settings);	// shallow copy
 		contentScriptSettings.settings.searchEngines = settings.searchEngines.filter(engine => engine.isEnabled);	// pass only enabled engines
 		contentScriptSettings.settings.searchEnginesCache = {};
@@ -560,7 +560,7 @@ namespace SSS
 		{
 			if (engine.type !== SearchEngineType.SSS)
 			{
-				let iconCache: string = settings.searchEnginesCache[(engine as SearchEngine_Custom).iconUrl];
+				const iconCache: string = settings.searchEnginesCache[(engine as SearchEngine_Custom).iconUrl];
 				if (iconCache) {
 					contentScriptSettings.settings.searchEnginesCache[(engine as SearchEngine_Custom).iconUrl] = iconCache;
 				}
@@ -575,12 +575,12 @@ namespace SSS
 	{
 		websitesBlocklistText = websitesBlocklistText.trim();
 
-		let websites: string[] = websitesBlocklistText.split("\n");
-		let websiteRegexes: RegExp[] = [];
+		const websites: string[] = websitesBlocklistText.split("\n");
+		const websiteRegexes: RegExp[] = [];
 
 		for (let i = 0; i < websites.length; i++)
 		{
-			let website: string = websites[i].trim();
+			const website: string = websites[i].trim();
 			if (website.length == 0) continue;
 
 			let regexStr: string;
@@ -600,7 +600,7 @@ namespace SSS
 			}
 
 			try {
-				let regex = new RegExp(regexStr);
+				const regex = new RegExp(regexStr);
 				websiteRegexes.push(regex);
 			} catch (e) {
 				console.warn("[WARNING] [Swift Selection Search]\nRegex parse error in \"Website blocklist\". Problematic regex is:\n\n\t" + website + "\n\n" + e);
@@ -652,7 +652,7 @@ namespace SSS
 
 		// 3.7.0
 		// convert old unchangeable browser-imported engines to normal ones
-		for (let engine of settings.searchEngines)
+		for (const engine of settings.searchEngines)
 		{
 			if (engine.type === SearchEngineType.BrowserLegacy)
 			{
@@ -673,7 +673,7 @@ namespace SSS
 
 		// 3.25.0
 		// add isEnabledInContextMenu to all engines
-		for (let engine of settings.searchEngines)
+		for (const engine of settings.searchEngines)
 		{
 			if (engine.isEnabledInContextMenu === undefined) {
 				engine.isEnabledInContextMenu = engine.type !== SearchEngineType.SSS && (engine.isEnabled || settings.contextMenuEnginesFilter === ContextMenuEnginesFilter.All);
@@ -759,8 +759,8 @@ namespace SSS
 		if (sss.blockedWebsitesCache.length == 0) return false;
 		if (!tab.url) return false;	// tab.url is undefined if we don't have the "tabs" permission
 
-		let index = tab.url.indexOf("://");	// NOTE: assumes the URL does NOT contain :// at an index much after the protocol
-		let url: string = index >= 0 ? tab.url.substr(index + 3) : tab.url;
+		const index = tab.url.indexOf("://");	// NOTE: assumes the URL does NOT contain :// at an index much after the protocol
+		const url: string = index >= 0 ? tab.url.substr(index + 3) : tab.url;
 
 		for (const regex of sss.blockedWebsitesCache)
 		{
@@ -785,7 +785,7 @@ namespace SSS
 
 	function isObjectEmpty(obj: object): boolean
 	{
-		for (const _ in obj) {
+		for (let _ in obj) {
 			return false;	// has at least one element
 		}
 		return true;
@@ -885,7 +885,7 @@ namespace SSS
 			// Since this feels dumb, the feature is commented-out for now.
 		});
 
-		let engines: SearchEngine[] = sss.settings.searchEngines;
+		const engines: SearchEngine[] = sss.settings.searchEngines;
 
 		// define sub options (one per engine)
 		for (let i = 0; i < engines.length; i++)
@@ -893,7 +893,7 @@ namespace SSS
 			const engine = engines[i];
 			if (!engine.isEnabledInContextMenu) continue;
 
-			let contextMenuOption = {
+			const contextMenuOption = {
 				id: undefined,
 				title: undefined,
 				type: undefined,
@@ -902,7 +902,7 @@ namespace SSS
 			};
 
 			if (engine.type === SearchEngineType.SSS) {
-				let concreteEngine = engine as SearchEngine_SSS;
+				const concreteEngine = engine as SearchEngine_SSS;
 				if (concreteEngine.id === "separator") {
 					contextMenuOption.type = "separator";
 					browser.contextMenus.create(contextMenuOption);
@@ -910,18 +910,18 @@ namespace SSS
 				}
 				contextMenuOption.title = sssIcons[concreteEngine.id].name;
 			} else {
-				let concreteEngine = engine as SearchEngine_Custom;
+				const concreteEngine = engine as SearchEngine_Custom;
 				contextMenuOption.title = concreteEngine.name;
 			}
 
 			let icon: string;
 
 			if (engine.type === SearchEngineType.SSS) {
-				let concreteEngine = engine as SearchEngine_SSS;
+				const concreteEngine = engine as SearchEngine_SSS;
 				icon = sssIcons[concreteEngine.id].iconPath;
 			}
 			else {
-				let iconUrl: string = (engine as SearchEngine_NonSSS).iconUrl;
+				const iconUrl: string = (engine as SearchEngine_NonSSS).iconUrl;
 
 				if (iconUrl.startsWith("data:")) {
 					icon = iconUrl;
@@ -944,9 +944,9 @@ namespace SSS
 
 	function onContextMenuItemClicked(info: browser.contextMenus.OnClickData, tab: browser.tabs.Tab)
 	{
-		let menuId: number = parseInt(info.menuItemId as string);
-		let selectedEngine: SearchEngine = sss.settings.searchEngines[menuId];
-		let button = info?.button ?? 0;
+		const menuId: number = parseInt(info.menuItemId as string);
+		const selectedEngine: SearchEngine = sss.settings.searchEngines[menuId];
+		const button = info?.button ?? 0;
 		onSearchEngineClick(selectedEngine, getOpenResultBehaviourForContextMenu(button), info.selectionText ?? info.linkText, info.pageUrl, info.linkText);
 	}
 
@@ -1071,9 +1071,9 @@ namespace SSS
 	{
 		if (DEBUG) { log("injectContentScript " + tabId + " frameId: " + frameId + " allFrames: " + allFrames); }
 
-		let errorHandler = getErrorHandler(`Error injecting page content script in tab ${tabId}.`);
+		const errorHandler = getErrorHandler(`Error injecting page content script in tab ${tabId}.`);
 
-		let executeScriptOptions: browser.extensionTypes.InjectDetails = {
+		const executeScriptOptions: browser.extensionTypes.InjectDetails = {
 			runAt: "document_start",
 			frameId: frameId,
 			allFrames: allFrames,
@@ -1082,7 +1082,7 @@ namespace SSS
 		};
 
 		// Save function for either calling it as a callback to another function (1), or as its own call (2).
-		let injectPageScript = () => {
+		const injectPageScript = () => {
 			executeScriptOptions.file = "/content-scripts/selectionchange.js";
 			browser.tabs.executeScript(tabId, executeScriptOptions).then(() => {
 				executeScriptOptions.file = "/content-scripts/page-script.js";
@@ -1155,7 +1155,7 @@ namespace SSS
 
 		if (selectedEngine.type === SearchEngineType.SSS)
 		{
-			let engine_SSS = selectedEngine as SearchEngine_SSS;
+			const engine_SSS = selectedEngine as SearchEngine_SSS;
 
 			if (engine_SSS.id === "copyToClipboard") {
 				// Only assume link if the searchText is the link text.
@@ -1167,8 +1167,8 @@ namespace SSS
 				}
 			}
 			else if (engine_SSS.id === "openAsLink") {
-				let url: string = getOpenAsLinkSearchUrl(searchText);
-				let tab: browser.tabs.Tab = await getTabForSearch(openingBehaviour, 0);
+				const url: string = getOpenAsLinkSearchUrl(searchText);
+				const tab: browser.tabs.Tab = await getTabForSearch(openingBehaviour, 0);
 				await browser.tabs.update(tab.id, { url: url });
 				if (DEBUG) { log("open as link: " + url); }
 			}
@@ -1231,7 +1231,7 @@ namespace SSS
 			// check if it's a custom engine
 			if (engine.type === SearchEngineType.Custom)
 			{
-				let engine_Custom = engine as SearchEngine_Custom;
+				const engine_Custom = engine as SearchEngine_Custom;
 				let openingBehaviourBeforeDiscard: OpenResultBehaviour;
 
 				if (engine_Custom.discardOnOpen) {
@@ -1241,7 +1241,7 @@ namespace SSS
 					openingBehaviour = OpenResultBehaviour.NewBgTabNextToThis;
 				}
 
-				let tab: browser.tabs.Tab = await getTabForSearch(openingBehaviour, tabIndexOffset);
+				const tab: browser.tabs.Tab = await getTabForSearch(openingBehaviour, tabIndexOffset);
 
 				await browser.tabs.update(tab.id, { url: getSearchQuery(engine_Custom, searchText, new URL(href)) });
 
@@ -1264,9 +1264,9 @@ namespace SSS
 			// check if it's a browser-managed engine
 			else if (engine.type === SearchEngineType.BrowserSearchApi)
 			{
-				let engine_BrowserSearchApi = engine as SearchEngine_BrowserSearchApi;
+				const engine_BrowserSearchApi = engine as SearchEngine_BrowserSearchApi;
 
-				let tab: browser.tabs.Tab = await getTabForSearch(openingBehaviour, tabIndexOffset);
+				const tab: browser.tabs.Tab = await getTabForSearch(openingBehaviour, tabIndexOffset);
 
 				await browser.search.search({
 					engine: engine_BrowserSearchApi.name,
@@ -1321,10 +1321,10 @@ namespace SSS
 	{
 		searchText = cleanSearchText(searchText);
 
-		let hasCustomEncoding = engine.encoding && engine.encoding !== "utf8";
+		const hasCustomEncoding = engine.encoding && engine.encoding !== "utf8";
 		if (hasCustomEncoding) {
 			// encode to bytes, then convert bytes to hex and add % before each pair of characters (so it can be used in the URL)
-			let buffer = iconv.encode(searchText, engine.encoding);
+			const buffer = iconv.encode(searchText, engine.encoding);
 			searchText = "%" + buffer.toString("hex").toUpperCase().replace(/([A-Z0-9]{2})\B/g, "$1%");
 		}
 
@@ -1355,7 +1355,7 @@ namespace SSS
 		const tab: browser.tabs.Tab = await getActiveTab();
 
 		const lastTabIndex: number = 9999;	// "guarantees" tab opens as last for some behaviours
-		let options: object = {};
+		const options: object = {};
 
 		if (openingBehaviour !== OpenResultBehaviour.NewWindow && openingBehaviour !== OpenResultBehaviour.NewBgWindow) {
 			options["openerTabId"] = tab.id;	// This makes tabs "children" of other tabs, which is useful for tab managing addons like Tree Style Tab.

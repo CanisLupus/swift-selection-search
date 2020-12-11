@@ -16,11 +16,11 @@ namespace SearchVariables
 		text = text.trim();
 
 		let searchIndex: number = 0;
-		let queryParts: string[] = [];
+		const queryParts: string[] = [];
 
 		while (true)
 		{
-			let variableModifications = getSearchVariableReplacements(url, variableName, searchIndex);
+			const variableModifications = getSearchVariableReplacements(url, variableName, searchIndex);
 
 			if (variableModifications.searchVariableEndIndex == -1) {
 				break;
@@ -112,7 +112,7 @@ namespace SearchVariables
 		apply(text: string): string
 		{
 			try {
-				let regex = new RegExp(this.source, this.flags);
+				const regex = new RegExp(this.source, this.flags);
 				return text.replace(regex, this.target);	// replace all occurrences
 			} catch {
 				return text;
@@ -132,8 +132,8 @@ namespace SearchVariables
 		apply(text: string): string
 		{
 			try {
-				let regex = new RegExp(this.source, this.flags);
-				let match = text.match(regex)
+				const regex = new RegExp(this.source, this.flags);
+				const match = text.match(regex)
 				return match !== null ? match.join("") : text;
 			} catch {
 				return text;
@@ -150,7 +150,7 @@ namespace SearchVariables
 
 		apply(text: string): string
 		{
-			let name = this.functionName.toLowerCase();
+			const name = this.functionName.toLowerCase();
 			switch (name)
 			{
 				case "lowercase": return text.toLowerCase();
@@ -208,7 +208,7 @@ namespace SearchVariables
 			return SearchVariableModifications.createDefault();
 		}
 
-		let modifications = SearchVariableModifications.createDefault();
+		const modifications = SearchVariableModifications.createDefault();
 
 		startIndex += startIndexForIndexOf;
 
@@ -237,7 +237,7 @@ namespace SearchVariables
 		for (; index < url.length; index++)
 		{
 			// get char
-			let c: string = url[index];
+			const c: string = url[index];
 
 			switch (state)
 			{
@@ -355,7 +355,7 @@ namespace SearchVariables
 
 				case SearchVariableParserState.IN_RANGE_START: {
 					if (c === "]") {
-						let rangeStartIndex = rangeStartIndexString.length > 0 ? Number(rangeStartIndexString) : NaN;
+						const rangeStartIndex = rangeStartIndexString.length > 0 ? Number(rangeStartIndexString) : NaN;
 						if (isNaN(rangeStartIndex)) {
 							return SearchVariableModifications.createDefault();
 						} else {
@@ -376,8 +376,8 @@ namespace SearchVariables
 					if (c === "]") {
 						state = SearchVariableParserState.EXPECTING_MODIFICATION_OR_END;
 
-						let rangeStartIndex = rangeStartIndexString.length > 0 ? Number(rangeStartIndexString) : null;
-						let rangeEndIndex = rangeEndIndexString.length > 0 ? Number(rangeEndIndexString) : null;
+						const rangeStartIndex = rangeStartIndexString.length > 0 ? Number(rangeStartIndexString) : null;
+						const rangeEndIndex = rangeEndIndexString.length > 0 ? Number(rangeEndIndexString) : null;
 
 						if (rangeStartIndex === NaN || rangeEndIndex === NaN) {
 							return SearchVariableModifications.createDefault();
@@ -402,7 +402,7 @@ namespace SearchVariables
 	function replace(text: string, modifications: SearchVariableModification[]): string
 	{
 		for (let i = 0; i < modifications.length; i++) {
-			let modification: SearchVariableModification = modifications[i];
+			const modification: SearchVariableModification = modifications[i];
 			text = modification.apply(text);
 		}
 		return text;

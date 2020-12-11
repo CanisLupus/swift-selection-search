@@ -4,9 +4,9 @@
 
 namespace selectionchange
 {
-	let MAC = /^Mac/.test(navigator.platform);
-	let MAC_MOVE_KEYS = new Set([65, 66, 69, 70, 78, 80]); // A, B, E, F, P, N from support.apple.com/en-ie/HT201236
-	export let modifierKey = MAC ? "metaKey" : "ctrlKey";
+	const MAC = /^Mac/.test(navigator.platform);
+	const MAC_MOVE_KEYS = new Set([65, 66, 69, 70, 78, 80]); // A, B, E, F, P, N from support.apple.com/en-ie/HT201236
+	export const modifierKey = MAC ? "metaKey" : "ctrlKey";
 
 	let ranges = null;
 
@@ -33,8 +33,8 @@ namespace selectionchange
 
 	function getSelectedRanges()
 	{
-		let selection = document.getSelection();
-		let newRanges = [];
+		const selection = document.getSelection();
+		const newRanges = [];
 
 		if (selection !== null) {
 			for (let i = 0; i < selection.rangeCount; i++) {
@@ -54,7 +54,7 @@ namespace selectionchange
 
 	function onKeyDown(ev)
 	{
-		let code = ev.keyCode;
+		const code = ev.keyCode;
 
 		if ((code === 65 && ev[modifierKey] && !ev.shiftKey && !ev.altKey) // Ctrl-A or Cmd-A
 			|| (code >= 35 && code <= 40 && ev.shiftKey) // home, end and arrow keys
@@ -75,11 +75,11 @@ namespace selectionchange
 
 	function dispatchEventIfSelectionChanged(force, ev, isMouse)
 	{
-		let newRanges = getSelectedRanges();
+		const newRanges = getSelectedRanges();
 
 		if (force || !areAllRangesEqual(newRanges, ranges)) {
 			ranges = newRanges;
-			let event = new CustomSelectionChangeEvent("customselectionchange");
+			const event = new CustomSelectionChangeEvent("customselectionchange");
 			event.altKey = ev.altKey;
 			event.isMouse = isMouse;
 			event.event = ev;
@@ -104,7 +104,7 @@ namespace selectionchange
 			const r1 = rs1[i];
 			const r2 = rs2[i];
 
-			let areEqual = r1.startContainer === r2.startContainer
+			const areEqual = r1.startContainer === r2.startContainer
 						&& r1.startOffset === r2.startOffset
 						&& r1.endContainer === r2.endContainer
 						&& r1.endOffset === r2.endOffset;

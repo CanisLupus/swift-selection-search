@@ -179,8 +179,8 @@ namespace SSS_Settings
 	async function addBrowserEnginesToEnginesList(browserSearchEngines: browser.search.SearchEngine[])
 	{
 		// "hash set" of search URLs (will help avoiding duplicates of previously imported browser engines)
-		let names = {};
-		for (let engine of settings.searchEngines) {
+		const names = {};
+		for (const engine of settings.searchEngines) {
 			if (engine.type === SSS.SearchEngineType.BrowserSearchApi) {
 				names[(engine as SSS.SearchEngine_BrowserSearchApi).name] = true;
 			}
@@ -189,7 +189,7 @@ namespace SSS_Settings
 		let nAddedEngines = 0;
 
 		// add all browser search engines
-		for (let browserSearchEngine of browserSearchEngines)
+		for (const browserSearchEngine of browserSearchEngines)
 		{
 			// avoid duplicates if this browser engine is already in the "hash set"
 			if (names.hasOwnProperty(browserSearchEngine.name)) continue;
@@ -240,20 +240,19 @@ namespace SSS_Settings
 			if (DEBUG) { log(img.width + "x" + img.height + " became " + width + "x" + height); }
 
 			// canvas is always a square (using larger dimension)
-			let canvas = document.createElement("canvas");
+			const canvas = document.createElement("canvas");
 			canvas.width = canvas.height = Math.max(width, height);
 
 			// draw image with size and position defined above
-			let ctx = canvas.getContext("2d");
+			const ctx = canvas.getContext("2d");
 			ctx.drawImage(img, xPos, yPos, width, height);
 
 			// finally get the image data (base64 data:image)
-			let dataURL = canvas.toDataURL();
+			const dataURL = canvas.toDataURL();
 			if (DEBUG) { log(dataURL.length); }
 			if (DEBUG) { log(imageUrl); }
 			if (DEBUG) { log(dataURL); }
 			callback(dataURL);
-			canvas = null;
 		};
 
 		img.src = imageUrl;	// starts the download and will call onload eventually
@@ -286,7 +285,7 @@ namespace SSS_Settings
 	function generateRandomColorAsString(): string
 	{
 		function channelToHex(channel) {
-			let hex = channel.toString(16);
+			const hex = channel.toString(16);
 			return hex.length == 2 ? hex : "0" + hex;	// pad with zero if needed
 		}
 
@@ -309,14 +308,14 @@ namespace SSS_Settings
 		// Prevent body from scrolling in the background.
 		document.body.style.overflow = "hidden";
 
-		let isEditing: boolean = groupEngineToEdit !== null;
+		const isEditing: boolean = groupEngineToEdit !== null;
 
 		// This array stores the engines that are selected for the group.
-		let groupEngineUniqueIds: string[] = isEditing ? [...groupEngineToEdit.enginesUniqueIds] : [];
+		const groupEngineUniqueIds: string[] = isEditing ? [...groupEngineToEdit.enginesUniqueIds] : [];
 
 		// Group icon can be an image or a canvas. We get both elements and use whichever is needed later.
-		let groupIconAsImage: HTMLImageElement = document.querySelector("#group-icon-img") as HTMLImageElement;
-		let groupIconAsCanvas: HTMLCanvasElement = document.querySelector("#group-icon-canvas") as HTMLCanvasElement;
+		const groupIconAsImage: HTMLImageElement = document.querySelector("#group-icon-img") as HTMLImageElement;
+		const groupIconAsCanvas: HTMLCanvasElement = document.querySelector("#group-icon-canvas") as HTMLCanvasElement;
 
 		const groupColorPicker = document.querySelector("#group-color-picker") as HTMLInputElement;
 		let color: string = isEditing ? groupEngineToEdit.color : generateRandomColorAsString();
@@ -362,24 +361,24 @@ namespace SSS_Settings
 		// This stores the rows (node) of the selected engines.
 		// Useful when editing a group, to show the engines in the exact order
 		// the user selected them when creating it.
-		let engineRows = [];
+		const engineRows = [];
 
 		const selectedEnginesContainer = document.querySelector("#group-selected-engines-container") as HTMLDivElement;		// for engines in the group
 		const availableEnginesContainer = document.querySelector("#group-available-engines-container") as HTMLDivElement;	// for engines NOT in the group
-		let engineRowTemplate = document.querySelector("#group-engines-list-row-template") as HTMLTemplateElement;	// will be cloned for each engine to create in the list
+		const engineRowTemplate = document.querySelector("#group-engines-list-row-template") as HTMLTemplateElement;	// will be cloned for each engine to create in the list
 
-		let availableEngines = settings.searchEngines.filter(e => e !== groupEngineToEdit && e.type !== SSS.SearchEngineType.SSS);
+		const availableEngines = settings.searchEngines.filter(e => e !== groupEngineToEdit && e.type !== SSS.SearchEngineType.SSS);
 
 		for (let i = 0; i < availableEngines.length; i++)
 		{
 			const engine = availableEngines[i];
 
-			let groupEnginesListRow = engineRowTemplate.content.firstElementChild.cloneNode(true) as HTMLDivElement;
+			const groupEnginesListRow = engineRowTemplate.content.firstElementChild.cloneNode(true) as HTMLDivElement;
 
 			// HACK-ish. Saves the index to use later when removing the engine from the group and adding it to the available engines again.
 			groupEnginesListRow["engineIndex"] = i;
 
-			let dragger = groupEnginesListRow.querySelector(".engine-dragger") as HTMLDivElement;
+			const dragger = groupEnginesListRow.querySelector(".engine-dragger") as HTMLDivElement;
 			dragger.style.display = "none"; // The dragger will only show for the selected engines.
 
 			// When editing, check the engines that are already on the group.
@@ -503,7 +502,7 @@ namespace SSS_Settings
 		};
 
 		// setup draggable elements to be able to sort engines
-		let groupPopupSortableManager = Sortable.create(selectedEnginesContainer, {
+		const groupPopupSortableManager = Sortable.create(selectedEnginesContainer, {
 			handle: ".engine-dragger",
 			onEnd: ev => {
 				groupEngineUniqueIds.splice(ev.newIndex, 0, groupEngineUniqueIds.splice(ev.oldIndex, 1)[0]);
@@ -547,16 +546,16 @@ namespace SSS_Settings
 		page.engines = document.querySelector("#engines");
 		page.inputs = document.querySelectorAll("input, select, textarea");
 
-		for (let item of page.inputs) {
+		for (const item of page.inputs) {
 			page[item.name] = item;
 		}
 
 		// register change event for anything in the form
 
-		let container: any = document.querySelector("#settings");
+		const container: any = document.querySelector("#settings");
 
 		container.onchange = ev => {
-			let item = ev.target;
+			const item = ev.target;
 
 			if (DEBUG) { log("onFormChanged target: " + item.name + ", value: " + item.value); }
 
@@ -564,9 +563,9 @@ namespace SSS_Settings
 
 			if (item.name === "importSettingsFromFileButton_real")
 			{
-				let reader = new FileReader();
+				const reader = new FileReader();
 				reader.onload = _ => {
-					let importedSettings = JSON.parse(reader.result as string);
+					const importedSettings = JSON.parse(reader.result as string);
 					importSettings(importedSettings);
 					// alert("All settings were imported!");
 				};
@@ -582,7 +581,7 @@ namespace SSS_Settings
 		{
 			if (confirm("Really import your browser's search engines?"))
 			{
-				let browserSearchEngines: browser.search.SearchEngine[] = await browser.search.get();
+				const browserSearchEngines: browser.search.SearchEngine[] = await browser.search.get();
 				if (DEBUG) { log(browserSearchEngines); }
 
 				await addBrowserEnginesToEnginesList(browserSearchEngines);
@@ -604,7 +603,7 @@ namespace SSS_Settings
 				// remove useless stuff that doesn't need to be stored
 				var blob = runActionOnDietSettings(settings, (settings: SSS.Settings) => new Blob([JSON.stringify(settings)]));
 				// save with current date and time
-				let filename = "SSS settings backup (" + new Date(Date.now()).toJSON().replace(/:/g, ".") + ").json";
+				const filename = "SSS settings backup (" + new Date(Date.now()).toJSON().replace(/:/g, ".") + ").json";
 
 				browser.downloads.download({
 					"saveAs": true,
@@ -639,18 +638,18 @@ namespace SSS_Settings
 
 		// setup reset buttons for each option
 
-		for (let elem of document.querySelectorAll(".setting-reset"))
+		for (const elem of document.querySelectorAll(".setting-reset"))
 		{
-			let inputElements = elem.querySelectorAll("input");
+			const inputElements = elem.querySelectorAll("input");
 			if (inputElements.length == 0) continue;
 
 			inputElements[0].onclick = _ => {
-				let parent = elem.closest(".setting");
-				let formElement = parent.querySelector(".setting-input") as HTMLFormElement;
-				let settingName = formElement.name;
+				const parent = elem.closest(".setting");
+				const formElement = parent.querySelector(".setting-input") as HTMLFormElement;
+				const settingName = formElement.name;
 
 				// register the change and save in storage
-				let defaultValue = defaultSettings[settingName];
+				const defaultValue = defaultSettings[settingName];
 				settings[settingName] = defaultValue;
 				saveSettings({ [settingName]: defaultValue });
 
@@ -660,14 +659,14 @@ namespace SSS_Settings
 
 		// sections' collapse/expand code
 
-		for (let sectionNameElement of document.querySelectorAll(".section-name"))
+		for (const sectionNameElement of document.querySelectorAll(".section-name"))
 		{
 			// toggle entire section on clicking the title, and save in settings the resulting state (open/closed)
 			(sectionNameElement as HTMLElement).onclick = _ => {
 				if (settings.sectionsExpansionState === undefined) {
 					settings.sectionsExpansionState = {};
 				}
-				let isCollapsed = sectionNameElement.parentElement.classList.toggle("collapsed-section");
+				const isCollapsed = sectionNameElement.parentElement.classList.toggle("collapsed-section");
 				settings.sectionsExpansionState[sectionNameElement.parentElement.id] = !isCollapsed;
 				saveSettings({ sectionsExpansionState: settings.sectionsExpansionState });
 			};
@@ -695,7 +694,7 @@ namespace SSS_Settings
 					break;
 			}
 
-			for (let elem of platformSpecificElements) {
+			for (const elem of platformSpecificElements) {
 				elem.style.display = "inline";
 			}
 		});
@@ -732,8 +731,8 @@ namespace SSS_Settings
 		};
 
 		page.addEngineButton.onclick = async _ => {
-			let searchUrl = "https://www.google.com/search?q={searchTerms}";	// use google as an example
-			let iconUrl = getIconUrlFromSearchUrl(searchUrl);	// by default try to get a favicon for the domain
+			const searchUrl = "https://www.google.com/search?q={searchTerms}";	// use google as an example
+			const iconUrl = getIconUrlFromSearchUrl(searchUrl);	// by default try to get a favicon for the domain
 
 			settings.searchEngines.push(await createDefaultEngine({
 				type: SSS.SearchEngineType.Custom,
@@ -768,7 +767,7 @@ namespace SSS_Settings
 			var settingsStr = runActionOnDietSettings(settings, (settings: SSS.Settings) => JSON.stringify(settings));
 
 			// divide into different fields so as not to trigger Firefox's "Maximum bytes per object exceeded ([number of bytes] > 16384 Bytes.)"
-			let chunks = {};
+			const chunks = {};
 			let chunkIndex = 0;
 			for (let i = 0, length = settingsStr.length; i < length; i += 1000, chunkIndex++) {
 				chunks["p"+chunkIndex] = settingsStr.substring(i, i + 1000);
@@ -788,7 +787,7 @@ namespace SSS_Settings
 		{
 			if (confirm("Really reset search engines to the default ones?"))
 			{
-				let defaultEngines = JSON.parse(JSON.stringify(defaultSettings.searchEngines));
+				const defaultEngines = JSON.parse(JSON.stringify(defaultSettings.searchEngines));
 				settings.searchEngines = defaultEngines;
 				updateUIWithSettings();
 				saveSettings({ searchEngines: settings.searchEngines });
@@ -799,7 +798,7 @@ namespace SSS_Settings
 		{
 			if (confirm("Really reset all settings to their default values?"))
 			{
-				let searchEngines = settings.searchEngines;	// stash engines
+				const searchEngines = settings.searchEngines;	// stash engines
 				settings = JSON.parse(JSON.stringify(defaultSettings));	// copy default settings
 				settings.searchEngines = searchEngines;	// restore engines
 				updateUIWithSettings();
@@ -815,14 +814,14 @@ namespace SSS_Settings
 					if (DEBUG) { log(chunks); }
 
 					// join all chunks of data we uploaded to sync in a list
-					let chunksList = [];
+					const chunksList = [];
 					let p;
 					for (let i = 0; (p = chunks["p"+i]) !== undefined; i++) {
 						chunksList.push(p);
 					}
 
 					// parse the chunks into an actual object
-					let parsedSettings = parseSyncChunksList(chunksList);
+					const parsedSettings = parseSyncChunksList(chunksList);
 
 					// finally try importing the read settings
 					if (parsedSettings !== null) {
@@ -903,7 +902,7 @@ namespace SSS_Settings
 
 		// load UI values from settings
 
-		for (let item of page.inputs) {
+		for (const item of page.inputs) {
 			loadSettingValueIntoElement(item);
 		}
 
@@ -916,7 +915,7 @@ namespace SSS_Settings
 		if (settings.searchEngines !== undefined)
 		{
 			// delete existing engine HTML elements for engines
-			let engineParent = page.engines;
+			const engineParent = page.engines;
 			while (engineParent.firstChild) {
 				engineParent.removeChild(engineParent.firstChild);
 			}
@@ -926,13 +925,13 @@ namespace SSS_Settings
 			// add all engines
 			for (let i = 0; i < settings.searchEngines.length; i++)
 			{
-				let engine = settings.searchEngines[i];
+				const engine = settings.searchEngines[i];
 
-				let tableRow = buildSearchEngineTableRow();
+				const tableRow = buildSearchEngineTableRow();
 
-				let engineRow = buildSearchEngineRow(engine, i);
+				const engineRow = buildSearchEngineRow(engine, i);
 				tableRow.appendChild(engineRow);
-				let optionsRow = buildSearchEngineOptionsTableRow(engine, i);
+				const optionsRow = buildSearchEngineOptionsTableRow(engine, i);
 				tableRow.appendChild(optionsRow);
 
 				// expand engine options when clicking somewhere in the engine (and guarantee there's only one expanded at any time)
@@ -981,10 +980,10 @@ namespace SSS_Settings
 
 		if (settings.sectionsExpansionState !== undefined)
 		{
-			for (let sectionId of Object.keys(settings.sectionsExpansionState))
+			for (const sectionId of Object.keys(settings.sectionsExpansionState))
 			{
-				let classList = document.querySelector("#" + sectionId).classList;
-				let isExpanded = settings.sectionsExpansionState[sectionId];
+				const classList = document.querySelector("#" + sectionId).classList;
+				const isExpanded = settings.sectionsExpansionState[sectionId];
 				classList.toggle("collapsed-section", !isExpanded);
 			}
 		}
@@ -996,7 +995,7 @@ namespace SSS_Settings
 
 	function saveElementValueToSettings(item: HTMLFormElement, didElementValueChange: boolean = false): boolean
 	{
-		let name = item.name;
+		const name = item.name;
 		if (!(name in settings)) return false;
 
 		// different fields have different ways to get their value
@@ -1022,12 +1021,12 @@ namespace SSS_Settings
 
 	function loadSettingValueIntoElement(item: HTMLFormElement): boolean
 	{
-		let name = item.name;
+		const name = item.name;
 
 		// all settings are saved with the same name as the input elements in the page
 		if (!(name in settings)) return false;
 
-		let value = settings[name];
+		const value = settings[name];
 
 		// each kind of input element has a different value to set
 		if (item.type === "checkbox") {
@@ -1073,7 +1072,7 @@ namespace SSS_Settings
 
 		function updateHtmlElementSetting(element: HTMLElement, enabled: boolean)
 		{
-			let setting = element.closest(".setting");
+			const setting = element.closest(".setting");
 			if (enabled) {
 				setting.classList.remove("hidden");
 			} else {
@@ -1085,10 +1084,10 @@ namespace SSS_Settings
 	// estimates size of settings in bytes and shows warning messages if this is a problem when using Firefox Sync
 	function calculateAndShowSettingsSize()
 	{
-		let storageSize = runActionOnDietSettings(settings, settings => JSON.stringify(settings).length * 2);	// times 2 because each char is 2 bytes
+		const storageSize = runActionOnDietSettings(settings, settings => JSON.stringify(settings).length * 2);	// times 2 because each char is 2 bytes
 		const maxRecommendedStorageSize = 100 * 1024;
 
-		for (let elem of document.querySelectorAll(".warn-when-over-storage-limit")) {
+		for (const elem of document.querySelectorAll(".warn-when-over-storage-limit")) {
 			(elem as HTMLElement).style.color = storageSize > maxRecommendedStorageSize ? "red" : "";
 		}
 
@@ -1098,7 +1097,7 @@ namespace SSS_Settings
 	// creates a row for the engines table
 	function buildSearchEngineTableRow()
 	{
-		let parent = document.createElement("div");
+		const parent = document.createElement("div");
 		parent.className = "engine-table-row";
 		return parent;
 	}
@@ -1106,20 +1105,20 @@ namespace SSS_Settings
 	// creates a search engine for the engines table (each in a different row)
 	function buildSearchEngineRow(engine, i)
 	{
-		let engineRow = document.createElement("div");
+		const engineRow = document.createElement("div");
 		engineRow.className = "engine-itself";
 
 		// dragger element
 
-		let dragger = createElement_EngineDragger();
+		const dragger = createElement_EngineDragger();
 		engineRow.appendChild(dragger);
 
 		// "is enabled" element
 
-		let isEnabledCheckboxParent = document.createElement("div");
+		const isEnabledCheckboxParent = document.createElement("div");
 		isEnabledCheckboxParent.className = "engine-is-enabled";
 
-		let isEnabledCheckbox = document.createElement("input");
+		const isEnabledCheckbox = document.createElement("input");
 		isEnabledCheckbox.type = "checkbox";
 		isEnabledCheckbox.checked = engine.isEnabled;
 		isEnabledCheckbox.autocomplete = "off";
@@ -1133,10 +1132,10 @@ namespace SSS_Settings
 
 		// "is enabled in context menu" element
 
-		let isEnabledInContextMenuCheckboxParent = document.createElement("div");
+		const isEnabledInContextMenuCheckboxParent = document.createElement("div");
 		isEnabledInContextMenuCheckboxParent.className = "engine-is-enabled-in-context-menu";
 
-		let isEnabledInContextMenuCheckbox = document.createElement("input");
+		const isEnabledInContextMenuCheckbox = document.createElement("input");
 		isEnabledInContextMenuCheckbox.type = "checkbox";
 		isEnabledInContextMenuCheckbox.checked = engine.isEnabledInContextMenu;
 		isEnabledInContextMenuCheckbox.autocomplete = "off";
@@ -1150,9 +1149,9 @@ namespace SSS_Settings
 
 		// icon
 
-		let engineIcon = document.createElement("div");
+		const engineIcon = document.createElement("div");
 		engineIcon.className = "engine-icon-img";
-		let iconImg = document.createElement("img");
+		const iconImg = document.createElement("img");
 		engineIcon.appendChild(iconImg);
 		setupEngineIconImg(engine, iconImg);
 
@@ -1162,18 +1161,18 @@ namespace SSS_Settings
 		{
 			// create columns for this row, most disabled because special SSS icons can't be edited
 
-			let sssIcon = sssIcons[engine.id];
+			const sssIcon = sssIcons[engine.id];
 
 			// name
 
-			let engineName = document.createElement("div");
+			const engineName = document.createElement("div");
 			engineName.className = "engine-sss engine-sss-name";
 			engineName.textContent = sssIcon.name;
 			engineRow.appendChild(engineName);
 
 			// description
 
-			let engineDescription = document.createElement("div");
+			const engineDescription = document.createElement("div");
 			engineDescription.className = "engine-sss engine-sss-description";
 			engineDescription.textContent = sssIcon.description;
 			engineRow.appendChild(engineDescription);
@@ -1195,11 +1194,11 @@ namespace SSS_Settings
 			// we can update the icon URL (if it was using the default URL), and when the icon URL is cleared
 			// it can use the search URL to generate a new icon URL.
 			// Only the anonymous callbacks inside the following functions will use values inside this object.
-			let references = {};
+			const references = {};
 
 			if (engine.type === SSS.SearchEngineType.BrowserSearchApi)
 			{
-				let engineDescription = document.createElement("div");
+				const engineDescription = document.createElement("div");
 				engineDescription.className = "engine-sss engine-description-small";
 				engineDescription.textContent = "[Browser] Engine imported from the browser.";
 				engineRow.appendChild(engineDescription);
@@ -1207,7 +1206,7 @@ namespace SSS_Settings
 			else if (engine.type === SSS.SearchEngineType.Group)
 			{
 				// create columns for groups
-				let engineDescription = document.createElement("div");
+				const engineDescription = document.createElement("div");
 				engineDescription.title = "Click to edit this group";
 				engineDescription.className = "engine-sss engine-description-small group-engine-description";
 				engineDescription.textContent = getGroupEngineDescription(engine);
@@ -1242,7 +1241,7 @@ namespace SSS_Settings
 
 	function createElement_EngineDragger(): HTMLDivElement
 	{
-		let dragger = document.createElement("div");
+		const dragger = document.createElement("div");
 		dragger.className = "engine-dragger";
 		dragger.textContent = "☰";
 		return dragger;
@@ -1254,7 +1253,7 @@ namespace SSS_Settings
 
 		if (engine.type === SSS.SearchEngineType.SSS) {
 			// special SSS icons have data that never changes, so just get it from constants
-			let sssIcon = sssIcons[(engine as SSS.SearchEngine_SSS).id];
+			const sssIcon = sssIcons[(engine as SSS.SearchEngine_SSS).id];
 			iconImgSource = browser.extension.getURL(sssIcon.iconPath);
 		} else {
 			iconImgSource = (engine as SSS.SearchEngine_NonSSS).iconUrl;
@@ -1280,14 +1279,14 @@ namespace SSS_Settings
 	// creates and adds a row with options for a certain search engine to the engines table
 	function buildSearchEngineOptionsTableRow(engine: SSS.SearchEngine, i: number)
 	{
-		let engineOptions = document.createElement("div");
+		const engineOptions = document.createElement("div");
 		engineOptions.className = "engine-options";
 
 		if (engine.type === SSS.SearchEngineType.SSS && (engine as SSS.SearchEngine_SSS).id === "copyToClipboard")
 		{
 			const copyEngine = engine as SSS.SearchEngine_SSS_Copy;
 
-			let isPlainTextCheckboxParent = createCheckbox(
+			const isPlainTextCheckboxParent = createCheckbox(
 				"Copy as plain-text",
 				`copy-as-plain-text`,
 				copyEngine.isPlainText,
@@ -1304,7 +1303,7 @@ namespace SSS_Settings
 		{
 			const customEngine = engine as SSS.SearchEngine_Custom;
 
-			let textEncodingDropdownParent = createDropdown(
+			const textEncodingDropdownParent = createDropdown(
 				"Text encoding",
 				`encoding-dropdown-${i}`,
 				encodings,
@@ -1321,7 +1320,7 @@ namespace SSS_Settings
 			textEncodingDropdownParent.title = "If this is a search engine for non-latin alphabets, like Cyrillic, Chinese, Japanese, etc, it might use a different text encoding. You can change it here.";
 			engineOptions.appendChild(textEncodingDropdownParent);
 
-			let discardOnOpenCheckboxParent = createCheckbox(
+			const discardOnOpenCheckboxParent = createCheckbox(
 				"Discard on open (Advanced)",
 				`discard-on-open-${i}`,
 				customEngine.discardOnOpen,
@@ -1336,7 +1335,7 @@ namespace SSS_Settings
 
 		if (!engineOptions.hasChildNodes())
 		{
-			let noExtraOptionsLabel = document.createElement("label");
+			const noExtraOptionsLabel = document.createElement("label");
 			noExtraOptionsLabel.textContent = "No extra options.";
 			noExtraOptionsLabel.style.color = "#999";
 			engineOptions.appendChild(noExtraOptionsLabel);
@@ -1347,9 +1346,9 @@ namespace SSS_Settings
 
 	function createCheckbox(labelText: string, elementId: string, checked: boolean, onChange: { (isOn: boolean): void; })
 	{
-		let parent = document.createElement("div");
+		const parent = document.createElement("div");
 
-		let checkbox = document.createElement("input");
+		const checkbox = document.createElement("input");
 		checkbox.type = "checkbox";
 		checkbox.id = elementId;
 		checkbox.checked = checked;
@@ -1357,7 +1356,7 @@ namespace SSS_Settings
 		checkbox.onchange = _ => onChange(checkbox.checked);
 		parent.appendChild(checkbox);
 
-		let label = document.createElement("label");
+		const label = document.createElement("label");
 		label.htmlFor = checkbox.id;
 		label.textContent = " " + labelText;	// space adds padding between checkbox and label
 
@@ -1368,9 +1367,9 @@ namespace SSS_Settings
 
 	function createDropdown(labelText: string, elementId: string, encodingGroups: EncodingGroup[], currentValue: string, onChange: { (value: string): void; })
 	{
-		let parent = document.createElement("div");
+		const parent = document.createElement("div");
 
-		let dropdown = document.createElement("select");
+		const dropdown = document.createElement("select");
 		dropdown.style.maxWidth = "250px";
 		dropdown.style.marginLeft = "10px";
 
@@ -1397,7 +1396,7 @@ namespace SSS_Settings
 		}
 		dropdown.onchange = _ => onChange(dropdown.value);
 
-		let label = document.createElement("label");
+		const label = document.createElement("label");
 		label.textContent = " " + labelText;	// space adds padding between checkbox and label
 
 		parent.appendChild(label);
@@ -1408,9 +1407,9 @@ namespace SSS_Settings
 
 	function setEnabledInPopup(engine: SSS.SearchEngine, i: number, value: boolean)
 	{
-		let engineRow = page.engines.children[i];
+		const engineRow = page.engines.children[i];
 
-		let checkbox = engineRow.querySelector(".engine-is-enabled input");
+		const checkbox = engineRow.querySelector(".engine-is-enabled input");
 		checkbox.checked = value;
 
 		engine.isEnabled = value;
@@ -1419,9 +1418,9 @@ namespace SSS_Settings
 
 	function setEnabledInContextMenu(engine: SSS.SearchEngine, i: number, value: boolean)
 	{
-		let engineRow = page.engines.children[i];
+		const engineRow = page.engines.children[i];
 
-		let checkbox = engineRow.querySelector(".engine-is-enabled-in-context-menu input");
+		const checkbox = engineRow.querySelector(".engine-is-enabled-in-context-menu input");
 		checkbox.checked = value;
 
 		engine.isEnabledInContextMenu = value;
@@ -1431,10 +1430,10 @@ namespace SSS_Settings
 	// sets the name field for a search engine in the engines table
 	function createElement_EngineName(engine)
 	{
-		let parent = document.createElement("div");
+		const parent = document.createElement("div");
 		parent.className = "engine-name";
 
-		let nameInput = document.createElement("input");
+		const nameInput = document.createElement("input");
 		nameInput.type = "text";
 		nameInput.value = engine.name;
 		nameInput.onchange = _ => {
@@ -1460,10 +1459,10 @@ namespace SSS_Settings
 	// sets the search URL field for a search engine in the engines table
 	function createElement_EngineSearchLink(engine, references)
 	{
-		let parent = document.createElement("div");
+		const parent = document.createElement("div");
 		parent.className = "engine-search-link";
 
-		let searchLinkInput = document.createElement("input");
+		const searchLinkInput = document.createElement("input");
 		searchLinkInput.type = "text";
 		searchLinkInput.value = engine.searchUrl;
 
@@ -1479,7 +1478,7 @@ namespace SSS_Settings
 			if (previousSearchLinkInputValue !== url) {
 				// if we're using the default icon source for the previous search url, update it
 				if (engine.iconUrl.length == 0 || engine.iconUrl === getIconUrlFromSearchUrl(previousSearchLinkInputValue)) {
-					let iconUrl = getIconUrlFromSearchUrl(url);
+					const iconUrl = getIconUrlFromSearchUrl(url);
 					references.iconLinkInput.value = iconUrl;	// doesn't trigger oninput or onchange
 					setIconUrlInput(engine, references.iconLinkInput, references.icon);
 				}
@@ -1504,10 +1503,10 @@ namespace SSS_Settings
 	// sets the icon URL field for a search engine in the engines table
 	function createElement_EngineIconLink(engine, icon, references)
 	{
-		let parent = document.createElement("div");
+		const parent = document.createElement("div");
 		parent.className = "engine-icon-link";
 
-		let iconLinkInput = document.createElement("input");
+		const iconLinkInput = document.createElement("input");
 		iconLinkInput.type = "text";
 		iconLinkInput.value = engine.iconUrl;
 
@@ -1581,10 +1580,10 @@ namespace SSS_Settings
 			// Otherwise, this would be called when pressing backspace.
 			if (newValue.length > 0 && newValue !== engine.shortcut)
 			{
-				let engineWithShortcut = settings.searchEngines.find(e => e.shortcut === newValue);
+				const engineWithShortcut = settings.searchEngines.find(e => e.shortcut === newValue);
 				if (engineWithShortcut)
 				{
-					let engineName = engineWithShortcut.type === SSS.SearchEngineType.SSS
+					const engineName = engineWithShortcut.type === SSS.SearchEngineType.SSS
 						? sssIcons[(engineWithShortcut as SSS.SearchEngine_SSS).id].name
 						: (engineWithShortcut as SSS.SearchEngine_NonSSS).name;
 
@@ -1615,7 +1614,7 @@ namespace SSS_Settings
 
 	function createElement_EngineShortcutFieldDiv()
 	{
-		let parent = document.createElement("div");
+		const parent = document.createElement("div");
 		parent.className = "engine-shortcut";
 		return parent;
 	}
@@ -1623,16 +1622,16 @@ namespace SSS_Settings
 	// sets the delete button for a search engine in the engines table
 	function createElement_DeleteButton(i: number): HTMLDivElement
 	{
-		let parent = createElement_DeleteButtonDiv();
+		const parent = createElement_DeleteButtonDiv();
 
-		let deleteButton = document.createElement("input");
+		const deleteButton = document.createElement("input");
 		deleteButton.type = "button";
 		deleteButton.value = "✖";
 		deleteButton.title = "Delete";
 		deleteButton.onclick = _ => {
 			// Deleting an engine that belongs to one or more groups must also remove it from the groups, so we ask the user for confirmation.
 			const engineToDelete = settings.searchEngines[i];
-			let groupsContainingEngine = settings.searchEngines.filter(
+			const groupsContainingEngine = settings.searchEngines.filter(
 				engine => engine.type === SSS.SearchEngineType.Group && (engine as SSS.SearchEngine_Group).enginesUniqueIds.indexOf(engineToDelete.uniqueId) > -1
 			) as SSS.SearchEngine_Group[];
 
@@ -1662,7 +1661,7 @@ namespace SSS_Settings
 
 	function createElement_DeleteButtonDiv(): HTMLDivElement
 	{
-		let parent = document.createElement("div");
+		const parent = document.createElement("div");
 		parent.className = "engine-delete";
 		return parent;
 	}
@@ -1670,15 +1669,15 @@ namespace SSS_Settings
 	// removes all non-existent engines from the icon cache
 	function trimSearchEnginesCache(settings)
 	{
-		let newCache = {};
+		const newCache = {};
 
-		for (let engine of settings.searchEngines)
+		for (const engine of settings.searchEngines)
 		{
 			if (!engine.iconUrl || engine.iconUrl.startsWith("data:")) {
 				continue;
 			}
 
-			let cachedIcon = settings.searchEnginesCache[engine.iconUrl];
+			const cachedIcon = settings.searchEnginesCache[engine.iconUrl];
 			if (cachedIcon) {
 				newCache[engine.iconUrl] = cachedIcon;
 			}
@@ -1691,9 +1690,9 @@ namespace SSS_Settings
 	// in order to reduce size for an action, and then places them back and returns the action's result
 	function runActionOnDietSettings(settings, onCleaned)
 	{
-		let cache = settings.searchEnginesCache;
+		const cache = settings.searchEnginesCache;
 		delete settings.searchEnginesCache;
-		let result = onCleaned(settings);
+		const result = onCleaned(settings);
 		settings.searchEnginesCache = cache;
 		return result;
 	}

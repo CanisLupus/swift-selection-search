@@ -19,7 +19,7 @@ function runTests()
 	const ES = ExampleSelection;
 	const r = String.raw;
 
-	let tests = [
+	const tests = [
 		// well-formed
 		new Test("searchTerms", r`http://a.com?q={searchTerms{ |+}{_|-}} site:{hostname}`,                        new STM([new Repl(" ", "+"), new Repl("_", "-")], 15, 38),                                 new ES("a b_c_",              "http://a.com?q=a+b-c- site:{hostname}")     ),
 		new Test("searchTerms", r`http://a.com?q={searchTerms{  |+}{_*&|%%}{cenas|coiso}} site:{hostname}`,       new STM([new Repl("  ", "+"), new Repl("_*&", "%%"), new Repl("cenas", "coiso")], 15, 55), new ES("a b_c_",              "http://a.com?q=a b_c_ site:{hostname}")     ),
@@ -126,9 +126,9 @@ function runTests()
 
 	for (const test of tests)
 	{
-		let modifications = SearchVariables.getSearchVariableReplacements(test.url, test.variableName, 0);
-		let replacementsString = JSON.stringify(modifications.modifications);
-		let expectedReplacementsString = JSON.stringify(test.expectedModifications.modifications);
+		const modifications = SearchVariables.getSearchVariableReplacements(test.url, test.variableName, 0);
+		const replacementsString = JSON.stringify(modifications.modifications);
+		const expectedReplacementsString = JSON.stringify(test.expectedModifications.modifications);
 
 		echo("///////////// " + JSON.stringify(test));
 
@@ -142,7 +142,7 @@ function runTests()
 			echo("FAIL\nendIndex\nexpected: " + test.expectedModifications.searchVariableEndIndex + "\nactual:   " + modifications.searchVariableEndIndex);
 		}
 
-		let filteredUrl = SearchVariables.modifySearchVariable(test.url, test.variableName, test.example.selectedText, false);
+		const filteredUrl = SearchVariables.modifySearchVariable(test.url, test.variableName, test.example.selectedText, false);
 		if (filteredUrl != (test.example.expectedResult !== null ? test.example.expectedResult : test.url)) {
 			echo("FAIL\nfilteredUrl\nexpected: " + test.example.expectedResult + "\nactual:   " + filteredUrl);
 		}
