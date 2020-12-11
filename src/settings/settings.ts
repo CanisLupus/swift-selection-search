@@ -953,8 +953,8 @@ namespace SSS_Settings
 			// set an event to close any expanded engine options when clicking outisde a section
 			document.onclick = ev => {
 				if (currentlyExpandedEngineOptions !== null) {
-					// hide if neither itself or any parent has the "section" class
-					if ((ev.target as Element).closest(".section") === null) {
+					// hide if neither itself or any parent is a table row
+					if ((ev.target as Element).closest(".engine-table-row") === null) {
 						currentlyExpandedEngineOptions.style.display = "none";
 					}
 				}
