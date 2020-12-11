@@ -1201,7 +1201,7 @@ namespace SSS_Settings
 			{
 				let engineDescription = document.createElement("div");
 				engineDescription.className = "engine-sss engine-description-small";
-				engineDescription.textContent = "Engine managed by the browser.";
+				engineDescription.textContent = "[Browser] Engine imported from the browser.";
 				engineRow.appendChild(engineDescription);
 			}
 			else if (engine.type === SSS.SearchEngineType.Group)
