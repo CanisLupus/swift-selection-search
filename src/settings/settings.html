@@ -258,6 +258,7 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 	}
 	.engine-sss-name {
 		width: 15%;
+		overflow-x: hidden;	/* fixes cell staying too wide on a narrow window */
 	}
 	.engine-sss-description {
 		width: 85%;
@@ -382,6 +383,7 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 		border-radius: 4px;
 		width: 100%;
 		padding: 0.6rem;
+		margin-top: auto;	/* pushes footer to the bottom */
 	}
 	#group-popup-footer > * {
 		margin: 0.2rem;
@@ -1344,8 +1346,8 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 			<div id="group-available-engines-container"></div>
 		</div>
 		<div id="group-popup-footer">
-			<input type="button" value="Cancel" id="group-popup-cancel-button">
 			<input type="button" value="Save" id="group-popup-save-button">
+			<input type="button" value="Cancel" id="group-popup-cancel-button">
 		</div>
 	</div>
 </div>
