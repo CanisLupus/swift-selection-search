@@ -122,7 +122,6 @@ namespace SSS_Settings
 
 	let sssIcons: { [id: string] : SSS.SSSIconDefinition; };
 	let defaultSettings: SSS.Settings;
-	let uniqueIdToEngineDictionary: { [uniqueId: number] : SSS.SearchEngine; } = {};
 	let browserVersion: number;	// unused for now, but we may want it to control compatibility
 	let hasDOMContentLoaded: boolean = false;
 
@@ -171,7 +170,6 @@ namespace SSS_Settings
 		engine.uniqueId = await browser.runtime.sendMessage({ type: "generateUniqueEngineId" });
 		engine.isEnabled = true;
 		engine.isEnabledInContextMenu = true;
-		uniqueIdToEngineDictionary[engine.uniqueId] = engine;
 		return engine;
 	}
 
@@ -396,7 +394,7 @@ namespace SSS_Settings
 					{
 						for (const engineId of (groupEngine as SSS.SearchEngine_Group).enginesUniqueIds)
 						{
-							const engine = uniqueIdToEngineDictionary[engineId];
+							const engine = settings.searchEngines.find(eng => eng.uniqueId === engineId);
 
 							if (engine.type === SSS.SearchEngineType.Group) {
 								if (engine === engineToFind) return true;
@@ -879,11 +877,6 @@ namespace SSS_Settings
 	{
 		settings = _settings;
 
-		uniqueIdToEngineDictionary = {};
-		for (const engine of settings.searchEngines) {
-			uniqueIdToEngineDictionary[engine.uniqueId] = engine;
-		}
-
 		if (hasPageLoaded) {
 			updateUIWithSettings();
 		}
@@ -1231,7 +1224,7 @@ namespace SSS_Settings
 		// Create a comma-separated string containing the names of the engines.
 		return groupEngine.enginesUniqueIds
 			.map(engineId => {
-				const engine = uniqueIdToEngineDictionary[engineId];
+				const engine = settings.searchEngines.find(eng => eng.uniqueId === engineId);
 				return engine.type === SSS.SearchEngineType.SSS
 					? sssIcons[(engine as SSS.SearchEngine_SSS).id].name
 					: (engine as SSS.SearchEngine_NonSSS).name;
