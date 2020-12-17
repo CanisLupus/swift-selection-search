@@ -250,17 +250,17 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 	.engine-icon-link {
 		width: 35%;
 	}
-	.engine-sss {
+	.engine-uneditable {
 		padding: 4px 4px;
 		border: 1px solid #e5e5e5;
 		background-color: #f5f5f5;
 		border-radius: 4px;
 	}
-	.engine-sss-name {
-		width: 15%;
+	.engine-uneditable-name {
+		width: 14.8%;	/* small width adjustment to look better in relation with editable elements with 15% */
 		overflow-x: hidden;	/* fixes cell staying too wide on a narrow window */
 	}
-	.engine-sss-description {
+	.engine-uneditable-description {
 		width: 85%;
 	}
 	.engine-add-button {
@@ -471,7 +471,7 @@ or loading the user settings, is provided by settings.ts and possibly some helpe
 		color: #ddd;
 	}
 
-	body.dark .engine-sss {
+	body.dark .engine-uneditable {
 		border: 1px solid #45454b;
 		background-color: #45454b;
 	}

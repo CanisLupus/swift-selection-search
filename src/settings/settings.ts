@@ -1158,15 +1158,12 @@ namespace SSS_Settings
 
 			// name
 
-			const engineName = document.createElement("div");
-			engineName.className = "engine-sss engine-sss-name";
-			engineName.textContent = sssIcon.name;
-			engineRow.appendChild(engineName);
+			engineRow.appendChild(createElement_UneditableEngineName(sssIcon.name));
 
 			// description
 
 			const engineDescription = document.createElement("div");
-			engineDescription.className = "engine-sss engine-sss-description";
+			engineDescription.className = "engine-uneditable engine-uneditable-description";
 			engineDescription.textContent = sssIcon.description;
 			engineRow.appendChild(engineDescription);
 
@@ -1180,8 +1177,14 @@ namespace SSS_Settings
 		}
 		else
 		{
-			// create columns for normal icons
-			engineRow.appendChild(createElement_EngineName(engine));
+			// create columns for "normal" icons
+
+			if (engine.type === SSS.SearchEngineType.BrowserSearchApi) {
+				// browser-imported engines can't have their names modified
+				engineRow.appendChild(createElement_UneditableEngineName(engine.name));
+			} else {
+				engineRow.appendChild(createElement_EngineName(engine));
+			}
 
 			// This object keeps references to a few variables so that when the user changes the search URL
 			// we can update the icon URL (if it was using the default URL), and when the icon URL is cleared
@@ -1192,7 +1195,7 @@ namespace SSS_Settings
 			if (engine.type === SSS.SearchEngineType.BrowserSearchApi)
 			{
 				const engineDescription = document.createElement("div");
-				engineDescription.className = "engine-sss engine-description-small";
+				engineDescription.className = "engine-uneditable engine-description-small";
 				engineDescription.textContent = "[Browser] Engine imported from the browser.";
 				engineRow.appendChild(engineDescription);
 			}
@@ -1201,7 +1204,7 @@ namespace SSS_Settings
 				// create columns for groups
 				const engineDescription = document.createElement("div");
 				engineDescription.title = "Click to edit this group";
-				engineDescription.className = "engine-sss engine-description-small group-engine-description";
+				engineDescription.className = "engine-uneditable engine-description-small group-engine-description";
 				engineDescription.textContent = getGroupEngineDescription(engine);
 				engineDescription.onclick = _ => showGroupPopup(engine);
 				engineRow.appendChild(engineDescription);
@@ -1418,6 +1421,15 @@ namespace SSS_Settings
 
 		engine.isEnabledInContextMenu = value;
 		saveSettings({ searchEngines: settings.searchEngines });
+	}
+
+	// sets the uneditable name for a search engine in the engines table
+	function createElement_UneditableEngineName(name: string)
+	{
+		const engineName = document.createElement("div");
+		engineName.className = "engine-uneditable engine-uneditable-name";
+		engineName.textContent = name;
+		return engineName;
 	}
 
 	// sets the name field for a search engine in the engines table
