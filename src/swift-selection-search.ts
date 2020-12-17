@@ -1168,8 +1168,7 @@ namespace SSS
 			}
 			else if (engine_SSS.id === "openAsLink") {
 				const url: string = getOpenAsLinkSearchUrl(searchText);
-				const tab: browser.tabs.Tab = await getTabForSearch(openingBehaviour, 0);
-				await browser.tabs.update(tab.id, { url: url });
+				await createTabForSearch(openingBehaviour, 0, url);
 				if (DEBUG) { log("open as link: " + url); }
 			}
 
@@ -1241,9 +1240,8 @@ namespace SSS
 					openingBehaviour = OpenResultBehaviour.NewBgTabNextToThis;
 				}
 
-				const tab: browser.tabs.Tab = await getTabForSearch(openingBehaviour, tabIndexOffset);
-
-				await browser.tabs.update(tab.id, { url: getSearchQuery(engine_Custom, searchText, new URL(href)) });
+				const query = getSearchQuery(engine_Custom, searchText, new URL(href));
+				const tab: browser.tabs.Tab = await createTabForSearch(openingBehaviour, tabIndexOffset, query);
 
 				if (engine_Custom.discardOnOpen) {
 					// We wanted to have a way to know that the browser has already changed the URL by this point
@@ -1266,12 +1264,22 @@ namespace SSS
 			{
 				const engine_BrowserSearchApi = engine as SearchEngine_BrowserSearchApi;
 
-				const tab: browser.tabs.Tab = await getTabForSearch(openingBehaviour, tabIndexOffset);
+				// NOTE: Ideally, above we'd like to create a new empty tab with createTabForSearch, and then always
+				// call browser.search.search() on that tab.id, which would magically support every opening behaviour.
+				// However, life is sad and another addon can modify the "new tab" page. That would cause a race
+				// condition with this code when it tries to load the search URL. Only on or the other would work.
+
+				// Because of that, we comment this out and resort to the old way that only supports ThisTab or NewTab.
+				// const tab: browser.tabs.Tab = await getTabForSearch(openingBehaviour, tabIndexOffset);
+
+				const tab: browser.tabs.Tab = await getActiveTab();
 
 				await browser.search.search({
 					engine: engine_BrowserSearchApi.name,
 					query: cleanSearchText(searchText),
-					tabId: tab.id,
+					// we want all open behaviours that are not "ThisTab" to open in another tab
+					tabId: openingBehaviour === OpenResultBehaviour.ThisTab ? tab.id : undefined,
+					// tabId: tab.id	// could be simply this if it wasn't for the big explanation above
 				});
 			}
 
@@ -1349,21 +1357,31 @@ namespace SSS
 		return query;
 	}
 
-	// Creates/reuses a tab based on the opening behaviour, to be used for searching afterwards.
-	async function getTabForSearch(openingBehaviour: OpenResultBehaviour, tabIndexOffset: number): Promise<browser.tabs.Tab>
+	// Creates/reuses a tab based on the opening behaviour, to be used for a search (the search is done automatically if searchUrl is not null).
+	async function createTabForSearch(openingBehaviour: OpenResultBehaviour, tabIndexOffset: number, searchUrl: string = null): Promise<browser.tabs.Tab>
 	{
 		const tab: browser.tabs.Tab = await getActiveTab();
 
 		const lastTabIndex: number = 9999;	// "guarantees" tab opens as last for some behaviours
 		const options: object = {};
 
-		if (openingBehaviour !== OpenResultBehaviour.NewWindow && openingBehaviour !== OpenResultBehaviour.NewBgWindow) {
+		if (searchUrl !== null) {
+			options["url"] = searchUrl
+		}
+
+		if (openingBehaviour !== OpenResultBehaviour.ThisTab
+		 && openingBehaviour !== OpenResultBehaviour.NewWindow
+		 && openingBehaviour !== OpenResultBehaviour.NewBgWindow)
+		{
 			options["openerTabId"] = tab.id;	// This makes tabs "children" of other tabs, which is useful for tab managing addons like Tree Style Tab.
 		}
 
 		switch (openingBehaviour)
 		{
 			case OpenResultBehaviour.ThisTab:
+				if (searchUrl !== null) {
+					await browser.tabs.update(tab.id, options);
+				}
 				return tab;	// doesn't actually create a tab, just returns the active one
 
 			case OpenResultBehaviour.NewTab:
