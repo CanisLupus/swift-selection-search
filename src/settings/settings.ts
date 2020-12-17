@@ -365,7 +365,7 @@ namespace SSS_Settings
 		const availableEnginesContainer = document.querySelector("#group-available-engines-container") as HTMLDivElement;	// for engines NOT in the group
 		const engineRowTemplate = document.querySelector("#group-engines-list-row-template") as HTMLTemplateElement;	// will be cloned for each engine to create in the list
 
-		const availableEngines = settings.searchEngines.filter(e => e !== groupEngineToEdit && e.type !== SSS.SearchEngineType.SSS);
+		const availableEngines = settings.searchEngines.filter(e => e !== groupEngineToEdit && e.type !== SSS.SearchEngineType.SSS && e.type !== SSS.SearchEngineType.BrowserSearchApi);
 
 		for (let i = 0; i < availableEngines.length; i++)
 		{
