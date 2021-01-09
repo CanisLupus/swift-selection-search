@@ -415,7 +415,7 @@ namespace SSS
 			// }),
 			createDefaultEngine({
 				name: "Translate to EN",
-				searchUrl: "https://translate.google.com/#view=home&op=translate&sl=auto&tl=en&text={searchTerms}",
+				searchUrl: "https://translate.google.com/?sl=auto&tl=en&op=translate&text={searchTerms}",
 				iconUrl: "https://translate.google.com/favicon.ico",
 			}),
 			createDefaultEngine({
