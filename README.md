@@ -1,6 +1,18 @@
 Swift Selection Search
 =================
 
+-------------------------------
+
+## ⚠ NOTE: Development is on an indefinite break (Sorry!) ⚠
+
+- Please use the issues page _only_ to report very problematic bugs you may find.
+- This project is not accepting pull requests.
+- I do encourage you to work on your own version of SSS and publish it as an improved addon. Even for other browsers!
+
+You can read more about this [here](https://github.com/CanisLupus/swift-selection-search/issues/230).
+
+-------------------------------
+
 ## Description
 
 Swift Selection Search (SSS) is a Firefox add-on for quickly searching for some text in a page using your favorite search engines.

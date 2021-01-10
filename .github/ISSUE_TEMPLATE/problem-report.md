@@ -1,11 +1,20 @@
 ---
-name: Problem report
-about: Create a problem report to help improve SSS
+name: Bug report
+about: Create a bug report
 title: ''
 labels: ''
 assignees: ''
 
 ---
+
+## ⚠ Development is on an indefinite break (Sorry!) ⚠
+
+You can read more about this [here](https://github.com/CanisLupus/swift-selection-search/issues/230).
+
+- No feature suggestions! Sorry!
+- Please only report very problematic bugs. An issue with a single website is minor and probably due to specific formatting, JavaScript, or security policies in that website.
+
+-------------------
 
 **Describe the problem**
 A clear description of what is happening and what should happen.
