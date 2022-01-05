@@ -1127,13 +1127,13 @@ namespace SSS
 			const headerName = responseHeader.name.toLowerCase();
 			if (headerName !== "content-security-policy" && headerName !== "x-webkit-csp") continue;
 
-			const CSP_SOURCE = "style-src";
+			const CSP_SOURCE = "style-src ";	// the trailing space is important, otherwise we also match things like "style-src-attr" or "style-src-elem"
 
 			if (responseHeader.value.includes(CSP_SOURCE))
 			{
 				if (DEBUG) { log("CSP is: " + responseHeader.value); }
-				responseHeader.value = responseHeader.value.replace(CSP_SOURCE, CSP_SOURCE + " 'unsafe-inline'");
-				if (DEBUG) { log("modified CSP to include style-src 'unsafe-inline'"); }
+				responseHeader.value = responseHeader.value.replace(CSP_SOURCE, CSP_SOURCE + "'unsafe-inline' ");
+				if (DEBUG) { log("modified CSP to include style-src 'unsafe-inline': " + responseHeader.value); }
 			}
 		}
 
