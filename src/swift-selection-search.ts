@@ -2,10 +2,10 @@
 
 This is the background script for SSS. It's always running. Things it does:
 
-- Injects content scripts (a.k.a. page scripts) into each tab that is opened, to be able to show the engines popup there.
-- Registers the search engines to appear on Firefox's context menu.
+- Injects content scripts (a.k.a. page scripts) into each tab that is opened, so that the engines popup can appear there.
+- Registers the search engines to appear in Firefox's context menu.
 - Trades messages with the content scripts.
-	To initialize them, be informed of search engine clicks to begin searches, among other things.
+	To initialize them, to be informed of search engine clicks to begin searches, etc.
 - Detects changes to settings from the options page and resets all running page scripts to use the new settings.
 	Also updates settings objects created on previous SSS versions to contain new settings.
 
@@ -759,7 +759,9 @@ namespace SSS
 		if (sss.blockedWebsitesCache.length == 0) return false;
 		if (!tab.url) return false;	// tab.url is undefined if we don't have the "tabs" permission
 
-		const index = tab.url.indexOf("://");	// NOTE: assumes the URL does NOT contain :// at an index much after the protocol
+		// NOTE: This indexOf assumes that if :// is present, it's right after the protocol, but here's a valid URL that breaks this:
+		// "es:some text like http://abc.com" ("es" is the protocol used by the search tool Everything).
+		const index = tab.url.indexOf("://");
 		const url: string = index >= 0 ? tab.url.substr(index + 3) : tab.url;
 
 		for (const regex of sss.blockedWebsitesCache)
@@ -1267,7 +1269,7 @@ namespace SSS
 				// NOTE: Ideally, above we'd like to create a new empty tab with createTabForSearch, and then always
 				// call browser.search.search() on that tab.id, which would magically support every opening behaviour.
 				// However, life is sad and another addon can modify the "new tab" page. That would cause a race
-				// condition with this code when it tries to load the search URL. Only on or the other would work.
+				// condition with this code when it tries to load the search URL. Only one or the other would work.
 
 				// Because of that, we comment this out and resort to the old way that only supports ThisTab or NewTab.
 				// const tab: browser.tabs.Tab = await getTabForSearch(openingBehaviour, tabIndexOffset);
