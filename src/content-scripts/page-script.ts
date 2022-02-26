@@ -93,6 +93,12 @@ namespace ContentScript
 				if (activationSettings !== null) {
 					deactivate();
 				}
+
+				// refuse activation on non-HTML documents like XML
+				if (document.documentElement.nodeName !== "HTML") {
+					break;
+				}
+
 				activate(msg.activationSettings, msg.isPageBlocked);	// background script passes a few settings needed for setup
 				break;
 
