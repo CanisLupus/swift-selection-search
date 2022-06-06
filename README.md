@@ -29,7 +29,7 @@ https://addons.mozilla.org/firefox/addon/swift-selection-search
 
 ## How to build
 
-Firstly, since WebExtensions are made in JavaScript, we need to be able to convert TypeScript to JavaScript, preferrably in a way that is as automatic as possible.
+Firstly, since WebExtensions are made in JavaScript, we need to be able to convert TypeScript to JavaScript, preferably in a way that is as automatic as possible.
 
 1. Install *npm*. Download *Node.js* from https://nodejs.org and you will get *npm* alongside it.
 
@@ -61,7 +61,7 @@ Now you have .js files, so you can use SSS as a WebExtension. Yay!
 
 1. Learn that SSS has 3 main branches:
 	- **master** - Final versions that are published to Mozilla Add-ons. "master" will usually point to a commit where the SSS version changes, since those are the ones published (commonly, there's a commit just to update the version).
-	- **develop** -  Where development happens and where new features will be merged to. Less stable but shouldn't have incomplete features.
+	- **develop** -  Where development happens and where new features will be merged to. Less stable, but shouldn't have incomplete features.
 	- **addon-sdk** - Can be ignored, since it's the code for SSS before it was a WebExtension. Essentially an archive.
 
 1. Read the code guidelines below.
@@ -95,8 +95,8 @@ Content scripts don't see code from the background script, or vice-versa, and th
 
 An example that works is that we can declare types/classes in the background script and reference them in other scripts, since only the type checker cares about them. We get type checking and it's fine.
 
-However, if we try adding to those classes some methods, variable assignments, etc, then content scripts or options page scripts won't see these. When transpiling to JavaScript, they will be left as a reference to code in another script, which can't be referenced at runtime due to WebExtensions sandboxing. This is also true of enums (which have concrete values, so "data") UNLESS we declare them as "const enum", in which case TypeScript copies their values to where they are used instead of creating JavaScript objects.
+However, if we try adding to those classes some methods, variable assignments, etc, then content scripts or options page scripts won't see these. When transpiling to JavaScript, they will be left as a reference to code in another script, which can't be referenced at runtime due to WebExtensions sandboxing. This is also true of enums (which have concrete values, so "data") UNLESS we declare them as `const enum`, in which case TypeScript copies their values to where they are used instead of creating JavaScript objects.
 
 So, if you see a class fully or partially declared in more than one script in this project (for example in both background script and page script), the above is why.
 
-Another thing that may fail is using instanceof to check if an object is of a certain class. Don't do this for custom created classes since it may fail due to the sandboxing.
+Another thing that may fail is using `instanceof` to check if an object is of a certain class. Don't do this for custom created classes since it may fail due to the sandboxing.
