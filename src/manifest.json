@@ -18,7 +18,7 @@
 	"applications": {
 		"gecko": {
 			"id": "jid1-KdTtiCj6wxVAFA@jetpack",
-			"strict_min_version": "63.0"
+			"strict_min_version": "66.0"
 		}
 	},
 
@@ -34,11 +34,11 @@
 	"commands": {
 		"open-popup": {
 			"suggested_key": { "default": "Ctrl+Shift+Space" },
-			"description": "Key combination to open popup"
+			"description": "Open the popup (if text is selected)"
 		},
 		"toggle-auto-popup": {
 			"suggested_key": { "default": "Ctrl+Shift+U" },
-			"description": "Key combination to toggle auto popup opening"
+			"description": "Switch popup opening behaviour between \"Auto\" and \"Keyboard-only\""
 		}
 	},
 

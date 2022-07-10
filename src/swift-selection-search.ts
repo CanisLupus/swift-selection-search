@@ -105,8 +105,6 @@ namespace SSS
 		hidePopupOnRightClick: boolean;
 		hidePopupOnSearch: boolean;
 		useEngineShortcutWithoutPopup: boolean;
-		popupOpenCommand: string;
-		popupDisableCommand: string;
 		mouseLeftButtonBehaviour: OpenResultBehaviour;
 		mouseRightButtonBehaviour: OpenResultBehaviour;
 		mouseMiddleButtonBehaviour: OpenResultBehaviour;
@@ -290,8 +288,6 @@ namespace SSS
 		hidePopupOnRightClick: true,
 		hidePopupOnSearch: true,
 		useEngineShortcutWithoutPopup: false,
-		popupOpenCommand: "Ctrl+Shift+Space",
-		popupDisableCommand: "Ctrl+Shift+U",
 		mouseLeftButtonBehaviour: OpenResultBehaviour.ThisTab,
 		mouseRightButtonBehaviour: OpenResultBehaviour.ThisTab,
 		mouseMiddleButtonBehaviour: OpenResultBehaviour.NewBgTabNextToThis,
@@ -631,8 +627,8 @@ namespace SSS
 		if (createSettingIfNonExistent(settings, "middleMouseSelectionClickMargin"))      shouldSave = true; // 3.14.1
 		if (createSettingIfNonExistent(settings, "hidePopupOnRightClick"))                shouldSave = true; // 3.15.0
 		if (createSettingIfNonExistent(settings, "popupSeparatorWidth"))                  shouldSave = true; // 3.21.0
-		if (createSettingIfNonExistent(settings, "popupOpenCommand"))                     shouldSave = true; // 3.22.0
-		if (createSettingIfNonExistent(settings, "popupDisableCommand"))                  shouldSave = true; // 3.22.0
+		// if (createSettingIfNonExistent(settings, "popupOpenCommand"))                  shouldSave = true; // 3.22.0, removed in 3.48.0
+		// if (createSettingIfNonExistent(settings, "popupDisableCommand"))               shouldSave = true; // 3.22.0, removed in 3.48.0
 		if (createSettingIfNonExistent(settings, "iconAlignmentInGrid"))                  shouldSave = true; // 3.25.0
 		if (createSettingIfNonExistent(settings, "popupDelay"))                           shouldSave = true; // 3.29.0
 		if (createSettingIfNonExistent(settings, "maxSelectedCharacters"))                shouldSave = true; // 3.30.0
@@ -688,6 +684,10 @@ namespace SSS
 				shouldSave = true;
 			}
 		}
+
+		// 3.48.0
+		// Settings "popupOpenCommand" and "popupDisableCommand" could be deleted now, but we are
+		// keeping them in case SSS needs to be reverted to the old version for some reason.
 
 		return shouldSave;
 	}
@@ -973,22 +973,6 @@ namespace SSS
 		// register keyboard shortcuts
 		if (sss.settings.popupOpenBehaviour !== PopupOpenBehaviour.Off) {
 			browser.commands.onCommand.addListener(onCommand);
-		}
-
-		updateCommand("open-popup", sss.settings.popupOpenCommand);
-		updateCommand("toggle-auto-popup", sss.settings.popupDisableCommand);
-
-		function updateCommand(name, shortcut)
-		{
-			shortcut = shortcut.trim();
-
-			try {
-				browser.commands.update({ name: name, shortcut: shortcut });
-			} catch {
-				// Since WebExtensions don't provide a way (that I know of) to simply disable a shortcut,
-				// if the combination is invalid pick something that is reserved for the browser and so won't work.
-				browser.commands.update({ name: name, shortcut: "Ctrl+P" });
-			}
 		}
 	}
 
