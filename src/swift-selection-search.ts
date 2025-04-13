@@ -189,7 +189,8 @@ namespace SSS
 
 	export const enum SearchEngineIconsSource {
 		None = "none",
-		FaviconKit = "favicon-kit",
+		FaviconKit = "favicon-kit",	// only kept for retrocompatibility (also in the dropdown); Favicon Kit is retired
+		Google = "google",
 	}
 
 	export const enum PopupOpenBehaviour {
@@ -275,7 +276,7 @@ namespace SSS
 
 		useDarkModeInOptionsPage: false,
 
-		searchEngineIconsSource: SearchEngineIconsSource.FaviconKit,
+		searchEngineIconsSource: SearchEngineIconsSource.Google,
 
 		popupOpenBehaviour: PopupOpenBehaviour.Auto,
 		middleMouseSelectionClickMargin: 14,
@@ -688,6 +689,12 @@ namespace SSS
 		// 3.48.0
 		// Settings "popupOpenCommand" and "popupDisableCommand" could be deleted now, but we are
 		// keeping them in case SSS needs to be reverted to the old version for some reason.
+
+		// 3.49.0
+		if (settings.searchEngineIconsSource === SearchEngineIconsSource.FaviconKit) {
+			settings.searchEngineIconsSource = SearchEngineIconsSource.Google;
+			shouldSave = true;
+		}
 
 		return shouldSave;
 	}

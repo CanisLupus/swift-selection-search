@@ -1772,13 +1772,15 @@ namespace SSS_Settings
 	function getIconUrlFromSearchUrl(url)
 	{
 		if (settings.searchEngineIconsSource === SSS.SearchEngineIconsSource.FaviconKit) {
-			return "https://api.faviconkit.com/" + getDomainFromUrl(url) + "/64";
+			return "https://api.faviconkit.com/" + getDomainFromUrl(url, true) + "/64";
+		} else if (settings.searchEngineIconsSource === SSS.SearchEngineIconsSource.Google) {
+			return "https://www.google.com/s2/favicons?domain=" + getDomainFromUrl(url) + "&sz=64";
 		} else {
 			return "";
 		}
 	}
 
-	function getDomainFromUrl(url)
+	function getDomainFromUrl(url, preserveWWW: boolean = false)
 	{
 		if (url.indexOf("//") !== -1) {
 			url = url.split("//")[1];
@@ -1786,6 +1788,11 @@ namespace SSS_Settings
 		url = url.split("/")[0];	// url after domain
 		url = url.split(":")[0];	// port
 		url = url.split("?")[0];	// args
+
+		if (!preserveWWW && url.startsWith("www.")) {
+			url = url.replace("www.", "");
+		}
+
 		return url;
 	}
 }
